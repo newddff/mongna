@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>몽나 - 방송 일정표</title>
+<title>몽다살 - 방송 일정표</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
 <style>
   /* 💡 카테고리 색상을 관리하기 위한 CSS 변수 */
@@ -16,57 +16,55 @@
     --color-같이보기: #20c997;
   }
 
-  /* --- 기본 배경 및 상단바 --- */
+  /* --- 기본 배경 --- */
   body { background-color: #C1ACD7; color: #333; margin: 0; min-height: 100vh; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   .app-container { display: flex; flex-direction: column; align-items: center; }
-  
-  /* 💡 상단 메뉴바 (홈 화면과 통일된 유리 효과 및 디자인) */
-  .top-nav-bar {
-    width: 100%; height: 70px; display: flex;
-    align-items: center; justify-content: space-between; padding: 0 40px;
-    box-sizing: border-box; margin-bottom: 30px; 
+
+  /* 💡 통일된 상단 네비게이션 바 */
+  .top-nav {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 30px;
   }
-  
-  /* 💡 로고 이미지 스타일 */
-  .logo-wrap {
-    display: flex; align-items: center; text-decoration: none;
-    transition: 0.2s; flex-shrink: 0;
+  .nav-inner {
+    max-width: 1400px; margin: 0 auto; padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
   }
+  .logo-wrap { display: flex; align-items: center; text-decoration: none; transition: 0.2s; }
   .logo-wrap:hover { transform: scale(1.02); }
   .logo-img { height: 40px; object-fit: contain; }
 
-  /* 💡 네비게이션 메뉴 (홈 화면과 통일) */
-  .nav-menu { display: flex; gap: 30px; font-weight: 800; color: #1e293b; font-size: 15px; align-items: center; flex-wrap: wrap; justify-content: center; }
-  .nav-menu a { text-decoration: none; color: inherit; cursor: pointer; transition: 0.2s ease; position: relative; }
-  .nav-menu a:hover, .nav-menu a.active { color: #a855f7; }
-  .nav-menu a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 3px; background: #a855f7; border-radius: 2px;}
+  .nav-menu { display: flex; gap: 30px; font-weight: 800; color: #333; font-size: 15px;}
+  .nav-menu a { text-decoration: none; color: inherit; transition: 0.2s; position: relative;}
+  .nav-menu a:hover, .nav-menu a.active { color: #8b5cf6; }
+  .nav-menu a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 3px; background: #8b5cf6; border-radius: 2px;}
 
-  /* 관리자 관련 버튼 영역 */
-  .admin-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .admin-toggle-btn {
-    border: 1px solid #ddd; padding: 6px 16px; border-radius: 20px; cursor: pointer;
-    font-weight: bold; transition: 0.2s;
+  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 99px; border: 1px solid #e4dceb;
+    background: #fff; color: #555; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
   }
-  .admin-toggle-btn.on { background-color: #ffd700; border-color: #ffd700; color: #333; }
-  .admin-toggle-btn.off { background-color: white; color: #1e293b; }
+  .icon-btn:hover { background: #f0edf4; color: #333; border-color: #8b5cf6; }
   
-  .admin-settings-btn {
-    background: #f1f5f9; border: none; font-size: 18px; cursor: pointer; display: none; 
-    border-radius: 50%; width: 36px; height: 36px; align-items: center; justify-content: center; transition: 0.2s;
+  .admin-toggle-btn {
+    padding: 8px 18px; border-radius: 99px; font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
   }
-  .admin-settings-btn:hover { background: #e2e8f0; transform: rotate(45deg); }
+  .admin-toggle-btn.off { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+  .admin-toggle-btn.off:hover { border-color: #8b5cf6; }
+  .admin-toggle-btn.on { background: #ffd700; color: #333; box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3); }
+
+  @media (max-width: 850px) { .nav-menu { display: none; } }
 
   /* 캘린더 래퍼 */
   .app-wrapper {
     background-color: #ffffff; width: 96vw; max-width: 1400px; 
-    border-radius: 24px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     padding: 40px; box-sizing: border-box; margin-bottom: 40px; 
   }
   .main-content { display: flex; gap: 40px; }
 
-  .calendar-section { flex: 3; display: flex; flex-direction: column; min-width: 0; }
+  .calendar-section { flex: 3; display: flex; flex-direction: column; min-width: 0; /* 💡 flex 항목이 화면을 넘어가지 않도록 방어 */ }
 
   /* 년/월 빠른 이동 헤더 */
   .calendar-header { display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 30px; }
@@ -77,7 +75,7 @@
   .month-selector select {
     appearance: none; -webkit-appearance: none;
     background-color: #f8f6fb; border: 1px solid #e4dceb; border-radius: 12px; outline: none;
-    padding: 8px 36px 8px 16px; font-size: 26px; font-weight: 900; color: #333; cursor: pointer; transition: all 0.2s;
+    padding: 8px 36px 8px 16px; font-size: 26px; font-weight: 700; color: #333; cursor: pointer; transition: all 0.2s;
     background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjQzFBQ0Q3JyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCc+PHBvbHlsaW5lIHBvaW50cz0nNiA5IDEyIDE1IDE4IDknLz48L3N2Zz4=");
     background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
   }
@@ -86,15 +84,15 @@
   }
   .month-selector span { font-size: 20px; font-weight: 700; color: #555; margin-right: 5px; }
 
-  /* 모바일 가로 스크롤을 위한 달력 스크롤 영역 추가 */
+  /* 💡 모바일 가로 스크롤을 위한 달력 스크롤 영역 추가 */
   .calendar-scroll-area {
     width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
-    padding-bottom: 10px;
+    padding-bottom: 10px; /* 스크롤바 여백 */
   }
 
-  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #ddd; border-left: 1px solid #ddd; min-width: 700px; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #ddd; border-left: 1px solid #ddd; min-width: 700px; /* 💡 폰에서도 찌그러지지 않게 최소 가로폭 고정 */ }
   .days-of-week { background-color: #fafafa; text-align: center; font-weight: bold; }
-  .day-name { padding: 15px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; color: #475569;}
+  .day-name { padding: 15px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; }
   .calendar-cell {
     min-height: 120px; padding: 8px; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
     background-color: #fff; display: flex; flex-direction: column; align-items: flex-start;
@@ -105,8 +103,8 @@
   .history-item.draggable { cursor: grab; }
   .history-item.draggable:active { cursor: grabbing; }
   .date-number { font-size: 15px; font-weight: bold; margin-bottom: 5px; pointer-events: none; }
-  .sunday .date-number, .sunday.day-name { color: #ff6b6b; }
-  .saturday .date-number, .saturday.day-name { color: #4dabf7; }
+  .sunday .date-number { color: #ff6b6b; }
+  .saturday .date-number { color: #4dabf7; }
   .calendar-cell.today { background-color: rgba(193, 172, 215, 0.2); box-shadow: inset 0 0 0 2px #C1ACD7; }
 
   /* 카테고리별 색상 변경 (CSS 변수 연동) */
@@ -120,12 +118,10 @@
   .cell-schedules { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 5px; }
   
   .cell-schedule-item {
-    font-size: 12px; padding: 6px; border-radius: 6px; font-weight: bold; 
+    font-size: 11px; padding: 6px; border-radius: 6px; font-weight: bold; 
     box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; line-height: 1.35;
-    display: block; overflow: hidden; text-align: left; transition: 0.2s;
+    display: block; overflow: hidden; text-align: left;
   }
-  .cell-schedule-item:hover { transform: translateY(-1px); filter: brightness(0.95); }
-  
   /* 달력 일정 시간 및 텍스트 스타일 */
   .sch-time-label { display: inline-block; opacity: 0.95; margin-bottom: 4px; font-size: 0.85em; font-weight: 800; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px; }
   .sch-title-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
@@ -218,9 +214,9 @@
   /* 💡 스마트폰 등 모바일 가시성 최적화 */
   @media (max-width: 768px) {
     .main-content { flex-direction: column; }
-    .top-nav-bar { flex-direction: column; height: auto; padding: 15px; gap: 15px; position: static; }
+    .top-nav { height: auto; }
+    .nav-inner { flex-direction: column; gap: 15px; padding: 15px; }
     .nav-menu { flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 13px; }
-    .admin-wrap { width: 100%; justify-content: center; }
     .app-wrapper { padding: 15px; width: 98vw; }
     .calendar-cell { min-height: 100px; padding: 6px; }
     .date-number { font-size: 13px; }
@@ -231,30 +227,33 @@
 </head>
 <body>
 
-<div class="app-container">
-  
-  <div class="top-nav-bar">
+<!-- 💡 통일된 상단 메뉴바 -->
+<nav class="top-nav">
+  <div class="nav-inner">
     <a href="index.html" class="logo-wrap">
       <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
     </a>
-    
+
     <div class="nav-menu">
       <a href="index.html">홈</a>
-      <a href="calender.html">캘린더</a>
+      <a href="#" class="active">캘린더</a> <!-- 캘린더 페이지이므로 활성화 -->
       <a href="song.html">노래책</a>
       <a href="reward.html">업보(보상)</a>
       <a href="vod.html">VOD</a>
     </div>
-    
-    <div class="admin-wrap">
-      <button id="adminSettingsBtn" class="admin-settings-btn" onclick="openColorSettingsModal()" title="카테고리 색상 설정">⚙️</button>
-      <button id="adminToggleBtn" class="admin-toggle-btn off" onclick="toggleAdmin()">🔒 로그인</button>
+
+    <div class="nav-actions">
+      <button id="adminSettingsBtn" class="icon-btn" onclick="openColorSettingsModal()" title="카테고리 색상 설정" style="display:none;">⚙️</button>
+      <button id="adminToggleBtn" class="admin-toggle-btn off" onclick="toggleAdmin()">🔒 관리자 로그인</button>
     </div>
   </div>
+</nav>
 
+<div class="app-container">
   <div class="app-wrapper">
     <div class="main-content">
       
+      <!-- 왼쪽: 캘린더 영역 -->
       <div class="calendar-section">
         <div class="calendar-header">
           <button class="nav-btn" onclick="prevMonth()">◀</button>
@@ -267,6 +266,7 @@
           <button class="nav-btn" onclick="nextMonth()">▶</button>
         </div>
         
+        <!-- 💡 모바일 가로 스크롤을 위한 래퍼 추가 -->
         <div class="calendar-scroll-area">
           <div class="calendar-grid days-of-week">
             <div class="day-name sunday">일</div>
@@ -281,6 +281,7 @@
         </div>
       </div>
 
+      <!-- 오른쪽: 편의 기능 사이드바 -->
       <div class="up-sidebar-section">
         <div class="sidebar-block">
           <div class="sidebar-header">
@@ -316,6 +317,7 @@
   </div>
 </div>
 
+<!-- ➕ 일정 추가/수정 통합 모달 -->
 <div class="modal-overlay" id="addModal" onclick="closeAddModal()">
   <div class="modal-content add-modal" onclick="event.stopPropagation()">
     <div class="modal-top-bar">
@@ -364,6 +366,7 @@
   </div>
 </div>
 
+<!-- 👁️ 일정 뷰어 모달 -->
 <div class="modal-overlay" id="viewModal" onclick="closeViewModal()">
   <div class="modal-content view-modal" onclick="event.stopPropagation()">
     <button class="modal-close-btn absolute-close" onclick="closeViewModal()">✕</button>
@@ -380,6 +383,7 @@
   </div>
 </div>
 
+<!-- 🎨 톱니바퀴: 색상 설정 모달 -->
 <div class="modal-overlay" id="colorSettingsModal" onclick="closeColorSettingsModal()">
   <div class="modal-content add-modal" onclick="event.stopPropagation()">
     <div class="modal-top-bar" style="margin-bottom:20px;">
@@ -416,6 +420,7 @@
   </div>
 </div>
 
+<!-- Firebase Modular SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
@@ -515,7 +520,7 @@
     } catch (e) { console.error("사이드바 로드 에러:", e); }
   });
 
-  // --- 스케줄 초기 데이터 (최초 백업용) ---
+  // --- 💡 스케줄 초기 데이터 (최초 백업용) ---
   const initialSchedules = {
     // ---- 2024년 3월 ----
     "2024-3-5": [ { id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" } ],
@@ -911,16 +916,18 @@
     const settingsBtn = document.getElementById('adminSettingsBtn'); 
     if (isAdmin) {
       btn.className = 'admin-toggle-btn on';
-      btn.textContent = '👑 관리자';
+      btn.textContent = '👑 관리자 모드';
       settingsBtn.style.display = 'flex'; 
       document.getElementById('adminGameSearchControls').style.display = 'block';
       document.getElementById('adminMemoControls').style.display = 'block';
+      if(document.getElementById('adminRewardArea')) document.getElementById('adminRewardArea').style.display = 'block'; 
     } else {
       btn.className = 'admin-toggle-btn off';
-      btn.textContent = '🔒 로그인';
+      btn.textContent = '🔒 관리자 로그인';
       settingsBtn.style.display = 'none'; 
       document.getElementById('adminGameSearchControls').style.display = 'none';
       document.getElementById('adminMemoControls').style.display = 'none';
+      if(document.getElementById('adminRewardArea')) document.getElementById('adminRewardArea').style.display = 'none'; 
     }
     renderSearchHistory();
     loadMemoList();
@@ -1042,4 +1049,171 @@
     
     if (gameName) {
       const newSch = {
-        id: Date.now(), title: gameName, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_
+        id: Date.now(), title: gameName, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${gameName}|${gameLink}`, vodLink: ''
+      };
+      if (!schedules[dateKey]) schedules[dateKey] = [];
+      schedules[dateKey].push(newSch);
+      
+      try {
+        await setDoc(scheduleRef, { data: schedules }, { merge: true });
+        window.openViewModal(newSch, dateKey);
+        if (gameIndex !== undefined && gameIndex !== null && gameIndex !== "") { window.deleteHistory(parseInt(gameIndex, 10)); }
+      } catch (e) { console.error("일정 저장 오류:", e); }
+    }
+  };
+
+  window.openAddModal = function(dateKey) {
+    if (!isAdmin) { alert("일정 추가는 관리자만 가능합니다."); return; }
+    isEditing = false; selectedDate = dateKey; const [y, m, d] = dateKey.split('-');
+    
+    document.getElementById('addModalDateBadge').textContent = `${y}년 ${m}월 ${d}일 일정 등록`;
+    document.getElementById('schTitle').value = '';
+    document.getElementById('schTime').value = '시간 미정'; window.selectType('방송'); 
+    document.getElementById('schMembers').value = ''; document.getElementById('schContent').value = ''; document.getElementById('schVod').value = '';
+    document.getElementById('modalSaveBtn').textContent = '일정 등록하기';
+    document.getElementById('addModal').style.display = 'flex';
+  };
+
+  window.openEditModal = function() {
+    window.closeViewModal(); isEditing = true; const daySchedules = schedules[selectedDate] || [];
+    const target = daySchedules.find(s => s.id === viewTargetSchId); if (!target) return;
+    const [y, m, d] = selectedDate.split('-');
+    document.getElementById('addModalDateBadge').textContent = `${y}년 ${m}월 ${d}일 일정 수정`;
+    document.getElementById('schTitle').value = target.title;
+    document.getElementById('schTime').value = target.time || '시간 미정'; window.selectType(target.type);
+    document.getElementById('schMembers').value = target.members ? target.members.join(', ') : '';
+    document.getElementById('schContent').value = target.content || ''; document.getElementById('schVod').value = target.vodLink || '';
+    document.getElementById('modalSaveBtn').textContent = '일정 수정 완료';
+    document.getElementById('addModal').style.display = 'flex';
+  };
+
+  window.closeAddModal = function() { document.getElementById('addModal').style.display = 'none'; };
+
+  window.selectType = function(type) {
+    currentSchType = type;
+    document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tag-btn.type-${type}`).classList.add('active');
+    document.getElementById('membersWrap').style.display = (type === '합방') ? 'flex' : 'none';
+  };
+
+  window.saveSchedule = async function() {
+    const title = document.getElementById('schTitle').value.trim();
+    if (!title) { alert("일정 제목을 입력해주세요!"); return; }
+    let members = [];
+    if (currentSchType === '합방') { const raw = document.getElementById('schMembers').value; members = raw.split(',').map(m => m.trim()).filter(m => m !== ''); }
+
+    if (isEditing) {
+      schedules[selectedDate] = schedules[selectedDate].map(s => {
+        if (s.id === viewTargetSchId) {
+          return { ...s, title: title, time: document.getElementById('schTime').value, type: currentSchType, members: members, content: document.getElementById('schContent').value, vodLink: document.getElementById('schVod').value };
+        }
+        return s;
+      });
+    } else {
+      const newSch = { id: Date.now(), title: title, time: document.getElementById('schTime').value, type: currentSchType, members: members, content: document.getElementById('schContent').value, vodLink: document.getElementById('schVod').value };
+      if (!schedules[selectedDate]) schedules[selectedDate] = []; schedules[selectedDate].push(newSch);
+    }
+
+    try { await setDoc(scheduleRef, { data: schedules }, { merge: true }); window.closeAddModal(); } catch (e) { alert("일정 저장 중 오류가 발생했습니다."); }
+  };
+
+  window.openViewModal = function(sch, dateKey) {
+    selectedDate = dateKey; viewTargetSchId = sch.id;
+    document.getElementById('viewTitle').textContent = escapeHtml(sch.title);
+    
+    const tagsContainer = document.getElementById('viewTags'); tagsContainer.innerHTML = '';
+    if (sch.time && sch.time !== '시간 미정') { tagsContainer.innerHTML += `<span class="view-tag time-tag">${escapeHtml(sch.time)}</span>`; }
+    tagsContainer.innerHTML += `<span class="view-tag type-tag type-${sch.type}">${escapeHtml(sch.type)}</span>`;
+
+    const avatarsContainer = document.getElementById('viewAvatars'); avatarsContainer.innerHTML = '';
+    if (sch.type === '합방' && sch.members && sch.members.length > 0) {
+      sch.members.forEach(name => { avatarsContainer.innerHTML += `<div style="background-color: #f0edf4; color: #5d4037; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">👤 ${escapeHtml(name)}</div>`; });
+    }
+
+    const contentEl = document.getElementById('viewContent');
+    if (sch.content) {
+      if (sch.content.startsWith('[GAME_LINK]')) {
+        const parts = sch.content.replace('[GAME_LINK]', '').split('|'); const gName = parts[0]; const gLink = parts[1] || '#';
+        contentEl.innerHTML = `<a href="${escapeHtml(gLink)}" target="_blank" class="dropped-game-pill">🎮 ${escapeHtml(gName)}</a>`;
+        contentEl.classList.add('game-dropped'); contentEl.style.display = 'flex';
+      } else {
+        contentEl.textContent = sch.content; contentEl.classList.remove('game-dropped'); contentEl.style.display = 'block';
+      }
+    } else { contentEl.style.display = 'none'; }
+
+    const vodBtn = document.getElementById('viewVodBtn');
+    if (sch.vodLink) { vodBtn.href = sch.vodLink.startsWith('http') ? sch.vodLink : `https://${sch.vodLink}`; vodBtn.style.display = 'block'; } else { vodBtn.style.display = 'none'; }
+
+    document.getElementById('adminActionBtns').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('viewModal').style.display = 'flex';
+  };
+
+  window.closeViewModal = function() { document.getElementById('viewModal').style.display = 'none'; };
+
+  window.deleteSchedule = async function() {
+    if (confirm("정말로 이 일정을 삭제하시겠습니까?")) {
+      schedules[selectedDate] = schedules[selectedDate].filter(s => s.id !== viewTargetSchId);
+      try { await setDoc(scheduleRef, { data: schedules }, { merge: true }); window.closeViewModal(); } catch (e) { alert("일정 삭제 중 오류가 발생했습니다."); }
+    }
+  };
+
+  window.searchGame = async function(engine) {
+    if (!isAdmin) return alert("관리자만 검색 기록을 남길 수 있습니다.");
+    const query = document.getElementById('gameSearchInput').value.trim(); if (!query) { alert("검색할 게임 제목을 입력해주세요!"); return; }
+    if (engine === 'steam') { window.open('https://store.steampowered.com/search/?term=' + encodeURIComponent(query), '_blank'); } else if (engine === 'google') { window.open('https://www.google.com/search?q=' + encodeURIComponent(query + ' 게임'), '_blank'); }
+    if (!searchHistory.some(h => h && h.query === query && h.engine === engine)) {
+      searchHistory.unshift({ query, engine }); if (searchHistory.length > 5) searchHistory.pop();
+      await setDoc(sidebarRef, { searchHistory: searchHistory }, { merge: true });
+    }
+    document.getElementById('gameSearchInput').value = '';
+  };
+
+  function renderSearchHistory() {
+    const container = document.getElementById('searchHistoryList'); container.innerHTML = '';
+    searchHistory.forEach((h, index) => {
+      if (!h || !h.query) return;
+      const icon = h.engine === 'steam' ? '💨' : '🔍';
+      const link = h.engine === 'steam' ? 'https://store.steampowered.com/search/?term=' + encodeURIComponent(h.query) : 'https://www.google.com/search?q=' + encodeURIComponent(h.query + ' 게임');
+      const deleteBtn = isAdmin ? `<button class="history-delete-btn" onclick="window.deleteHistory(${index})">✕</button>` : '';
+      const escapedQuery = escapeHtml(h.query);
+      const draggableAttr = isAdmin ? `draggable="true" data-query="${escapedQuery}" data-link="${link}" data-index="${index}" ondragstart="window.dragGame(event)"` : '';
+      const grabClass = isAdmin ? 'draggable' : '';
+
+      container.innerHTML += `<div class="history-item ${grabClass}" ${draggableAttr}><a href="${link}" target="_blank" class="link-text">${icon} ${escapedQuery}</a>${deleteBtn}</div>`;
+    });
+  }
+
+  window.deleteHistory = async function(index) {
+    if(!isAdmin) return; searchHistory.splice(index, 1); await setDoc(sidebarRef, { searchHistory: searchHistory }, { merge: true });
+  };
+
+  function loadMemoList() {
+    const container = document.getElementById('memoListContainer'); container.innerHTML = '';
+    if (memoList.length === 0) { container.innerHTML = `<div style="text-align:center; color:#aaa; font-size:12px; padding:15px 0;">작성된 메모가 없습니다.</div>`; return; }
+    memoList.forEach((memo, index) => {
+      if (!memo || !memo.text) return; 
+      const deleteBtn = isAdmin ? `<button class="memo-delete-btn" onclick="window.deleteMemo(${index})">✕</button>` : '';
+      container.innerHTML += `<div class="memo-card">${deleteBtn}<div class="memo-card-date">${escapeHtml(memo.date)}</div><div class="memo-card-text">${escapeHtml(memo.text)}</div></div>`;
+    });
+  }
+
+  window.saveMemo = async function() {
+    if (!isAdmin) return alert("관리자만 작성할 수 있습니다.");
+    const inputEl = document.getElementById('memoInput'); const text = inputEl.value.trim(); if (!text) { alert("메모 내용을 입력해주세요!"); return; }
+    const now = new Date(); 
+    const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    memoList.unshift({ date: dateStr, text: text }); await setDoc(sidebarRef, { memoList: memoList }, { merge: true }); inputEl.value = ''; 
+  };
+
+  window.deleteMemo = async function(index) {
+    if (!isAdmin) return; memoList.splice(index, 1); await setDoc(sidebarRef, { memoList: memoList }, { merge: true });
+  };
+
+  if (localStorage.getItem('mongna_calendar_admin') === 'true') {
+    isAdmin = true;
+  }
+  updateAdminUI(); 
+
+</script>
+</body>
+</html>
