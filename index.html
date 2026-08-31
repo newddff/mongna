@@ -26,17 +26,16 @@
   .top-bar {
     height: 70px; display: flex; align-items: center; justify-content: space-between;
     padding: 0 40px; position: sticky; top: 0; z-index: 100;
-    background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
   }
   
-  /* 💡 이미지 로고 스타일 적용 */
   .logo-wrap {
     display: flex; align-items: center; text-decoration: none;
     transition: 0.2s;
   }
   .logo-wrap:hover { transform: scale(1.02); }
   .logo-img {
-    height: 40px; /* 로고 크기 설정 */
+    height: 40px; 
     object-fit: contain;
   }
 
@@ -156,10 +155,31 @@
   .modal-save-btn { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; transition: 0.2s; }
   .modal-save-btn:hover { filter: brightness(0.9); }
 
-  /* 📱 모바일 가시성 최적화 */
+  /* 💡 📱 모바일 가시성 최적화 (메뉴바 수정됨) */
   @media (max-width: 1024px) {
-    .top-bar { padding: 0 20px; }
-    .nav-menu { display: none; }
+    .top-bar { 
+      padding: 10px 20px; 
+      height: auto; 
+      flex-wrap: wrap; /* 요소들이 좁으면 밑으로 내려가게 함 */
+    }
+    .logo-wrap { order: 1; }
+    .right-menu { order: 2; }
+    
+    /* 사라졌던 메뉴를 다시 나타나게 하고 두 번째 줄에 배치 */
+    .nav-menu { 
+      display: flex; 
+      order: 3; 
+      width: 100%; 
+      justify-content: center; 
+      gap: 15px; 
+      padding-top: 12px; 
+      margin-top: 8px; 
+      border-top: 1px solid rgba(168, 85, 247, 0.1); 
+      overflow-x: auto; /* 메뉴가 길면 좌우로 스크롤 가능 */
+      white-space: nowrap; 
+      font-size: 14px;
+    }
+    .nav-menu::-webkit-scrollbar { display: none; } /* 모바일에서 스크롤바 안 보이게 숨김 */
     
     .main-container { flex-direction: column; padding: 0 20px; gap: 30px; margin: 20px auto; }
     
@@ -212,7 +232,6 @@
     <div class="info-card">
       <div class="card-header">
         <h3>📅 이번 주 일정</h3>
-        <!-- 💡 옛날 네틀리파이 링크를 지우고 calender.html로 완벽하게 수정했습니다! -->
         <a href="calender.html" class="more-btn">전체보기</a>
       </div>
       <div class="week-calendar-wrap">
