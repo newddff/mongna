@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>몽나 - 방송 일정표</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+<style>
+  /* 💡 카테고리 색상을 관리하기 위한 CSS 변수 */
+  :root {
+    --color-합방: #4dabf7;
+    --color-방송: #ff9eb5;
+    --color-휴방: #9ca3af;
+    --color-겜방: #f59e0b;
+    --color-LCK: #8b5cf6;
+    --color-같이보기: #20c997;
+  }
+
+  /* --- 기본 배경 및 상단바 --- */
+  body { background-color: #C1ACD7; color: #333; margin: 0; min-height: 100vh; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .app-container { display: flex; flex-direction: column; align-items: center; }
+  
+  /* 💡 상단 메뉴바 (홈 화면과 통일된 유리 효과 및 디자인) */
+  .top-nav-bar {
+    width: 100%; height: 70px; display: flex;
+    align-items: center; justify-content: space-between; padding: 0 40px;
+    box-sizing: border-box; margin-bottom: 30px; 
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+  }
+  
+  /* 💡 로고 이미지 스타일 */
+  .logo-wrap {
+    display: flex; align-items: center; text-decoration: none;
+    transition: 0.2s; flex-shrink: 0;
+  }
+  .logo-wrap:hover { transform: scale(1.02); }
+  .logo-img { height: 40px; object-fit: contain; }
+
+  /* 💡 네비게이션 메뉴 (홈 화면과 통일) */
+  .nav-menu { display: flex; gap: 30px; font-weight: 800; color: #1e293b; font-size: 15px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .nav-menu a { text-decoration: none; color: inherit; cursor: pointer; transition: 0.2s ease; position: relative; }
+  .nav-menu a:hover, .nav-menu a.active { color: #a855f7; }
+  .nav-menu a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 3px; background: #a855f7; border-radius: 2px;}
+
+  /* 관리자 관련 버튼 영역 */
+  .admin-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .admin-toggle-btn {
+    border: 1px solid #ddd; padding: 6px 16px; border-radius: 20px; cursor: pointer;
+    font-weight: bold; transition: 0.2s;
+  }
+  .admin-toggle-btn.on { background-color: #ffd700; border-color: #ffd700; color: #333; }
+  .admin-toggle-btn.off { background-color: white; color: #1e293b; }
+  
+  .admin-settings-btn {
+    background: #f1f5f9; border: none; font-size: 18px; cursor: pointer; display: none; 
+    border-radius: 50%; width: 36px; height: 36px; align-items: center; justify-content: center; transition: 0.2s;
+  }
+  .admin-settings-btn:hover { background: #e2e8f0; transform: rotate(45deg); }
+
+  /* 캘린더 래퍼 */
+  .app-wrapper {
+    background-color: #ffffff; width: 96vw; max-width: 1400px; 
+    border-radius: 24px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 40px; box-sizing: border-box; margin-bottom: 40px; 
+  }
+  .main-content { display: flex; gap: 40px; }
+
+  .calendar-section { flex: 3; display: flex; flex-direction: column; min-width: 0; }
+
+  /* 년/월 빠른 이동 헤더 */
+  .calendar-header { display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 30px; }
+  .nav-btn { background: none; border: none; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; }
+  .nav-btn:hover { color: #C1ACD7; transform: scale(1.1); }
+  
+  .month-selector { display: flex; align-items: center; gap: 8px; }
+  .month-selector select {
+    appearance: none; -webkit-appearance: none;
+    background-color: #f8f6fb; border: 1px solid #e4dceb; border-radius: 12px; outline: none;
+    padding: 8px 36px 8px 16px; font-size: 26px; font-weight: 900; color: #333; cursor: pointer; transition: all 0.2s;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjQzFBQ0Q3JyBzdHJva2Utd2lkdGg9JzMnIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCc+PHBvbHlsaW5lIHBvaW50cz0nNiA5IDEyIDE1IDE4IDknLz48L3N2Zz4=");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+  }
+  .month-selector select:hover, .month-selector select:focus {
+    border-color: #C1ACD7; box-shadow: 0 0 0 3px rgba(193, 172, 215, 0.15);
+  }
+  .month-selector span { font-size: 20px; font-weight: 700; color: #555; margin-right: 5px; }
+
+  /* 모바일 가로 스크롤을 위한 달력 스크롤 영역 추가 */
+  .calendar-scroll-area {
+    width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px;
+  }
+
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #ddd; border-left: 1px solid #ddd; min-width: 700px; }
+  .days-of-week { background-color: #fafafa; text-align: center; font-weight: bold; }
+  .day-name { padding: 15px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; color: #475569;}
+  .calendar-cell {
+    min-height: 120px; padding: 8px; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
+    background-color: #fff; display: flex; flex-direction: column; align-items: flex-start;
+    cursor: pointer; transition: 0.2s ease; overflow: hidden; 
+  }
+  .calendar-cell:hover { background-color: #fcfcfc; }
+  .calendar-cell.drag-over { background-color: #f0f4ff; box-shadow: inset 0 0 0 2px #4dabf7; }
+  .history-item.draggable { cursor: grab; }
+  .history-item.draggable:active { cursor: grabbing; }
+  .date-number { font-size: 15px; font-weight: bold; margin-bottom: 5px; pointer-events: none; }
+  .sunday .date-number, .sunday.day-name { color: #ff6b6b; }
+  .saturday .date-number, .saturday.day-name { color: #4dabf7; }
+  .calendar-cell.today { background-color: rgba(193, 172, 215, 0.2); box-shadow: inset 0 0 0 2px #C1ACD7; }
+
+  /* 카테고리별 색상 변경 (CSS 변수 연동) */
+  .type-합방 { background-color: var(--color-합방) !important; color: white !important; } 
+  .type-방송 { background-color: var(--color-방송) !important; color: white !important; } 
+  .type-휴방 { background-color: var(--color-휴방) !important; color: white !important; } 
+  .type-겜방 { background-color: var(--color-겜방) !important; color: white !important; } 
+  .type-LCK { background-color: var(--color-LCK) !important; color: white !important; } 
+  .type-같이보기 { background-color: var(--color-같이보기) !important; color: white !important; } 
+
+  .cell-schedules { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 5px; }
+  
+  .cell-schedule-item {
+    font-size: 12px; padding: 6px; border-radius: 6px; font-weight: bold; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; line-height: 1.35;
+    display: block; overflow: hidden; text-align: left; transition: 0.2s;
+  }
+  .cell-schedule-item:hover { transform: translateY(-1px); filter: brightness(0.95); }
+  
+  /* 달력 일정 시간 및 텍스트 스타일 */
+  .sch-time-label { display: inline-block; opacity: 0.95; margin-bottom: 4px; font-size: 0.85em; font-weight: 800; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px; }
+  .sch-title-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
+
+  /* 우측 사이드바 */
+  .up-sidebar-section {
+    flex: 1; background-color: #faf8f5; border-radius: 20px; padding: 30px 25px;
+    border: 1px solid #eee; display: flex; flex-direction: column; gap: 25px; height: fit-content;
+  }
+  .sidebar-block { display: flex; flex-direction: column; }
+  .sidebar-header { margin-bottom: 12px; }
+  .sidebar-header h2 { margin: 0; font-size: 18px; color: #5d4037; display: flex; align-items: center; gap: 8px;}
+  .game-search-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .game-search-input { padding: 12px 14px; border: 1px solid #ddd; border-radius: 12px; outline: none; font-size: 14px; font-weight: bold; width: 100%; box-sizing: border-box; }
+  .game-search-input:focus { border-color: #C1ACD7; box-shadow: 0 0 0 3px rgba(193, 172, 215, 0.2); }
+  .game-search-btns { display: flex; gap: 8px; }
+  .btn-steam { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background-color: #1b2838; color: white; transition: 0.2s; font-size: 13px; }
+  .btn-steam:hover { background-color: #2a475e; }
+  .btn-google { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background-color: #fff; color: #333; border: 1px solid #ddd; transition: 0.2s; font-size: 13px; }
+  .btn-google:hover { background-color: #f0f0f0; }
+  .search-history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid #eee; font-size: 13px; font-weight: 500; }
+  .history-item a { text-decoration: none; color: #333; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; }
+  .history-item a:hover { color: #C1ACD7; text-decoration: underline; }
+  .history-delete-btn { background: none; border: none; color: #aaa; cursor: pointer; font-weight: bold; font-size: 14px; }
+  .history-delete-btn:hover { color: #ff6b6b; }
+
+  .memo-textarea {
+    width: 100%; height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 12px;
+    outline: none; font-size: 14px; font-family: inherit; resize: none; box-sizing: border-box; background-color: #fff; line-height: 1.4;
+  }
+  .memo-textarea:focus { border-color: #C1ACD7; }
+  .btn-memo-save { margin-top: 8px; padding: 10px; background-color: #C1ACD7; color: #fff; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 14px; }
+  .btn-memo-save:hover { background-color: #a890c2; }
+  .memo-list-container { display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; margin-top: 12px; padding-right: 4px; }
+  .memo-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.4; word-break: break-all; }
+  .memo-card-date { font-size: 11px; color: #999; margin-bottom: 4px; }
+  .memo-card-text { color: #333; white-space: pre-wrap; }
+  .memo-delete-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #ccc; cursor: pointer; font-size: 14px; font-weight: bold; }
+  .memo-delete-btn:hover { color: #ff6b6b; }
+
+  /* 모달 오버레이 공통 */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .modal-content { background-color: white; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto;}
+  .add-modal { width: 520px; max-width: 90vw; padding: 32px; gap: 18px; box-sizing: border-box; }
+  .view-modal { width: 500px; max-width: 90vw; padding: 40px; gap: 25px; align-items: center; text-align: center; box-sizing: border-box; }
+  .modal-close-btn { background: none; border: none; font-size: 22px; color: #888; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: 0.2s; z-index: 10; }
+  .modal-close-btn:hover { background-color: #f0f0f0; color: #333; }
+  .absolute-close { position: absolute; top: 20px; right: 20px; }
+
+  /* 일정 등록 모달 내부 요소 */
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 13px; font-weight: bold; color: #666; margin-left: 2px; }
+  .modal-title-input, .modal-time-select, .modal-members-input { padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 10px; outline: none; font-size: 15px; font-weight: bold; width: 100%; box-sizing: border-box; }
+  .modal-desc-input { height: 80px; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px 14px; font-family: inherit; font-size: 14px; resize: none; outline: none; width: 100%; box-sizing: border-box;}
+  
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-btn { flex: 1; min-width: 60px; border: none; padding: 10px 0; border-radius: 10px; font-weight: bold; cursor: pointer; background-color: #f2f2f2 !important; color: #777 !important; transition: 0.2s; font-size: 14px; }
+  .tag-btn.active.type-합방 { background-color: var(--color-합방) !important; color: white !important; }
+  .tag-btn.active.type-방송 { background-color: var(--color-방송) !important; color: white !important; }
+  .tag-btn.active.type-휴방 { background-color: var(--color-휴방) !important; color: white !important; }
+  .tag-btn.active.type-겜방 { background-color: var(--color-겜방) !important; color: white !important; }
+  .tag-btn.active.type-LCK { background-color: var(--color-LCK) !important; color: white !important; } 
+  .tag-btn.active.type-같이보기 { background-color: var(--color-같이보기) !important; color: white !important; } 
+  
+  .modal-save-btn { background-color: #ff7676; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+
+  .view-title { margin: 0; font-size: 28px; color: #222; }
+  .view-tags { display: flex; gap: 15px; justify-content: center; }
+  .view-tag { padding: 8px 20px; border-radius: 30px; font-weight: bold; font-size: 16px; }
+  .time-tag { background-color: #fbc531; color: white; } 
+  .view-avatars { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .view-content { margin-top: 10px; font-size: 15px; color: #555; background-color: #f9f9f9; padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box; }
+  
+  .view-content.game-dropped { display: flex; justify-content: center; align-items: center; min-height: 120px; background-color: #f8f9fa; }
+  .dropped-game-pill { background-color: #ffffff; padding: 10px 20px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; color: #333; font-weight: bold; text-decoration: none; transition: 0.2s; }
+  .dropped-game-pill:hover { background-color: #f0f0f0; transform: scale(1.05); }
+
+  .admin-action-btns { display: flex; gap: 10px; width: 100%; margin-top: 10px; }
+  .modal-edit-btn { flex: 1; background: none; border: 1px solid #3b82f6; color: #3b82f6; padding: 10px 0; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+  .modal-edit-btn:hover { background-color: #eff6ff; }
+  .modal-delete-btn { flex: 1; background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 10px 0; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+  .modal-delete-btn:hover { background-color: #fef2f2; }
+
+  .vod-watch-btn { display: block; width: 100%; text-align: center; background-color: #ff4757; color: white; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 16px; text-decoration: none; box-sizing: border-box; transition: 0.2s; margin-top: 10px; }
+  .vod-watch-btn:hover { background-color: #ff3344; transform: scale(1.02); }
+
+  input[type="color"] { border: 1px solid #e0e0e0; border-radius: 8px; padding: 2px; cursor: pointer; background: #fff; width: 60px; height: 35px; }
+
+  /* 💡 스마트폰 등 모바일 가시성 최적화 */
+  @media (max-width: 768px) {
+    .main-content { flex-direction: column; }
+    .top-nav-bar { flex-direction: column; height: auto; padding: 15px; gap: 15px; position: static; }
+    .nav-menu { flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 13px; }
+    .admin-wrap { width: 100%; justify-content: center; }
+    .app-wrapper { padding: 15px; width: 98vw; }
+    .calendar-cell { min-height: 100px; padding: 6px; }
+    .date-number { font-size: 13px; }
+    .cell-schedule-item { font-size: 10px; padding: 5px; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <div class="top-nav-bar">
+    <a href="index.html" class="logo-wrap">
+      <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
+    </a>
+    
+    <div class="nav-menu">
+      <a href="index.html">홈</a>
+      <a href="calender.html">캘린더</a>
+      <a href="song.html">노래책</a>
+      <a href="reward.html">업보(보상)</a>
+      <a href="vod.html">VOD</a>
+    </div>
+    
+    <div class="admin-wrap">
+      <button id="adminSettingsBtn" class="admin-settings-btn" onclick="openColorSettingsModal()" title="카테고리 색상 설정">⚙️</button>
+      <button id="adminToggleBtn" class="admin-toggle-btn off" onclick="toggleAdmin()">🔒 로그인</button>
+    </div>
+  </div>
+
+  <div class="app-wrapper">
+    <div class="main-content">
+      
+      <div class="calendar-section">
+        <div class="calendar-header">
+          <button class="nav-btn" onclick="prevMonth()">◀</button>
+          <div class="month-selector">
+            <select id="yearSelect" class="num-font" onchange="jumpToDate()"></select>
+            <span>년</span>
+            <select id="monthSelect" class="num-font" onchange="jumpToDate()"></select>
+            <span>월</span>
+          </div>
+          <button class="nav-btn" onclick="nextMonth()">▶</button>
+        </div>
+        
+        <div class="calendar-scroll-area">
+          <div class="calendar-grid days-of-week">
+            <div class="day-name sunday">일</div>
+            <div class="day-name">월</div>
+            <div class="day-name">화</div>
+            <div class="day-name">수</div>
+            <div class="day-name">목</div>
+            <div class="day-name">금</div>
+            <div class="day-name saturday">토</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </div>
+
+      <div class="up-sidebar-section">
+        <div class="sidebar-block">
+          <div class="sidebar-header">
+            <h2>🎮 종겜 링크 찾기</h2>
+          </div>
+          <div id="adminGameSearchControls" style="display: none;">
+            <div class="game-search-box">
+              <input type="text" id="gameSearchInput" class="game-search-input" placeholder="게임 이름 입력 (예: 팰월드)" onkeypress="if(event.key==='Enter') searchGame('steam')" />
+              <div class="game-search-btns">
+                <button class="btn-steam" onclick="searchGame('steam')">Steam 검색</button>
+                <button class="btn-google" onclick="searchGame('google')">Google 검색</button>
+              </div>
+            </div>
+            <p style="font-size: 11px; color: #888; text-align: center; margin-top: 5px;">* 검색 기록을 드래그해서 캘린더 날짜에 놓아보세요!</p>
+          </div>
+          <div class="search-history-list" id="searchHistoryList"></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ddd; margin: 10px 0;">
+
+        <div class="sidebar-block">
+          <div class="sidebar-header">
+            <h2>📝 몽나 메모장</h2>
+          </div>
+          <div id="adminMemoControls" style="display: none;">
+            <textarea id="memoInput" class="memo-textarea" placeholder="아이디어나 메모를 적어보세요!"></textarea>
+            <button class="btn-memo-save" onclick="saveMemo()">메모 저장하기</button>
+          </div>
+          <div class="memo-list-container" id="memoListContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addModal" onclick="closeAddModal()">
+  <div class="modal-content add-modal" onclick="event.stopPropagation()">
+    <div class="modal-top-bar">
+      <span class="modal-date-badge" id="addModalDateBadge">일정 등록</span>
+      <button class="modal-close-btn" onclick="closeAddModal()">✕</button>
+    </div>
+    
+    <div class="input-group">
+      <label class="input-label">일정 제목</label>
+      <input type="text" id="schTitle" class="modal-title-input" placeholder="제목">
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">⏰ 방송 시간 선택</label>
+      <select id="schTime" class="modal-time-select"></select>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">방송 분류</label>
+      <div class="modal-tags">
+        <button type="button" class="tag-btn type-합방" onclick="selectType('합방')">합방</button>
+        <button type="button" class="tag-btn type-방송 active" onclick="selectType('방송')">방송</button>
+        <button type="button" class="tag-btn type-휴방" onclick="selectType('휴방')">휴방</button>
+        <button type="button" class="tag-btn type-겜방" onclick="selectType('겜방')">겜방</button>
+        <button type="button" class="tag-btn type-LCK" onclick="selectType('LCK')">LCK</button>
+        <button type="button" class="tag-btn type-같이보기" onclick="selectType('같이보기')">같이보기</button>
+      </div>
+    </div>
+
+    <div class="input-group members-input-wrap" id="membersWrap" style="display: none;">
+      <label class="input-label">참여자 닉네임 (쉼표로 구분)</label>
+      <input type="text" id="schMembers" class="modal-members-input" placeholder="쉼표(,)로 구분하여 닉네임 입력">
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">상세 내용 (선택)</label>
+      <textarea id="schContent" class="modal-desc-input" placeholder="내용 (종겜 드래그 앤 드랍 시 자동 형식 기입됨)"></textarea>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">📺 VOD (다시보기) 링크</label>
+      <input type="text" id="schVod" class="modal-title-input" placeholder="VOD 주소">
+    </div>
+
+    <button class="modal-save-btn" id="modalSaveBtn" onclick="saveSchedule()">일정 등록하기</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="viewModal" onclick="closeViewModal()">
+  <div class="modal-content view-modal" onclick="event.stopPropagation()">
+    <button class="modal-close-btn absolute-close" onclick="closeViewModal()">✕</button>
+    <h2 class="view-title" id="viewTitle"></h2>
+    <div class="view-tags" id="viewTags"></div>
+    <div class="view-avatars" id="viewAvatars"></div>
+    <div class="view-content" id="viewContent" style="display: none;"></div>
+    <a href="#" target="_blank" class="vod-watch-btn" id="viewVodBtn" style="display: none;">📺 다시보기 시청</a>
+    
+    <div class="admin-action-btns" id="adminActionBtns" style="display: none;">
+      <button class="modal-edit-btn" onclick="openEditModal()">이 일정 수정하기</button>
+      <button class="modal-delete-btn" onclick="deleteSchedule()">이 일정 삭제하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="colorSettingsModal" onclick="closeColorSettingsModal()">
+  <div class="modal-content add-modal" onclick="event.stopPropagation()">
+    <div class="modal-top-bar" style="margin-bottom:20px;">
+      <span class="modal-date-badge" style="background:#f3e8ff; color:#7c3aed;">🎨 카테고리 색상 설정</span>
+      <button class="modal-close-btn" onclick="closeColorSettingsModal()">✕</button>
+    </div>
+    
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">
+      <label class="input-label" style="font-size:15px; color:#4dabf7;">합방 색상</label>
+      <input type="color" id="colorInput_합방">
+    </div>
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:10px; padding-top:10px;">
+      <label class="input-label" style="font-size:15px; color:#ff9eb5;">방송 색상</label>
+      <input type="color" id="colorInput_방송">
+    </div>
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:10px; padding-top:10px;">
+      <label class="input-label" style="font-size:15px; color:#9ca3af;">휴방 색상</label>
+      <input type="color" id="colorInput_휴방">
+    </div>
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:10px; padding-top:10px;">
+      <label class="input-label" style="font-size:15px; color:#f59e0b;">겜방 색상</label>
+      <input type="color" id="colorInput_겜방">
+    </div>
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:10px; padding-top:10px;">
+      <label class="input-label" style="font-size:15px; color:#8b5cf6;">LCK 색상</label>
+      <input type="color" id="colorInput_LCK">
+    </div>
+    <div class="input-group" style="flex-direction:row; justify-content:space-between; align-items:center; padding-top:10px; margin-bottom:15px;">
+      <label class="input-label" style="font-size:15px; color:#20c997;">같이보기 색상</label>
+      <input type="color" id="colorInput_같이보기">
+    </div>
+
+    <button class="modal-save-btn" style="background:#8b5cf6;" onclick="saveCategoryColors()">색상 저장 적용하기</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
+    authDomain: "mongna-vod.firebaseapp.com",
+    projectId: "mongna-vod",
+    storageBucket: "mongna-vod.firebasestorage.app",
+    messagingSenderId: "310663611402",
+    appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let currentDate = new Date(); 
+  let isAdmin = false;
+
+  let searchHistory = [];
+  let memoList = [];
+  let schedules = {};
+  
+  let categoryColors = { "합방": "#4dabf7", "방송": "#ff9eb5", "휴방": "#9ca3af", "겜방": "#f59e0b", "LCK": "#8b5cf6", "같이보기": "#20c997" };
+
+  const sidebarRef = doc(db, 'mongna_calendar_data', 'sidebar_state');
+  const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data'); 
+  const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors'); 
+
+  function escapeHtml(str) {
+    if (str == null || typeof str === 'undefined') return '';
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
+  }
+
+  // --- 색상 연동 ---
+  onSnapshot(colorsRef, (docSnap) => {
+    try {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if(data.합방) categoryColors.합방 = data.합방;
+        if(data.방송) categoryColors.방송 = data.방송;
+        if(data.휴방) categoryColors.휴방 = data.휴방;
+        if(data.겜방) categoryColors.겜방 = data.겜방;
+        if(data.LCK) categoryColors.LCK = data.LCK;
+        if(data.같이보기) categoryColors.같이보기 = data.같이보기;
+        applyColorsToRoot();
+      }
+    } catch(e) { console.error("색상 로드 오류:", e); }
+  });
+
+  function applyColorsToRoot() {
+    document.documentElement.style.setProperty('--color-합방', categoryColors.합방);
+    document.documentElement.style.setProperty('--color-방송', categoryColors.방송);
+    document.documentElement.style.setProperty('--color-휴방', categoryColors.휴방);
+    document.documentElement.style.setProperty('--color-겜방', categoryColors.겜방);
+    document.documentElement.style.setProperty('--color-LCK', categoryColors.LCK);
+    document.documentElement.style.setProperty('--color-같이보기', categoryColors.같이보기);
+  }
+
+  window.openColorSettingsModal = function() {
+    if(!isAdmin) return;
+    document.getElementById('colorInput_합방').value = categoryColors.합방;
+    document.getElementById('colorInput_방송').value = categoryColors.방송;
+    document.getElementById('colorInput_휴방').value = categoryColors.휴방;
+    document.getElementById('colorInput_겜방').value = categoryColors.겜방;
+    document.getElementById('colorInput_LCK').value = categoryColors.LCK;
+    document.getElementById('colorInput_같이보기').value = categoryColors.같이보기;
+    document.getElementById('colorSettingsModal').style.display = 'flex';
+  };
+  window.closeColorSettingsModal = function() { document.getElementById('colorSettingsModal').style.display = 'none'; };
+
+  window.saveCategoryColors = async function() {
+    if(!isAdmin) return;
+    const newColors = {
+      합방: document.getElementById('colorInput_합방').value,
+      방송: document.getElementById('colorInput_방송').value,
+      휴방: document.getElementById('colorInput_휴방').value,
+      겜방: document.getElementById('colorInput_겜방').value,
+      LCK: document.getElementById('colorInput_LCK').value,
+      같이보기: document.getElementById('colorInput_같이보기').value
+    };
+    try {
+      await setDoc(colorsRef, newColors, { merge: true });
+      window.closeColorSettingsModal();
+    } catch(e) { alert("색상 저장 중 오류가 발생했습니다."); }
+  };
+
+  // --- 검색/메모 DB 연동 ---
+  onSnapshot(sidebarRef, (docSnap) => {
+    try {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        searchHistory = Array.isArray(data.searchHistory) ? data.searchHistory : [];
+        memoList = Array.isArray(data.memoList) ? data.memoList : [];
+      } else { searchHistory = []; memoList = []; }
+      renderSearchHistory(); loadMemoList();
+    } catch (e) { console.error("사이드바 로드 에러:", e); }
+  });
+
+  // --- 스케줄 초기 데이터 (최초 백업용) ---
+  const initialSchedules = {
+    // ---- 2024년 3월 ----
+    "2024-3-5": [ { id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" } ],
+    "2024-3-26": [ { id: 326, title: "퇴사! 전업 시작!!!!!", time: "시간 미정", type: "방송", members: [], content: "전업 방송인 시작", vodLink: "" } ],
+    "2024-3-27": [ { id: 327, title: "휴뱅", time: "시간 미정", type: "휴방", members: [], content: "사유 : 건강검진 준비", vodLink: "" } ],
+    "2024-3-28": [ { id: 328, title: "건강검진", time: "시간 미정", type: "휴방", members: [], content: "건강검진", vodLink: "" } ],
+    "2024-3-29": [ { id: 329, title: "배틀 쿠라운드", time: "오전 5:00", type: "겜방", members: [], content: "5시 뱅온, 8시 베틀 쿠라운드", vodLink: "" } ],
+    "2024-3-30": [ { id: 330, title: "공포게임 : 신칸센", time: "오후 12:00", type: "겜방", members: [], content: "공포게임 플레이", vodLink: "" } ],
+
+    // ---- 2024년 4월 ----
+    "2024-4-1": [ { id: 4011, title: "만우절 기념 방송", time: "오후 2:00", type: "방송", members: [], content: "앗? 몽나의 상태가?", vodLink: "" }, { id: 4012, title: "만우절 마피아 합방", time: "오후 10:00", type: "합방", members: [], content: "", vodLink: "" } ],
+    "2024-4-2": [ { id: 402, title: "휴뱅", time: "시간 미정", type: "휴방", members: [], content: "", vodLink: "" } ],
+    "2024-4-3": [ { id: 403, title: "마세카이 연습", time: "오후 10:00", type: "합방", members: ["다룽", "하쿠마", "낑토순"], content: "저녁 풀트 방송", vodLink: "" } ],
+    "2024-4-4": [ { id: 404, title: "마세카이", time: "오후 7:00", type: "겜방", members: [], content: "18시 뱅온, 후열 포켓꾸 몽나 잡기", vodLink: "" } ],
+    "2024-4-5": [ { id: 405, title: "포켓꾸 졸업 콘서트", time: "오후 8:00", type: "방송", members: [], content: "후열 오버워치 만우절 모드", vodLink: "" } ],
+    "2024-4-6": [ { id: 406, title: "여행 일본어+문화 배우기", time: "오후 8:00", type: "합방", members: ["파치"], content: "", vodLink: "" } ],
+    "2024-4-7": [ { id: 407, title: "출국 전 본가로", time: "시간 미정", type: "방송", members: [], content: "낮방, 저녁 방송 X", vodLink: "" } ],
+    "2024-4-8": [ { id: 408, title: "일본 여행", time: "시간 미정", type: "휴방", members: [], content: "", vodLink: "" } ],
+    "2024-4-9": [ { id: 409, title: "일본 여행", time: "시간 미정", type: "휴방", members: [], content: "", vodLink: "" } ],
+    "2024-4-10": [ { id: 410, title: "일본 여행", time: "시간 미정", type: "휴방", members: [], content: "", vodLink: "" } ],
+    "2024-4-11": [ { id: 411, title: "일본 여행", time: "시간 미정", type: "휴방", members: [], content: "", vodLink: "" } ],
+    "2024-4-13": [ { id: 413, title: "Content Warning", time: "오후 7:00", type: "합방", members: ["최또", "하쿠마", "호발"], content: "", vodLink: "" } ],
+    "2024-4-14": [ { id: 414, title: "찐한 소통 방송", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-4-15": [ { id: 415, title: "배그 합방", time: "오후 7:30", type: "합방", members: ["아세비"], content: "낮방", vodLink: "" } ],
+    "2024-4-16": [ { id: 416, title: "소소통", time: "오후 8:30", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-4-17": [ { id: 417, title: "스포일러가 너무 심한 RPG", time: "오후 7:00", type: "겜방", members: [], content: "12시 낮뱅", vodLink: "" } ],
+    "2024-4-18": [ { id: 418, title: "낮뱅", time: "오후 2:00", type: "방송", members: [], content: "저녁뱅 X", vodLink: "" } ],
+    "2024-4-19": [ { id: 419, title: "낮뱅 / 휴혹늦", time: "오후 12:00", type: "방송", members: [], content: "사유: 노래 학원", vodLink: "" } ],
+    "2024-4-20": [ { id: 420, title: "휴혹늦", time: "시간 미정", type: "휴방", members: [], content: "고등학교 친구들 2년만에 봄", vodLink: "" } ],
+    "2024-4-21": [ { id: 421, title: "풀트 메이드카페", time: "오후 4:00", type: "방송", members: [], content: "라이브쇼", vodLink: "" } ],
+    "2024-4-22": [ { id: 422, title: "벽샷대회", time: "오후 10:00", type: "합방", members: ["웰로"], content: "19시 뱅온", vodLink: "" } ],
+    "2024-4-23": [ { id: 423, title: "이터널 리턴", time: "오후 8:00", type: "겜방", members: [], content: "12시 낮뱅", vodLink: "" } ],
+    "2024-4-24": [ { id: 424, title: "닉변빵 핀볼 / 몽나 룰렛", time: "오후 8:00", type: "겜방", members: [], content: "청산의 날이 되어버림", vodLink: "" } ],
+    "2024-4-25": [ { id: 425, title: "정기휴일", time: "시간 미정", type: "휴방", members: [], content: "화이트데이 사탕 완성 예정 / 범죄도시4 보러감", vodLink: "" } ],
+    "2024-4-26": [ { id: 426, title: "몽시네마 영화 고르기", time: "오후 12:00", type: "방송", members: [], content: "저녁뱅 휴혹늦 (보컬 학원)", vodLink: "" } ],
+    "2024-4-27": [ { id: 427, title: "마크 크라임씬", time: "오후 9:00", type: "겜방", members: [], content: "12시, 20시 방송", vodLink: "" } ],
+    "2024-4-28": [ { id: 428, title: "배그 랜덤무기 대회", time: "오후 4:00", type: "겜방", members: [], content: "14시 뱅온, 대회 후 몽시네마 (어거스트 러쉬)", vodLink: "" } ],
+    "2024-4-29": [ { id: 429, title: "I hate this game", time: "오후 8:00", type: "겜방", members: [], content: "12시 낮뱅", vodLink: "" } ],
+    "2024-4-30": [ { id: 430, title: "원테마 노래대회", time: "오후 8:00", type: "방송", members: [], content: "12시 4월 별별랭킹", vodLink: "" } ],
+
+    // ---- 2024년 5월 ----
+    "2024-5-4": [ { id: 504, title: "종겜 합방", time: "오후 6:00", type: "합방", members: [], content: "종겜 합방", vodLink: "" } ],
+    "2024-5-5": [ { id: 505, title: "T1 vs DNF", time: "오후 5:00", type: "방송", members: [], content: "T1 대 DNF 길 경기 시청", vodLink: "" } ],
+    "2024-5-6": [ { id: 506, title: "폭싹 속았수다 3기", time: "오후 8:00", type: "방송", members: [], content: "폭싹 속았수다 3기 같이 보기 (준비물: 휴지)", vodLink: "" } ],
+    "2024-5-8": [ { id: 508, title: "T1 vs KT", time: "오후 3:00", type: "방송", members: [], content: "T1 대 KT 경기 같이보기", vodLink: "" } ],
+    "2024-5-9": [ { id: 509, title: "진격거 2기", time: "오후 8:00", type: "방송", members: [], content: "진격의 거인 2기 시청", vodLink: "" } ],
+    "2024-5-10": [ { id: 510, title: "최또 발로란트", time: "오후 8:00", type: "겜방", members: ["최또"], content: "최또 발로란트 플레이", vodLink: "" } ],
+    "2024-5-11": [ { id: 511, title: "진격거 3기", time: "오후 7:00", type: "방송", members: [], content: "진격의 거인 3기 같이 시청", vodLink: "" } ],
+    "2024-5-12": [ { id: 512, title: "채아 노래대회", time: "오후 7:00", type: "방송", members: [], content: "채아 노래대회", vodLink: "" } ],
+    "2024-5-13": [ { id: 513, title: "메이드의 날", time: "오후 8:00", type: "합방", members: ["달묘", "카푸"], content: "메이드 콘텐츠", vodLink: "" } ],
+    "2024-5-14": [ { id: 514, title: "천년의 환생", time: "오후 8:00", type: "방송", members: [], content: "천년의 환생 시청", vodLink: "" } ],
+    "2024-5-16": [ { id: 516, title: "이세페 & 서울 후기", time: "시간 미정", type: "방송", members: [], content: "이세페 및 서울 다녀온 후기", vodLink: "" } ],
+    "2024-5-17": [ { id: 517, title: "러스티 레이크", time: "오후 8:00", type: "겜방", members: [], content: "러스티 레이크 루츠 플레이", vodLink: "" } ],
+    "2024-5-22": [ { id: 522, title: "귀귀살전 합방", time: "오후 3:00", type: "합방", members: [], content: "귀귀살전 합방", vodLink: "" } ],
+    "2024-5-23": [ { id: 523, title: "몽나 퀴즈쇼", time: "오후 5:00", type: "방송", members: [], content: "몽나 퀴즈쇼 후 이세페 CGV", vodLink: "" } ],
+    "2024-5-25": [ { id: 525, title: "T1 vs BFX", time: "오후 7:00", type: "방송", members: [], content: "T1 대 BFX 경기 시청", vodLink: "" } ],
+    "2024-5-26": [ { id: 526, title: "What Remains of Edith Finch", time: "시간 미정", type: "겜방", members: [], content: "What Remains of Edith Finch 플레이", vodLink: "" } ],
+    "2024-5-27": [ { id: 527, title: "T1 vs DNF", time: "오후 5:00", type: "방송", members: [], content: "T1 대 DNF 경기 같이보기", vodLink: "" } ],
+    "2024-5-29": [ { id: 529, title: "Refind self 성격진단", time: "시간 미정", type: "겜방", members: [], content: "성격진단 우천시 취소 컨텐츠", vodLink: "" } ],
+    "2024-5-30": [ { id: 530, title: "T1 vs HLE", time: "오후 7:00", type: "방송", members: [], content: "T1 대 HLE 경기 같이보기", vodLink: "" } ],
+    "2024-5-31": [ { id: 531, title: "T1 vs NS", time: "오후 5:00", type: "방송", members: [], content: "T1 대 NS 경기 같이보기", vodLink: "" } ],
+
+    // ---- 2024년 6월 ----
+    "2024-6-2": [ { id: 60101, title: "역팬데이 / 모임 썰풀기", time: "오후 9:00", type: "방송", members: [], content: "4개월만의 역팬데이", vodLink: "" } ],
+    "2024-6-10": [ { id: 60102, title: "종겜데이 쿠키요미", time: "오후 8:00", type: "겜방", members: [], content: "진짜 진짜로 종겜데이 쿠키요미", vodLink: "" } ],
+    "2024-6-11": [ { id: 60103, title: "레오펠 오픈", time: "오후 6:00", type: "겜방", members: [], content: "레오펠 오픈", vodLink: "" } ],
+    "2024-6-12": [ { id: 60104, title: "레오펠 3일차", time: "오후 8:00", type: "겜방", members: [], content: "레오펠 3일차 플레이", vodLink: "" } ],
+    "2024-6-14": [ { id: 60105, title: "공포게임 Astrumis", time: "시간 미정", type: "합방", members: ["달묘"], content: "Astrumis", vodLink: "" } ],
+    "2024-6-15": [ { id: 60106, title: "Road to MSI T1 vs KT", time: "오후 3:00", type: "방송", members: [], content: "T1 vs KT 전긍정 중계 하는 날", vodLink: "" } ],
+    "2024-6-18": [ { id: 60107, title: "뮤직드림 1화 / 몽탐정", time: "시간 미정", type: "방송", members: [], content: "퇴근길 라디오", vodLink: "" } ],
+    "2024-6-20": [ { id: 60108, title: "메이플 챌섭 달구의 꿈", time: "오후 9:00", type: "겜방", members: [], content: "풀트데이", vodLink: "" } ],
+    "2024-6-21": [ { id: 60109, title: "품멜파티 합방", time: "오후 8:00", type: "합방", members: ["최또", "카푸", "리오"], content: "후열 나히아 2기 시작", vodLink: "" } ],
+    "2024-6-24": [ { id: 60110, title: "메이쁘루 사냥 260 찍기", time: "시간 미정", type: "겜방", members: [], content: "휴뱅인데 썬데이는 못 참지", vodLink: "" } ],
+    "2024-6-28": [ { id: 60111, title: "멜리고 첫 풀트날!", time: "시간 미정", type: "방송", members: [], content: "카페 몽이봤 탈탈 반캠데이 : 메이드복", vodLink: "" } ],
+
+    // ---- 2024년 7월 ----
+    "2024-7-8": [ { id: 70101, title: "메이플 하드 스우", time: "오후 7:00", type: "겜방", members: [], content: "메이플 하드 스우 트라이", vodLink: "" } ],
+    "2024-7-9": [ { id: 70102, title: "MSI T1 vs GEN", time: "오전 9:00", type: "방송", members: [], content: "MSI T1 경기 시청", vodLink: "" } ],
+    "2024-7-10": [ { id: 70103, title: "풀트 합방 리액션 춤", time: "오후 5:00", type: "합방", members: ["카푸"], content: "리액션 춤을 알려주기", vodLink: "" } ],
+    "2024-7-13": [ { id: 70104, title: "쌍둥이 언니와 게임", time: "시간 미정", type: "합방", members: [], content: "", vodLink: "" } ],
+    "2024-7-14": [ { id: 70105, title: "600일 기념딜", time: "오후 8:00", type: "방송", members: [], content: "MSI T1 vs GEN", vodLink: "" } ],
+    "2024-7-20": [ { id: 70108, title: "몽이봤 탈탈 / 태후 10화", time: "오후 9:00", type: "방송", members: [], content: "마지 대탈출 같이 보기", vodLink: "" } ],
+    "2024-7-21": [ { id: 70109, title: "첫 벽킬내기", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2024-7-22": [ { id: 70110, title: "T1 vs GEN LCK", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-7-26": [ { id: 70112, title: "몽나 첫 모캡 콘텐츠", time: "오후 2:00", type: "방송", members: [], content: "뉴냥이의 숲퍼소닉", vodLink: "" } ],
+    "2024-7-27": [ { id: 70113, title: "숲퍼소닉 후기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-7-28": [ { id: 70114, title: "T1 vs KT LCK", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+
+    // ---- 2024년 8월 ----
+    "2024-8-1": [ { id: 80101, title: "안녕하세요몽", time: "오후 8:00", type: "방송", members: [], content: "안녕하세요옹", vodLink: "" } ],
+    "2024-8-3": [ { id: 80102, title: "클래식 매기", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-6": [ { id: 80103, title: "빙고 벌칙 단기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-7": [ { id: 80104, title: "T1 vs HLE LCK", time: "오후 5:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다", vodLink: "" } ],
+    "2024-8-9": [ { id: 80105, title: "T1 vs GEN LCK", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-10": [ { id: 80106, title: "귀멸의 칼날", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-11": [ { id: 80107, title: "T1 vs NS LCK", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-12": [ { id: 80108, title: "반숲 1000일", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-14": [ { id: 80109, title: "T1 vs KT LCK", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-16": [ { id: 80110, title: "여우도시 1일차 / T1 vs G", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-21": [ { id: 80111, title: "LCK T1 vs", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-22": [ { id: 80112, title: "LCK T1 vs HU", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-8-28": [ { id: 80113, title: "복권으로", time: "오후 7:00", type: "방송", members: [], content: "몽나입니다 복권으로", vodLink: "" } ],
+    "2024-8-29": [ { id: 80114, title: "T1 vs BFX LCK", time: "오후 5:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다", vodLink: "" } ],
+    "2024-8-31": [ { id: 80115, title: "버츄얼 워터밤", time: "오후 1:00", type: "방송", members: [], content: "", vodLink: "" } ],
+
+    // ---- 2024년 9월 ----
+    "2024-9-1": [ { id: 90101, title: "8월 별명", time: "오후 8:30", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-2": [ { id: 90102, title: "메이드카페", time: "오후 4:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-3": [ { id: 90103, title: "여경 행배", time: "오후 8:00", type: "방송", members: [], content: "짧은 소통뱅", vodLink: "" } ],
+    "2024-9-4": [ { id: 90104, title: "이리 패치", time: "오후 6:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2024-9-6": [ { id: 90105, title: "이터널 리턴", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2024-9-7": [ { id: 90106, title: "LCK 같이 보기 T1", time: "오후 3:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-9": [ { id: 90107, title: "LCK 직관썰", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-11": [ { id: 90108, title: "짱구 같이 보기", time: "오후 9:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-12": [ { id: 90109, title: "방송 300일 미몽", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-15": [ { id: 90110, title: "송편 만들기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-16": [ { id: 90111, title: "T1 vs DK 플라", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-17": [ { id: 90112, title: "깜짝 추석뱅 / WASD 합방", time: "오후 8:30", type: "합방", members: [], content: "", vodLink: "" } ],
+    "2024-9-20": [ { id: 90113, title: "버축대 준비 1일차 / T1 vs HLE", time: "오후 3:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-21": [ { id: 90114, title: "버축대 준비 2일차 / 콧시쌤", time: "오후 4:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-23": [ { id: 90115, title: "울치원 첫 수", time: "오후 2:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-24": [ { id: 90116, title: "무인도에서 살아남기", time: "오후 5:30", type: "방송", members: [], content: "무인도 서버 참여 2일차", vodLink: "" } ],
+    "2024-9-25": [ { id: 90117, title: "A조 3번째", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-26": [ { id: 90118, title: "T1 vs GEN", time: "오후 3:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-27": [ { id: 90119, title: "요정몽이", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-28": [ { id: 90120, title: "울치원 내전", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-9-29": [ { id: 90121, title: "로그라이크", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+
+    // ---- 2024년 10월 ----
+    "2024-10-3": [ { id: 100101, title: "야구 같이보기", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-4": [ { id: 100102, title: "노래수업 / 이터널 리턴", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-5": [ { id: 100103, title: "롤치원 수업", time: "오후 4:00", type: "방송", members: [], content: "성세천하: 여제의 탄생", vodLink: "" } ],
+    "2024-10-9": [ { id: 100104, title: "한글날 콘텐츠", time: "오후 2:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-10": [ { id: 100105, title: "르르땅 문도", time: "오후 8:00", type: "방송", members: [], content: "드디어 장갑을 사디", vodLink: "" } ],
+    "2024-10-13": [ { id: 100106, title: "할로윈 복장", time: "오후 1:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-15": [ { id: 100107, title: "Worlds 스위스", time: "오후 5:00", type: "방송", members: [], content: "스위스 스테이지 같이 보기", vodLink: "" } ],
+    "2024-10-16": [ { id: 100108, title: "Worlds 스위스", time: "오후 2:00", type: "방송", members: [], content: "스위스 스테이지 같이 보기", vodLink: "" } ],
+    "2024-10-17": [ { id: 100109, title: "성세천하", time: "오후 8:00", type: "방송", members: [], content: "여제의 탄생", vodLink: "" } ],
+    "2024-10-18": [ { id: 100110, title: "TES vs T1 월즈", time: "오후 9:00", type: "방송", members: [], content: "월즈 같이보기", vodLink: "" } ],
+    "2024-10-19": [ { id: 100111, title: "챈나 노래대회 / 좀보이드", time: "오후 1:00", type: "방송", members: ["챈나"], content: "밍창서버 1일차", vodLink: "" } ],
+    "2024-10-20": [ { id: 100112, title: "좀보이드 밍창서버", time: "오후 9:00", type: "겜방", members: [], content: "2일차", vodLink: "" } ],
+    "2024-10-22": [ { id: 100113, title: "리나메3", time: "오후 8:00", type: "겜방", members: ["감치치"], content: "", vodLink: "" } ],
+    "2024-10-24": [ { id: 100114, title: "T1 vs 100T 월즈", time: "오후 8:00", type: "방송", members: [], content: "월즈 같이 보기", vodLink: "" } ],
+    "2024-10-25": [ { id: 100115, title: "T1 vs MKOI 월즈", time: "오후 8:00", type: "방송", members: [], content: "월즈 같이 보기", vodLink: "" } ],
+    "2024-10-26": [ { id: 100116, title: "오리지널 헤어 공개", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-27": [ { id: 100117, title: "카페 보고 소통", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2024-10-29": [ { id: 100118, title: "콧쌤과 작사 작곡하기", time: "오후 6:00", type: "방송", members: ["콧시"], content: "몽이봤 왕왕 털기", vodLink: "" } ],
+    "2024-10-31": [ { id: 100119, title: "T1 vs AL 월즈 / 할로윈", time: "오후 4:00", type: "방송", members: [], content: "할로윈 기념 방송", vodLink: "" } ],
+
+    // ---- 2025년 11월 ----
+    "2025-11-1": [ { id: 251101, title: "10월 별별랭킹", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-11-2": [ { id: 251102, title: "월즈 결승 같이보기 T1 vs BLG", time: "시간 미정", type: "방송", members: [], content: "BLG는 어떻게 강팀이 되었는가", vodLink: "" } ],
+    "2025-11-3": [ { id: 251103, title: "역팬데이 척 소통 / 결망전", time: "시간 미정", type: "방송", members: [], content: "결망전 연습하기", vodLink: "" } ],
+    "2025-11-4": [ { id: 251104, title: "결망전 내전", time: "오후 9:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-5": [ { id: 251105, title: "결망전 드래프트 구경", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-11-6": [ { id: 251106, title: "결망전 연습", time: "시간 미정", type: "겜방", members: [], content: "결망전 열씨미 연습!", vodLink: "" } ],
+    "2025-11-7": [ { id: 251107, title: "결망전 예선", time: "오후 7:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-9": [ { id: 251109, title: "T1 vs KT 월즈 결승 응원", time: "오후 4:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-11-13": [ { id: 251113, title: "별별, 리캡 / 다만악", time: "오후 8:00", type: "방송", members: [], content: "다만 악에서 구하소서 같이 보기", vodLink: "" } ],
+    "2025-11-15": [ { id: 251115, title: "이터널 리턴 딸래미", time: "오후 7:00", type: "겜방", members: [], content: "백만년만에 이터널 리턴", vodLink: "" } ],
+    "2025-11-17": [ { id: 251117, title: "구마유시 계약 종료", time: "오후 9:00", type: "방송", members: [], content: "종료 듣고 엉엉 울었던 날", vodLink: "" } ],
+    "2025-11-18": [ { id: 251118, title: "몽나 2주년 기념 술먹방!", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-11-19": [ { id: 251119, title: "리밋 야생 마크 1일차", time: "오후 6:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-20": [ { id: 251120, title: "리밋 야생 마크 2일차", time: "오후 6:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-21": [ { id: 251121, title: "리밋 야생 마크 3일차", time: "오후 6:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-22": [ { id: 251122, title: "스포일러 RPG2", time: "시간 미정", type: "겜방", members: [], content: "절친의 본모습은 대마왕", vodLink: "" } ],
+    "2025-11-26": [ { id: 251126, title: "MIMESIS 합방", time: "오후 8:00", type: "합방", members: ["츄르", "카푸", "츠키"], content: "", vodLink: "" } ],
+    "2025-11-27": [ { id: 251127, title: "산나비 DLC 오픈런", time: "시간 미정", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-11-28": [ { id: 251128, title: "저티어 롤 내전 참여", time: "시간 미정", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-11-30": [ { id: 251130, title: "달묘랑 아크", time: "오후 4:00", type: "합방", members: ["달묘"], content: "", vodLink: "" } ],
+
+    // ---- 2025년 12월 ----
+    "2025-12-3": [ { id: 251203, title: "스포일러 RPG2 1부", time: "오후 8:00", type: "겜방", members: [], content: "절친의 본모습은 대마왕", vodLink: "" } ],
+    "2025-12-4": [ { id: 251204, title: "스포일러 RPG2 2~3부", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-12-5": [ { id: 251205, title: "11월 별별랭킹 및 리캡", time: "시간 미정", type: "방송", members: [], content: "맹든링 추가 입주", vodLink: "" } ],
+    "2025-12-8": [ { id: 251208, title: "맹든링 재밌게 슝슝", time: "오후 7:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-12-9": [ { id: 251209, title: "도란 과거 알아보기", time: "시간 미정", type: "방송", members: [], content: "맹든링 재밌게 하기", vodLink: "" } ],
+    "2025-12-10": [ { id: 251210, title: "증바람 시참 맹든링", time: "오후 9:00", type: "겜방", members: [], content: "맹든링 잼미따 히히", vodLink: "" } ],
+    "2025-12-12": [ { id: 251212, title: "리밋 행배", time: "오후 8:00", type: "합방", members: ["연우", "윤아", "치치"], content: "", vodLink: "" } ],
+    "2025-12-13": [ { id: 251213, title: "맹든링 잼미따", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-12-14": [ { id: 251214, title: "맹든링 잼미따", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-12-17": [ { id: 251217, title: "패들패들패들", time: "오후 8:00", type: "합방", members: ["감치치"], content: "", vodLink: "" } ],
+    "2025-12-18": [ { id: 251218, title: "몽탐정 시리즈 Scene Investigators", time: "오후 8:00", type: "방송", members: [], content: "2탄", vodLink: "" } ],
+    "2025-12-19": [ { id: 251219, title: "케리아 알아보기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-12-20": [ { id: 251220, title: "하숙생이 전부 미녀", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-12-21": [ { id: 251221, title: "내전 대비 롤 솔랭", time: "오후 8:00", type: "겜방", members: [], content: "솔랭하다가 빡치기", vodLink: "" } ],
+    "2025-12-22": [ { id: 251222, title: "수다 겁나 떨기 / 시네티 탐정", time: "오후 8:00", type: "방송", members: [], content: "홍길동 같이 보기", vodLink: "" } ],
+    "2024-12-24": [ { id: 251224, title: "협곡 올 랜덤CK", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2025-12-25": [ { id: 251225, title: "크리스마스 기념 풀트", time: "시간 미정", type: "방송", members: [], content: "한정 의상 풀트 (25 ~ 28)", vodLink: "" } ],
+    "2025-12-26": [ { id: 251226, title: "처니코니 롤 내전", time: "오후 6:00", type: "합방", members: ["카푸"], content: "", vodLink: "" } ],
+    "2025-12-27": [ { id: 251227, title: "SOOP 시상식 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-12-28": [ { id: 251228, title: "오너 알아보기", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2025-12-29": [ { id: 251229, title: "숲 버츄얼 페스티벌", time: "오후 8:00", type: "방송", members: [], content: "참석! 💜", vodLink: "" } ],
+    "2025-12-31": [ { id: 251231, title: "2025년 몽나 간단 돌아보기", time: "오후 8:00", type: "방송", members: [], content: "VRC에서 함께 카운트다운", vodLink: "" } ],
+
+    // ---- 2026년 1월 ----
+    "2026-1-1": [ { id: 260101, title: "12월 리캡, 별별 같이 보기", time: "오후 12:00", type: "방송", members: ["춘봉", "아빠"], content: "신년타로 보기 (w. 춘봉 아빠)", vodLink: "" } ],
+    "2026-1-2": [ { id: 260102, title: "돈 스크림 멀티", time: "오후 8:00", type: "합방", members: ["이제", "카푸", "해리"], content: "", vodLink: "" } ],
+    "2026-1-4": [ { id: 260104, title: "스토어워즈", time: "오후 4:00", type: "합방", members: ["나기", "카푸", "츄르"], content: "몽이봤 탈탈 털기", vodLink: "" } ],
+    "2026-1-5": [ { id: 260105, title: "2026 LCK 로스터 훑어보기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-6": [ { id: 260106, title: "저티어 롤내전 참여", time: "시간 미정", type: "합방", members: ["왁굳", "비찬"], content: "휴뱅 철회", vodLink: "" } ],
+    "2026-1-8": [ { id: 260108, title: "몽뱅온", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-9": [ { id: 260109, title: "LCK 라인CK 같이보기", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-11": [ { id: 260111, title: "페이커 알아보기 (13~17년)", time: "시간 미정", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-13": [ { id: 260113, title: "페이커 알아보기 (18~22년)", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-14": [ { id: 260114, title: "첫 듀엣 싱크룸", time: "오후 11:00", type: "합방", members: ["복진우"], content: "후열 롤 듀랭", vodLink: "" } ],
+    "2026-1-15": [ { id: 260115, title: "좀비 검문소 쿼런틴 존 플레이", time: "시간 미정", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2026-1-16": [ { id: 260116, title: "T1 vs HLE LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-17": [ { id: 260117, title: "페이커 알아보기 (23~25년)", time: "오후 8:00", type: "방송", members: [], content: "22시 걸티속", vodLink: "" } ],
+    "2026-1-18": [ { id: 260118, title: "T1 vs DRX LCK컵 같이 보기", time: "오후 6:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-19": [ { id: 260119, title: "양세찬게임", time: "오후 6:00", type: "합방", members: ["마이곰이", "예다", "움츠키", "서피카", "물초코", "빡룡", "조경훈"], content: "", vodLink: "" } ],
+    "2026-1-21": [ { id: 260121, title: "협곡 올랜덤 내전", time: "오후 6:00", type: "겜방", members: [], content: "(w. 수많음)", vodLink: "" } ],
+    "2026-1-22": [ { id: 260122, title: "꼬감 알아보기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-23": [ { id: 260123, title: "T1 vs KT LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "파스 대 베스 롤내전", vodLink: "" } ],
+    "2026-1-24": [ { id: 260124, title: "목 보존을 위한 수다", time: "오후 8:00", type: "방송", members: [], content: "열씨미 떠는 날", vodLink: "" } ],
+    "2026-1-25": [ { id: 260125, title: "T1 vs BFX LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-1-28": [ { id: 260128, title: "이용약관 동의 / 몽이봤", time: "오후 8:00", type: "방송", members: [], content: "몽이봤 소소 털기 후열 소소통", vodLink: "" } ],
+    "2026-1-29": [ { id: 260129, title: "증강 칼바람 시참하고 왕왕 놀기", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2026-1-31": [ { id: 260131, title: "T1 vs DK LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+
+    // ---- 2026년 2월 ----
+    "2026-2-1": [ { id: 260201, title: "GEN vs HLE LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "1월 별별랭킹 보기", vodLink: "" } ],
+    "2026-2-2": [ { id: 260202, title: "종겜데이 : 추리겜 - 은폐된 살인의 진실들", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2026-2-4": [ { id: 260204, title: "증강 칼바람 업뎃 기념 시참", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2026-2-6": [ { id: 260206, title: "오아배 랜덤 롤ck 참여", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-7": [ { id: 260207, title: "피츄 솔랭내기", time: "오후 8:00", type: "합방", members: ["달푸", "몽또"], content: "", vodLink: "" } ],
+    "2026-2-9": [ { id: 260209, title: "yapyap 합방", time: "오후 7:00", type: "합방", members: ["구슬요", "앨리스얌", "김복당", "비쥬"], content: "", vodLink: "" } ],
+    "2026-2-10": [ { id: 260210, title: "T1 이지훈 선수 알아보기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-12": [ { id: 260212, title: "폴댄서 일반인 친구와 모캡 합방", time: "오후 3:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-13": [ { id: 260213, title: "주술회전0 시네티 / 스맵 버돌 증칼CK", time: "오후 8:00", type: "방송", members: [], content: "(w. 짱 많은 사람들)", vodLink: "" } ],
+    "2026-2-14": [ { id: 260214, title: "발렌타인데이 한정 방셀 판매", time: "시간 미정", type: "방송", members: [], content: "첫 증칼CK! -패배-", vodLink: "" } ],
+    "2026-2-15": [ { id: 260215, title: "T1 vs BFX LCK컵 / 렛트배 증칼ck", time: "오후 5:00", type: "방송", members: [], content: "21시 렛트배 증칼ck -패배-", vodLink: "" } ],
+    "2026-2-19": [ { id: 260219, title: "청년경찰 시네티 같이 보기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-20": [ { id: 260220, title: "오버워치 패치 맛보기 (시참)", time: "오후 8:00", type: "겜방", members: [], content: "", vodLink: "" } ],
+    "2026-2-21": [ { id: 260221, title: "첫 종겜핀볼의 날", time: "오후 8:00", type: "겜방", members: [], content: "21시 뱅온", vodLink: "" } ],
+    "2026-2-22": [ { id: 260222, title: "T1 vs DK LCK컵 같이 보기", time: "오후 5:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-23": [ { id: 260223, title: "몽이봤 탈탈 털어버린 멋진 나!", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-25": [ { id: 260225, title: "수다 왕왕 떨면서 노는 날", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-2-26": [ { id: 260226, title: "스캠라인 합방", time: "오후 9:00", type: "합방", members: ["마이나", "연우", "감치치", "윤아"], content: "+ 후열 라이어게임", vodLink: "" } ],
+    "2026-2-27": [ { id: 260227, title: "마크 방탈출", time: "오후 9:00", type: "합방", members: ["달묘", "카푸"], content: "후열 없으면 말죽거리 잔혹사", vodLink: "" } ],
+
+    // ---- 2026년 3월 ----
+    "2026-3-2": [ { id: 260302, title: "2월 별별랭킹 및 리캡", time: "시간 미정", type: "방송", members: [], content: "보는 날", vodLink: "" } ],
+    "2026-3-4": [ { id: 260304, title: "T1 왕팬 몽나 알아보기", time: "오후 8:30", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-3-5": [ { id: 260305, title: "몽나 생일 💖", time: "시간 미정", type: "방송", members: [], content: "1. 오리지널 곡 공개, 21시 생일 쟁탈전", vodLink: "" } ],
+    "2026-3-6": [ { id: 260306, title: "비소 님 댄동 오디션", time: "오후 10:00", type: "방송", members: ["비소"], content: "", vodLink: "" } ],
+    "2026-3-7": [ { id: 260307, title: "역구독데이! 설국열차 같이 보기", time: "오후 9:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-3-8": [ { id: 260308, title: "바이오하자드9 레퀴엠 1부", time: "오후 8:00", type: "겜방", members: [], content: "후열 슬더스 2번째 캐릭터 엔딩 봄", vodLink: "" } ],
+    "2026-3-10": [ { id: 260310, title: "롤 재활하려다 슬더스로 도망", time: "오후 8:00", type: "겜방", members: [], content: "리젠트 플레이하기", vodLink: "" } ],
+    "2026-3-11": [ { id: 260311, title: "오랜만에 츄르랑 데이트", time: "오후 6:30", type: "합방", members: ["츄르"], content: "슬더스 멀티 엔딩", vodLink: "" } ],
+    "2026-3-13": [ { id: 260313, title: "릴파 님 가야대 참여", time: "시간 미정", type: "합방", members: ["릴파", "세르", "산호", "오냥"], content: "오전 6시 4승천 성공", vodLink: "" } ],
+    "2026-3-14": [ { id: 260314, title: "슬더스 멀티 합방", time: "시간 미정", type: "합방", members: ["구슬요", "냐냐", "힌콕"], content: "", vodLink: "" } ],
+    "2026-3-15": [ { id: 260315, title: "1년만에 포켓몬 섭", time: "시간 미정", type: "겜방", members: [], content: "더켓몬 오픈런!", vodLink: "" } ],
+    "2026-3-17": [ { id: 260317, title: "몽이봤 털기 / 더켓몬 3일차", time: "오후 7:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-3-18": [ { id: 260318, title: "행배 합방 / 더켓몬 4일차", time: "오후 6:00", type: "합방", members: ["윤루트", "떵규", "오늘언니"], content: "손가락 흔들기CK", vodLink: "" } ],
+    "2026-3-19": [ { id: 260319, title: "더켓몬 마지막 전설런", time: "오후 6:00", type: "겜방", members: [], content: "18시 파켓몬 12일차", vodLink: "" } ],
+    "2026-3-21": [ { id: 260321, title: "진격거 같이보기 / RE.P.O 합방", time: "오후 7:00", type: "합방", members: ["엣치쿠", "아이코", "제리츄", "유나기"], content: "더켓몬 7일차 체육관 7관 격파!", vodLink: "" } ],
+    "2026-3-24": [ { id: 260324, title: "망개가 오래 배그 + 슬더스", time: "오후 8:00", type: "합방", members: ["망개", "이담", "버들"], content: "", vodLink: "" } ],
+    "2026-3-25": [ { id: 260325, title: "좀보이드 하드코어", time: "오후 7:00", type: "겜방", members: [], content: "밍창서버2 김몽나의 삶 12시간만에 - 완 -", vodLink: "" } ],
+    "2026-3-27": [ { id: 260327, title: "수다수다데이 / 몽이봤 탈탈 털기", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-3-29": [ { id: 260329, title: "안 늦으면 정규뱅 (늦으면 구플뱅)", time: "시간 미정", type: "방송", members: [], content: "", vodLink: "" } ],
+    "2026-3-30": [ { id: 260330, title: "제1회 달구 설문놀이", time: "오후 8:00", type: "방송", members: [], content: "", vodLink: "" } ],
+
+    // ---- 2026년 4월 ----
+    "2026-4-1": [ { id: 260401, title: "T1 vs KT LCK / 만우절", time: "오후 7:00", type: "방송", members: [], content: "만우절 기념 금나 풀트뱅", vodLink: "" } ],
+    "2026-4-3": [ { id: 260403, title: "나비 옵치CK 맞밸 한세긴", time: "오후 7:00", type: "겜방", members: ["나비"], content: "", vodLink: "" } ],
+    "2026-4-4": [ { id: 260404, title: "T1 vs HLE LCK", time: "오후 5:00", type: "방송", members: [], content: "전우치 같이보기", vodLink: "" } ],
+    "2026-4-6": [ { id: 260406, title: "달푸몽또 인생게임 합방", time: "오후 8:00", type: "합방", members: ["달푸", "몽또"], content: "", vodLink: "" } ],
+
+    // ---- 2026년 7월 ----
+    "2026-7-10": [ { id: 260710, title: "오랜만에 뱅온!", time: "오후 8:00", type: "방송", members: [], content: "오랜만에 왔습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-11": [ { id: 260711, title: "오늘도 왔습니다", time: "오후 8:00", type: "방송", members: [], content: "오늘도 왔습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-12": [ { id: 260712, title: "노래 재활", time: "오후 8:00", type: "방송", members: [], content: "노래 재활을 좀 해볼게요 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-13": [ { id: 260713, title: "많이 덥네요", time: "오후 8:00", type: "방송", members: [], content: "날씨가 많이 덥네요 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-14": [ { id: 260714, title: "비가 오네요", time: "오후 8:00", type: "방송", members: [], content: "비가 오네요 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-15": [ { id: 260715, title: "EWC T1 vs GAM", time: "오후 7:00", type: "방송", members: [], content: "입중계 응원하겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-16": [ { id: 260716, title: "휴뱅", time: "오전 0:00", type: "휴방", members: [], content: "휴방 사유 기억은 안나지만 휴방함", vodLink: "" } ],
+    "2026-7-17": [ { id: 260717, title: "EWC T1 vs HLE", time: "오후 7:00", type: "방송", members: [], content: "입중계 응원하겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-18": [ { id: 260718, title: "EWC T1 vs KC", time: "오후 7:00", type: "방송", members: [], content: "입중계 응원하겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-19": [ { id: 260719, title: "유튜브 업로드", time: "오후 8:00", type: "방송", members: [], content: "유튜브 업로드를 했습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-7-20": [ { id: 260720, title: "짧게 소통", time: "오후 9:00", type: "방송", members: [], content: "목이 좀 아파서 짧게 소통하다가 가겠습니다", vodLink: "" } ],
+    "2026-7-21": [ { id: 260721, title: "신 의상 입고", time: "오후 9:00", type: "방송", members: [], content: "신 의상을 입고 왔는데 예뻐서 맘에 듭니다", vodLink: "" } ],
+    "2026-7-22": [ { id: 260722, title: "다른 신 의상", time: "오후 9:00", type: "방송", members: [], content: "다른 신 의상을 입고 왔는데 반응이 좋네요", vodLink: "" } ],
+    "2026-7-23": [ { id: 260723, title: "휴뱅", time: "오전 0:00", type: "휴방", members: [], content: "이런저런 일 좀 하려고 휴방했습니다 낼봐", vodLink: "" } ],
+    "2026-7-24": [ { id: 260724, title: "요리하다 화상입음", time: "오후 10:10", type: "방송", members: [], content: "요리하다가 손목에 화상 입었습니다 젠장", vodLink: "" } ],
+    "2026-7-25": [ { id: 260725, title: "메챠카멜레온", time: "오후 8:00", type: "겜방", members: [], content: "이제서야 메챠카멜레온을 해보려고 합니다", vodLink: "" } ],
+    "2026-7-26": [ { id: 260726, title: "내가 만난 사이코패스", time: "오후 10:00", type: "방송", members: [], content: "20시 뱅온을 해가지고 같이 봐볼까 합니다 잘부탁드립니다", vodLink: "" } ],
+    "2026-7-27": [ { id: 260727, title: "방셀오픈 / 콧시쌤 노래강의", time: "오후 8:00", type: "방송", members: ["콧시"], content: "콧시쌤이 오랜만에 노래강의해주신대요", vodLink: "" } ],
+    "2026-7-28": [ { id: 260728, title: "오랜만에 풀트", time: "시간 미정", type: "방송", members: [], content: "오랜만에 풀트를 해보려구요 빵디 흔들들", vodLink: "" } ],
+    "2026-7-29": [ { id: 260729, title: "콧시쌤 콘텐츠 참여", time: "오후 7:00", type: "방송", members: ["콧시"], content: "콧시쌤 콘텐츠에 참여하게 됐습니다 떨려", vodLink: "" } ],
+    "2026-7-30": [ { id: 260730, title: "고정 휴방", time: "오전 0:00", type: "휴방", members: [], content: "어쩌다보니 고정 휴방이 목요일이 됐어요", vodLink: "" } ],
+    "2026-7-31": [ { id: 260731, title: "LCK T1 vs GEN", time: "오후 5:00", type: "방송", members: [], content: "티원응원하러오겠습니다잘부탁드립니다", vodLink: "" } ],
+
+    // ---- 2026년 8월 ----
+    "2026-8-1": [ { id: 260801, title: "첫 흠뻑쇼", time: "오전 0:00", type: "방송", members: [], content: "흠뻑쇼 예매 성공해서 첫 흠뻑쇼 다녀왔습니다", vodLink: "" } ],
+    "2026-8-2": [ { id: 260802, title: "흠뻑쇼 후기", time: "오후 8:00", type: "방송", members: [], content: "흠뻑쇼 후기 턴다고 해놓고 수다 떨었습니다", vodLink: "" } ],
+    "2026-8-3": [ { id: 260803, title: "수다 및 운동", time: "오후 9:00", type: "방송", members: [], content: "하루 좀 쉬었습니다 운동 맛싯다 오이쉬에", vodLink: "" } ],
+    "2026-8-4": [ { id: 260804, title: "롤 클래식 매치", time: "오후 6:00", type: "방송", members: [], content: "궁금해서 한번 볼까 합니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-8-5": [ { id: 260805, title: "이리 한판", time: "오후 8:00", type: "겜방", members: [], content: "이리 한판 했습니다 별별이랑 리캡도 봤음", vodLink: "" } ],
+    "2026-8-6": [ { id: 260806, title: "LCK T1 vs DK", time: "오후 7:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-8-7": [ { id: 260807, title: "신점 후기", time: "오후 8:00", type: "방송", members: [], content: "신점 보고 와서 후기 좀 풀었습니다 신기해", vodLink: "" } ],
+    "2026-8-8": [ { id: 260808, title: "LCK T1 vs HLE", time: "오후 5:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-8-9": [ { id: 260809, title: "비키니 방송", time: "오후 7:00", type: "방송", members: [], content: "비키니 입고 왔다가 홀딱 벗겨졌지 뭐예요", vodLink: "" } ],
+    "2026-8-10": [ { id: 260810, title: "휴뱅", time: "오전 0:00", type: "휴방", members: [], content: "하루 종일 푹 쉬었습니다", vodLink: "" } ],
+    "2026-8-11": [ { id: 260811, title: "수다 방송", time: "오후 8:00", type: "방송", members: [], content: "무슨 얘기 했더라 잘 기억은 안나지만 떠듦", vodLink: "" } ],
+    "2026-8-12": [ { id: 260812, title: "뱅온 성공", time: "오후 8:00", type: "방송", members: [], content: "결국 저는 해냈습니다 뱅온 성공했다에요", vodLink: "" } ],
+    "2026-8-13": [ { id: 260813, title: "숲 1000일 반캠", time: "오후 6:30", type: "방송", members: [], content: "숲 1000일이라 오랜만에 반캠을 켜서 놀았어요 재밌었어요 우히히", vodLink: "" } ],
+    "2026-8-14": [ { id: 260814, title: "휴뱅 (연장근무)", time: "오전 0:00", type: "휴방", members: [], content: "원래 경기 보려고 했는데 연장근무로 휴방", vodLink: "" } ],
+    "2026-8-15": [ { id: 260815, title: "휴뱅 (토요일 휴방)", time: "오전 0:00", type: "휴방", members: [], content: "어쩌다보니 휴방이 토요일이 됐어요", vodLink: "" } ],
+    "2026-8-16": [ { id: 260816, title: "LCK T1 vs GEN / 신작겜", time: "오후 7:00", type: "방송", members: [], content: "같이 응원하고 신작겜 Servant of the Lake 플레이", vodLink: "" } ],
+    "2026-8-17": [ { id: 260817, title: "수다 왕왕", time: "오후 10:00", type: "방송", members: [], content: "느지막히 뱅에 와서 수다 왕왕 떨다 갔어요", vodLink: "" } ],
+    "2026-8-18": [ { id: 260818, title: "바캉스 서버 비키니", time: "오후 8:00", type: "겜방", members: [], content: "바캉스 서버에 비키니 입고 놀기 룰루랄라", vodLink: "" } ],
+    "2026-8-19": [ { id: 260819, title: "스팀무료추리게임", time: "오후 8:00", type: "겜방", members: [], content: "스팀무료추리게임 [No Results Found]", vodLink: "" } ],
+    "2026-8-20": [ { id: 260820, title: "고독방송 : 심", time: "오후 7:00", type: "방송", members: [], content: "핫한 신작겜 할게요 [ 고독방송 : 심 ]", vodLink: "" } ],
+    "2026-8-21": [ { id: 260821, title: "LCK T1 vs KT", time: "오후 7:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-8-22": [ { id: 260822, title: "휴뱅 (빠지)", time: "오전 0:00", type: "휴방", members: [], content: "처음으로 빠지에 가보려구 합니다 신난당", vodLink: "" } ],
+    "2026-8-23": [ { id: 260823, title: "LCK T1 vs HLE", time: "오후 5:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다 잘 부탁드립니다", vodLink: "" } ],
+    "2026-8-24": [ { id: 260824, title: "싱크룸 납치", time: "오후 8:00", type: "방송", members: [], content: "소통하면서 놀다가 싱크룸 납치당했어요", vodLink: "" } ],
+    "2026-8-25": [ { id: 260825, title: "휴뱅 (편집)", time: "오전 0:00", type: "휴방", members: [], content: "약속 취소돼서 편집했음", vodLink: "" } ],
+    "2026-8-26": [ { id: 260826, title: "소통 방송", time: "오후 8:00", type: "방송", members: [], content: "이야기하고 놀았음", vodLink: "" } ],
+    "2026-8-27": [ { id: 260827, title: "복권으로 인생역전", time: "오후 7:00", type: "방송", members: [], content: "복권으로 인생역전 [사각사각 스크래치]", vodLink: "" } ],
+    "2026-8-29": [ { id: 260829, title: "LCK T1 vs BFX", time: "오후 5:00", type: "방송", members: [], content: "티원 응원하러 오겠습니다", vodLink: "" } ],
+    "2026-8-30": [ { id: 260830, title: "휴뱅 (편집)", time: "오전 0:00", type: "휴방", members: [], content: "약속 취소돼서 편집했음", vodLink: "" } ],
+
+    // ---- 2026년 9월 ----
+    "2026-9-1": [ { id: 260901, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "휴뱅을 좀 하겠습니다 다음날 만나요", vodLink: "" } ],
+    "2026-9-6": [ { id: 260906, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "본가에 가야해서 휴뱅입니다 다녀올게요", vodLink: "" } ],
+    "2026-9-12": [ { id: 260912, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "본가에 가야해서 휴뱅입니다 다녀올게요", vodLink: "" } ],
+    "2026-9-24": [ { id: 260924, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "본가에 가야해서 휴뱅입니다 다녀올게요", vodLink: "" } ],
+    "2026-9-25": [ { id: 260925, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "본가에 가야해서 휴뱅입니다 다녀올게요", vodLink: "" } ],
+    "2026-9-26": [ { id: 260926, title: "휴뱅 (본가)", time: "오전 0:00", type: "휴방", members: [], content: "본가에 가야해서 휴뱅입니다 다녀올게요", vodLink: "" } ],
+  }; 
+
+  // 💡 기존 데이터와 서버 데이터를 무조건 병합(Merge)하여 보존
+  onSnapshot(scheduleRef, async (docSnap) => {
+    try {
+      let serverData = {};
+      if (docSnap.exists() && Object.keys(docSnap.data().data || {}).length > 0) {
+        serverData = docSnap.data().data;
+      }
+      
+      // 기존 하드코딩 데이터를 베이스로 깔고, 서버 데이터를 덮어씌움 (과거 데이터 소실 방어)
+      schedules = { ...initialSchedules };
+      for (const dateKey in serverData) {
+        if (serverData[dateKey] && serverData[dateKey].length > 0) {
+          schedules[dateKey] = serverData[dateKey];
+        } else if (serverData[dateKey] && serverData[dateKey].length === 0) {
+          schedules[dateKey] = [];
+        }
+      }
+      
+      await setDoc(scheduleRef, { data: schedules }, { merge: true });
+      renderCalendar();
+    } catch (e) { console.error("일정 데이터 로드 중 에러 발생:", e); }
+  });
+
+  const timeOptions = ['시간 미정'];
+  for (let i = 0; i < 24; i++) {
+    const ampm = i < 12 ? '오전' : '오후';
+    const hour = i % 12 === 0 ? 12 : i % 12;
+    timeOptions.push(`${ampm} ${hour}:00`);
+    timeOptions.push(`${ampm} ${hour}:30`);
+  }
+  const timeSelectEl = document.getElementById('schTime');
+  timeOptions.forEach(time => {
+    const option = document.createElement('option');
+    option.value = time; option.textContent = time;
+    timeSelectEl.appendChild(option);
+  });
+
+  const yearSelect = document.getElementById('yearSelect');
+  const monthSelect = document.getElementById('monthSelect');
+  for(let y = 2020; y <= 2030; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSelect.appendChild(opt);
+  }
+  for(let m = 1; m <= 12; m++) {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = String(m).padStart(2, '0');
+    monthSelect.appendChild(opt);
+  }
+
+  window.jumpToDate = function() {
+    const y = parseInt(yearSelect.value, 10);
+    const m = parseInt(monthSelect.value, 10) - 1; 
+    currentDate = new Date(y, m, 1);
+    renderCalendar();
+  };
+
+  function updateAdminUI() {
+    const btn = document.getElementById('adminToggleBtn');
+    const settingsBtn = document.getElementById('adminSettingsBtn'); 
+    if (isAdmin) {
+      btn.className = 'admin-toggle-btn on';
+      btn.textContent = '👑 관리자';
+      settingsBtn.style.display = 'flex'; 
+      document.getElementById('adminGameSearchControls').style.display = 'block';
+      document.getElementById('adminMemoControls').style.display = 'block';
+    } else {
+      btn.className = 'admin-toggle-btn off';
+      btn.textContent = '🔒 로그인';
+      settingsBtn.style.display = 'none'; 
+      document.getElementById('adminGameSearchControls').style.display = 'none';
+      document.getElementById('adminMemoControls').style.display = 'none';
+    }
+    renderSearchHistory();
+    loadMemoList();
+    renderCalendar(); 
+  }
+
+  window.toggleAdmin = function() {
+    if (isAdmin) {
+      if (confirm("관리자 모드를 종료하시겠습니까?")) {
+        isAdmin = false; localStorage.removeItem('mongna_calendar_admin'); updateAdminUI();
+      }
+    } else {
+      const password = prompt("관리자 비밀번호를 입력해주세요.");
+      if (password === "mongna1234") {
+        isAdmin = true; localStorage.setItem('mongna_calendar_admin', 'true'); alert("관리자 인증 성공!"); updateAdminUI();
+      } else if (password !== null) { alert("비밀번호가 틀렸습니다."); }
+    }
+  };
+
+  function renderCalendar() {
+    const yearSelect = document.getElementById('yearSelect');
+    const monthSelect = document.getElementById('monthSelect');
+    
+    if(!yearSelect || !monthSelect) return;
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    yearSelect.value = year; monthSelect.value = month;
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const today = new Date();
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = ''; 
+
+    for (let i = 0; i < firstDay; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'calendar-cell empty';
+      grid.appendChild(emptyCell);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateKey = `${year}-${month}-${i}`;
+      const cellDate = new Date(year, month - 1, i);
+      const dayOfWeek = cellDate.getDay();
+
+      const cell = document.createElement('div');
+      cell.className = 'calendar-cell';
+      if (dayOfWeek === 0) cell.classList.add('sunday');
+      if (dayOfWeek === 6) cell.classList.add('saturday');
+      if (year === today.getFullYear() && month === today.getMonth() + 1 && i === today.getDate()) {
+        cell.classList.add('today');
+      }
+
+      cell.addEventListener('dblclick', () => window.openAddModal(dateKey));
+      cell.setAttribute('ondragover', 'allowDrop(event)');
+      cell.setAttribute('ondragleave', 'dragLeave(event)');
+      cell.setAttribute('ondrop', `dropGame(event, '${dateKey}')`);
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'date-number';
+      numSpan.textContent = i;
+      cell.appendChild(numSpan);
+
+      const daySchedules = schedules[dateKey] || [];
+      const schContainer = document.createElement('div');
+      schContainer.className = 'cell-schedules';
+
+      daySchedules.forEach(sch => {
+        const item = document.createElement('div');
+        item.className = `cell-schedule-item type-${sch.type}`;
+        
+        let timeText = '';
+        if(sch.time && sch.time !== '시간 미정') {
+           timeText = `<span class="sch-time-label">[${escapeHtml(sch.time)}]</span>`;
+        }
+        item.innerHTML = `${timeText}<span class="sch-title-text">${escapeHtml(sch.title)}</span>`;
+        
+        item.addEventListener('click', (e) => {
+          e.stopPropagation(); 
+          window.openViewModal(sch, dateKey);
+        });
+        schContainer.appendChild(item);
+      });
+
+      cell.appendChild(schContainer);
+      grid.appendChild(cell);
+    }
+  }
+
+  window.prevMonth = function() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); };
+  window.nextMonth = function() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); };
+
+  let selectedDate = '';
+  let currentSchType = '방송';
+  let viewTargetSchId = null;
+  let isEditing = false;
+
+  window.dragGame = function(event) {
+    if (!isAdmin) { event.preventDefault(); return; }
+    event.dataTransfer.setData("gameName", event.currentTarget.dataset.query);
+    event.dataTransfer.setData("gameLink", event.currentTarget.dataset.link);
+    event.dataTransfer.setData("gameIndex", event.currentTarget.dataset.index);
+  };
+  window.allowDrop = function(event) {
+    if (!isAdmin) return; event.preventDefault(); event.currentTarget.classList.add('drag-over');
+  };
+  window.dragLeave = function(event) {
+    if (!isAdmin) return; event.currentTarget.classList.remove('drag-over');
+  };
+
+  window.dropGame = async function(event, dateKey) {
+    if (!isAdmin) return;
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    
+    const gameName = event.dataTransfer.getData("gameName");
+    const gameLink = event.dataTransfer.getData("gameLink");
+    const gameIndex = event.dataTransfer.getData("gameIndex"); 
+    
+    if (gameName) {
+      const newSch = {
+        id: Date.now(), title: gameName, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_

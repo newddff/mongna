@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>몽나 노래책</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+<style>
+  :root {
+    --primary: #a855f7;
+    --primary-hover: #9333ea;
+    --bg-color: #f5f3ff; /* 홈 화면과 동일한 라벤더 그라데이션 시작색 */
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-sub: #64748b;
+  }
+
+  body {
+    background: linear-gradient(180deg, var(--bg-color) 0%, #ffffff 100%);
+    color: var(--text-main);
+    margin: 0;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* --- 상단 네비게이션 --- */
+  .top-bar {
+    height: 70px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; position: sticky; top: 0; z-index: 100;
+    background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+  }
+  
+  /* 💡 몽나 싸인 로고 + 음표 스타일 */
+  .logo-wrap {
+    display: flex; align-items: center; gap: 8px; text-decoration: none;
+    transition: 0.2s;
+  }
+  .logo-wrap:hover { transform: scale(1.02); }
+  .logo-img {
+    height: 38px; /* 싸인 로고 크기 조절 */
+    object-fit: contain;
+  }
+  .logo-icon { font-size: 22px; }
+
+  .nav-menu { display: flex; gap: 30px; font-weight: 800; color: var(--text-main); font-size: 15px;}
+  .nav-menu a { text-decoration: none; color: inherit; transition: 0.2s; position: relative;}
+  .nav-menu a:hover, .nav-menu a.active { color: var(--primary); }
+  .nav-menu a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 3px; background: var(--primary); border-radius: 2px;}
+
+  .admin-btn { background: white; border: 1px solid #ddd; padding: 6px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; color: var(--text-main); transition: 0.2s; }
+  .admin-btn.on { background-color: #ffd700; border-color: #ffd700; color: #333; }
+
+  /* --- 메인 레이아웃 --- */
+  .main-container {
+    max-width: 1200px; margin: 40px auto; padding: 30px;
+    background: var(--card-bg); border-radius: 24px; box-shadow: 0 10px 40px rgba(168, 85, 247, 0.05);
+  }
+
+  .header-title { font-size: 24px; font-weight: 900; color: #1e293b; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+  
+  /* 카테고리 필터 버튼 */
+  .filter-group { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 8px 18px; border: 1px solid #e2e8f0; background: white; border-radius: 20px;
+    font-weight: bold; color: var(--text-sub); cursor: pointer; transition: 0.2s; font-size: 14px;
+  }
+  .filter-btn.active { background: #334155; color: white; border-color: #334155; }
+  .filter-count { font-size: 11px; background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 10px; margin-left: 4px; }
+  .filter-btn.active .filter-count { background: #64748b; color: white; }
+  
+  /* 검색창 */
+  .search-wrap { margin-bottom: 30px; display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 12px 20px; border-radius: 16px; border: 1px solid #e2e8f0; transition: 0.2s; }
+  .search-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
+  .search-wrap input { border: none; background: transparent; outline: none; font-size: 15px; flex: 1; font-weight: 500; }
+  
+  /* 노래 리스트 그리드 (카드 UI) */
+  .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .song-card {
+    display: flex; gap: 15px; padding: 15px; border: 1px solid #f1f5f9; border-radius: 16px;
+    background: white; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.02); align-items: center; position: relative;
+  }
+  .song-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(168, 85, 247, 0.08); border-color: #e2e8f0; }
+  
+  .album-cover { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  
+  .song-info { flex: 1; min-width: 0; }
+  .song-title { font-size: 16px; font-weight: 900; color: #0f172a; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-artist { font-size: 13px; color: var(--text-sub); margin-bottom: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  
+  /* 알약 태그 */
+  .tag-group { display: flex; gap: 6px; align-items: center; }
+  .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+  .tag-kpop { background: #fce7f3; color: #db2777; }
+  .tag-pop { background: #e0e7ff; color: #4f46e5; }
+  .tag-jpop { background: #fef3c7; color: #ea580c; }
+  .tag-status { background: #dcfce7; color: #059669; margin-left: auto; } 
+  
+  .delete-btn {
+    position: absolute; top: 10px; right: 10px; background: #fee2e2; color: #ef4444;
+    border: none; border-radius: 8px; width: 28px; height: 28px; font-weight: bold;
+    cursor: pointer; display: none; align-items: center; justify-content: center; transition: 0.2s;
+  }
+  .delete-btn:hover { background: #fca5a5; color: white; }
+
+  /* 관리자 입력 폼 */
+  .admin-panel { margin-top: 50px; padding: 25px; background: #fff0f0; border: 2px dashed #fca5a5; border-radius: 16px; display: none; }
+  .admin-input-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .admin-input-group input, .admin-input-group select { padding: 12px 15px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; font-weight: bold; }
+  .admin-input-group input:focus, .admin-input-group select:focus { border-color: var(--primary); }
+  .add-btn { padding: 12px 25px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; }
+  .add-btn:hover { background: var(--primary-hover); }
+  .add-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-sub); font-weight: bold; }
+
+  @media (max-width: 768px) {
+    .main-container { margin: 20px; padding: 20px; }
+    .top-bar { padding: 0 20px; }
+    .admin-input-group { flex-direction: column; }
+    .add-btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <!-- 💡 로고 누르면 홈(index.html)으로 이동 -->
+  <a href="index.html" class="logo-wrap">
+    <!-- 💡 다운로드 하신 두 번째 싸인 이미지 파일 이름을 mongna_logo.png 로 저장해서 폴더에 같이 넣어주세요 -->
+    <img src="mongna_logo.png" alt="몽나 로고" class="logo-img">
+    <span class="logo-icon">🎵</span>
+  </a>
+  
+  <div class="nav-menu">
+    <a href="index.html">홈</a>
+    <a href="calender.html">캘린더</a>
+    <a href="song.html" class="active">노래책</a>
+    <a href="reward.html">업보(보상)</a>
+    <a href="vod.html">VOD</a>
+  </div>
+  
+  <button id="adminBtn" class="admin-btn" onclick="toggleAdmin()">🔒 관리자 로그인</button>
+</div>
+
+<div class="main-container">
+  <div class="header-title">🎵 노래책 <span style="font-size:14px; color:#64748b; font-weight:500; margin-left:10px;">신청 가능한 곡 목록입니다.</span></div>
+  
+  <div class="filter-group" id="filterGroup">
+    <button class="filter-btn active" onclick="setFilter(event, '전체')">전체 <span class="filter-count" id="count-all">0</span></button>
+    <button class="filter-btn" onclick="setFilter(event, 'K-POP')">K-POP <span class="filter-count" id="count-kpop">0</span></button>
+    <button class="filter-btn" onclick="setFilter(event, 'POP')">POP <span class="filter-count" id="count-pop">0</span></button>
+    <button class="filter-btn" onclick="setFilter(event, 'J-POP')">J-POP <span class="filter-count" id="count-jpop">0</span></button>
+  </div>
+
+  <div class="search-wrap">
+    <span>🔍</span>
+    <input type="text" id="searchInput" placeholder="곡 제목이나 가수를 검색해보세요" oninput="renderSongs()">
+  </div>
+
+  <div class="song-grid" id="songList">
+    <!-- 자바스크립트로 렌더링 -->
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <h3 style="margin-top:0; color:#ef4444; font-size:18px;">👑 관리자: 노래 추가 (앨범 표지 자동 완성)</h3>
+    <div class="admin-input-group">
+      <input type="text" id="inputTitle" placeholder="노래 제목 (예: 사건의 지평선)" style="flex:1;">
+      <input type="text" id="inputArtist" placeholder="가수 이름 (예: 윤하)" style="flex:1;">
+      <select id="inputGenre">
+        <option value="K-POP">K-POP</option>
+        <option value="POP">POP</option>
+        <option value="J-POP">J-POP</option>
+      </select>
+      <button class="add-btn" id="addBtn" onclick="addSong()">서버에 등록하기</button>
+    </div>
+    <p style="font-size: 12px; color: #64748b; margin-bottom:0;">* 애플 뮤직(iTunes) 글로벌 DB를 검색해 고화질 표지를 1초 만에 자동 연결합니다.</p>
+  </div>
+</div>
+
+<!-- Firebase Modular SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
+    authDomain: "mongna-vod.firebaseapp.com",
+    projectId: "mongna-vod",
+    storageBucket: "mongna-vod.firebasestorage.app",
+    messagingSenderId: "310663611402",
+    appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  const songRef = doc(db, 'mongna_calendar_data', 'song_book');
+
+  let songs = [];
+  let isAdmin = localStorage.getItem('mongna_song_admin') === 'true';
+  let currentFilter = '전체';
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "");
+  }
+
+  onSnapshot(songRef, (docSnap) => {
+    try {
+      if (docSnap.exists()) {
+        songs = docSnap.data().list || [];
+      } else {
+        songs = [];
+      }
+      updateCounts();
+      renderSongs();
+    } catch(e) { console.error("노래 목록 로드 에러:", e); }
+  });
+
+  window.toggleAdmin = function() {
+    if(isAdmin) {
+      if(confirm("관리자 모드를 종료하시겠습니까?")) {
+        isAdmin = false; localStorage.removeItem('mongna_song_admin');
+        updateAdminUI(); renderSongs();
+      }
+    } else {
+      const pwd = prompt("관리자 비밀번호 입력:");
+      if(pwd === "mongna1234") {
+        isAdmin = true; localStorage.setItem('mongna_song_admin', 'true');
+        alert("관리자 인증 성공!"); updateAdminUI(); renderSongs();
+      } else if(pwd) { alert("비밀번호 오류"); }
+    }
+  };
+
+  function updateAdminUI() {
+    const btn = document.getElementById('adminBtn');
+    const panel = document.getElementById('adminPanel');
+    if(isAdmin) {
+      btn.classList.add('on'); btn.textContent = '👑 관리자 모드';
+      panel.style.display = 'block';
+    } else {
+      btn.classList.remove('on'); btn.textContent = '🔒 관리자 로그인';
+      panel.style.display = 'none';
+    }
+  }
+
+  async function fetchAlbumCover(title, artist) {
+    const query = encodeURIComponent(`${title} ${artist}`);
+    const apiUrl = `https://itunes.apple.com/search?term=${query}&entity=song&limit=1`;
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        return data.results[0].artworkUrl100.replace('100x100bb.jpg', '300x300bb.jpg');
+      }
+    } catch (error) { console.error("표지 검색 실패:", error); }
+    return "https://via.placeholder.com/150/e2e8f0/64748b?text=No+Cover"; 
+  }
+
+  window.addSong = async function() {
+    if(!isAdmin) return;
+    const titleEl = document.getElementById('inputTitle');
+    const artistEl = document.getElementById('inputArtist');
+    const genre = document.getElementById('inputGenre').value;
+    const addBtn = document.getElementById('addBtn');
+
+    const title = titleEl.value.trim();
+    const artist = artistEl.value.trim();
+
+    if (!title || !artist) return alert("노래 제목과 가수를 모두 입력해주세요!");
+
+    addBtn.disabled = true;
+    addBtn.textContent = "앨범 표지 검색 중... ⏳";
+
+    const coverUrl = await fetchAlbumCover(title, artist);
+    const newId = Date.now(); 
+
+    const newSong = { id: newId, title: title, artist: artist, genre: genre, cover: coverUrl, status: '가능' };
+    
+    songs.unshift(newSong);
+    
+    try {
+      await setDoc(songRef, { list: songs }, { merge: true });
+      titleEl.value = ''; artistEl.value = '';
+    } catch(e) { alert("저장 실패!"); }
+    
+    addBtn.disabled = false;
+    addBtn.textContent = "서버에 등록하기";
+  };
+
+  window.deleteSong = async function(id) {
+    if(!isAdmin) return;
+    if(confirm("이 곡을 정말 삭제하시겠습니까?")) {
+      songs = songs.filter(s => s.id !== id);
+      try {
+        await setDoc(songRef, { list: songs }, { merge: true });
+      } catch(e) { alert("삭제 실패!"); }
+    }
+  };
+
+  window.setFilter = function(e, genre) {
+    currentFilter = genre;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    e.currentTarget.classList.add('active'); 
+    renderSongs();
+  };
+
+  function updateCounts() {
+    document.getElementById('count-all').textContent = songs.length;
+    document.getElementById('count-kpop').textContent = songs.filter(s => s.genre === 'K-POP').length;
+    document.getElementById('count-pop').textContent = songs.filter(s => s.genre === 'POP').length;
+    document.getElementById('count-jpop').textContent = songs.filter(s => s.genre === 'J-POP').length;
+  }
+
+  window.renderSongs = function() {
+    const grid = document.getElementById('songList');
+    const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    
+    const filteredSongs = songs.filter(song => {
+      const matchGenre = currentFilter === '전체' || song.genre === currentFilter;
+      const matchSearch = song.title.toLowerCase().includes(keyword) || song.artist.toLowerCase().includes(keyword);
+      return matchGenre && matchSearch;
+    });
+
+    if(filteredSongs.length === 0) {
+      grid.innerHTML = `<div class="empty-state">검색된 곡이 없습니다.</div>`;
+      return;
+    }
+
+    let html = '';
+    filteredSongs.forEach(song => {
+      let genreClass = 'tag-kpop';
+      if (song.genre === 'POP') genreClass = 'tag-pop';
+      if (song.genre === 'J-POP') genreClass = 'tag-jpop';
+      
+      const deleteBtnHtml = isAdmin ? `<button class="delete-btn" style="display:flex;" onclick="deleteSong(${song.id})">✕</button>` : '';
+
+      html += `
+        <div class="song-card">
+          ${deleteBtnHtml}
+          <img src="${escapeHtml(song.cover)}" alt="커버" class="album-cover" loading="lazy">
+          <div class="song-info">
+            <div class="song-title">${escapeHtml(song.title)}</div>
+            <div class="song-artist">${escapeHtml(song.artist)}</div>
+            <div class="tag-group">
+              <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
+              <span class="tag tag-status">${escapeHtml(song.status)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    grid.innerHTML = html;
+  };
+
+  updateAdminUI();
+
+</script>
+</body>
+</html>
