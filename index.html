@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>몽나 홈페이지</title>
+
+<!-- 🚀 외부 서버 사전 연결 (로딩 속도 최적화) -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://api.rss2json.com" crossorigin>
+
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
 <style>
   :root {
@@ -155,31 +161,17 @@
   .modal-save-btn { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; transition: 0.2s; }
   .modal-save-btn:hover { filter: brightness(0.9); }
 
-  /* 💡 📱 모바일 가시성 최적화 (메뉴바 수정됨) */
+  /* 📱 모바일 가시성 최적화 */
   @media (max-width: 1024px) {
-    .top-bar { 
-      padding: 10px 20px; 
-      height: auto; 
-      flex-wrap: wrap; /* 요소들이 좁으면 밑으로 내려가게 함 */
-    }
+    .top-bar { padding: 10px 20px; height: auto; flex-wrap: wrap; }
     .logo-wrap { order: 1; }
     .right-menu { order: 2; }
-    
-    /* 사라졌던 메뉴를 다시 나타나게 하고 두 번째 줄에 배치 */
     .nav-menu { 
-      display: flex; 
-      order: 3; 
-      width: 100%; 
-      justify-content: center; 
-      gap: 15px; 
-      padding-top: 12px; 
-      margin-top: 8px; 
-      border-top: 1px solid rgba(168, 85, 247, 0.1); 
-      overflow-x: auto; /* 메뉴가 길면 좌우로 스크롤 가능 */
-      white-space: nowrap; 
-      font-size: 14px;
+      display: flex; order: 3; width: 100%; justify-content: center; gap: 15px; 
+      padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(168, 85, 247, 0.1); 
+      overflow-x: auto; white-space: nowrap; font-size: 14px;
     }
-    .nav-menu::-webkit-scrollbar { display: none; } /* 모바일에서 스크롤바 안 보이게 숨김 */
+    .nav-menu::-webkit-scrollbar { display: none; }
     
     .main-container { flex-direction: column; padding: 0 20px; gap: 30px; margin: 20px auto; }
     
@@ -200,6 +192,20 @@
 </style>
 </head>
 <body>
+
+<!-- 🚀 몽나 로딩 스크린 시작 -->
+<div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fdfcff; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
+  <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style="height: 50px; margin-bottom: 20px; animation: loadingPulse 1.5s infinite;">
+  <div style="color: #a855f7; font-weight: 800; font-size: 15px;">데이터를 불러오는 중입니다... 🌙</div>
+  <style>
+    @keyframes loadingPulse { 
+      0% { transform: scale(1); opacity: 1; } 
+      50% { transform: scale(1.05); opacity: 0.5; } 
+      100% { transform: scale(1); opacity: 1; } 
+    }
+  </style>
+</div>
+<!-- 🚀 몽나 로딩 스크린 끝 -->
 
 <div class="top-bar">
   <a href="index.html" class="logo-wrap">
@@ -359,7 +365,7 @@
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  // 홈 설정 데이터 연동
+  // 💡 홈 설정 데이터 연동 및 로딩 스크린 끄기
   onSnapshot(homeRef, (docSnap) => {
     if (docSnap.exists()) {
       homeData = docSnap.data();
@@ -373,6 +379,15 @@
       }
     }
     renderHomePage();
+
+    // 🚀 파이어베이스 데이터를 다 불러오면 부드럽게 로딩 화면 지우기
+    setTimeout(() => {
+      const loader = document.getElementById('loadingScreen');
+      if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
+      }
+    }, 300);
   });
 
   function fetchYouTubeVideos(channelId) {
@@ -408,17 +423,13 @@
   }
 
   function renderHomePage() {
-    // 메인 이미지
     const mainImg = document.getElementById('heroMainImg');
     if(homeData.heroImg) mainImg.src = homeData.heroImg;
 
-    // 관리자가 켠 방송중 스위치 상태 불러오기
     document.getElementById('liveBadge').style.display = homeData.isLive ? 'flex' : 'none';
 
-    // 유튜브
     fetchYouTubeVideos(homeData.ytChannelId);
 
-    // 링크
     const linkGrid = document.getElementById('shortcutGrid');
     let linkHtml = '';
     homeData.links.forEach(link => {
