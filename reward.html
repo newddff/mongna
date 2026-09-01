@@ -68,9 +68,9 @@
   /* --- 좌우 분할 컨테이너 --- */
   .split-container { display: flex; gap: 40px; align-items: flex-start; }
 
-  /* 💡 왼쪽: 독립된 사진 카드 박스 (사진 칸 크기 대폭 확대) */
+  /* --- 왼쪽: 독립된 사진 카드 박스 --- */
   .left-panel-card {
-    flex: 1.2; min-width: 400px; max-width: 600px; /* 기존 max 480px -> 600px 로 확대 */
+    flex: 1.2; min-width: 400px; max-width: 600px;
     background: white; border-radius: 24px; padding: 25px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
     position: sticky; top: 110px;
@@ -78,7 +78,7 @@
     display: flex; flex-direction: column; gap: 15px;
   }
 
-  .left-tabs { display: flex; gap: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+  .left-tabs { display: flex; gap: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; flex-shrink: 0; }
   .l-tab { 
     background: transparent; border: none; font-size: 17px; font-weight: 900; 
     color: #94a3b8; cursor: pointer; padding: 5px 10px; transition: 0.2s; position: relative; 
@@ -90,19 +90,34 @@
   }
 
   .left-image-content { 
-    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-right: 5px; 
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding-right: 5px; 
   }
   .left-image-content::-webkit-scrollbar { width: 6px; }
   .left-image-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
   
-  .menu-img { 
-    width: 100%; border-radius: 16px; border: 1px solid #f1f5f9; box-shadow: 0 4px 15px rgba(0,0,0,0.02); 
-    object-fit: cover; cursor: zoom-in; transition: transform 0.2s; 
-  }
-  .menu-img:hover { transform: scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+  /* 책처럼 넘어가는 슬라이드(캐러셀) CSS */
+  .carousel-wrap { position: relative; width: 100%; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.02); overflow: hidden; background: #f8fafc; }
+  .carousel-inner { display: flex; transition: transform 0.3s ease-in-out; width: 100%; align-items: center; }
+  .carousel-inner img { width: 100%; flex: 0 0 100%; max-height: 500px; object-fit: contain; cursor: zoom-in; }
+  
+  .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; font-size: 16px; transition: 0.2s; opacity: 0.8; }
+  .carousel-btn:hover { background: rgba(0,0,0,0.8); opacity: 1; }
+  .carousel-btn.prev { left: 10px; }
+  .carousel-btn.next { right: 10px; }
+  
+  .carousel-dots { position: absolute; bottom: 15px; width: 100%; display: flex; justify-content: center; gap: 8px; z-index: 10; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: 0.2s; border: 1px solid rgba(0,0,0,0.2); }
+  .dot.active { background: white; box-shadow: 0 0 5px rgba(0,0,0,0.5); transform: scale(1.2); }
 
-  /* 💡 오른쪽: 보상목록 및 검색 패널 (업보 칸 비율 축소) */
-  .right-panel { flex: 1.2; display: flex; flex-direction: column; gap: 20px; min-width: 0; } /* flex 비율 조정 */
+  /* 카드형 단가/상품 목록 CSS */
+  .price-cards-container { margin-top: 20px; border-top: 2px dashed #e2e8f0; padding-top: 20px; }
+  .price-table-title { font-size: 16px; font-weight: 900; color: var(--primary); text-align: center; margin-bottom: 15px; }
+  .price-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .price-card:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+  .price-card .desc { font-size: 14px; font-weight: 700; color: var(--text-main); line-height: 1.6; word-break: keep-all; }
+
+  /* --- 오른쪽: 보상목록 및 검색 패널 --- */
+  .right-panel { flex: 1.2; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
   .panel-header { display: flex; justify-content: space-between; align-items: center; }
   .panel-header h2 { font-size: 20px; font-weight: 900; margin: 0; display: flex; align-items: center; gap: 8px; }
@@ -125,7 +140,6 @@
 
   .total-info { font-size: 13px; color: #64748b; font-weight: bold; text-align: center; margin-top: 5px; }
 
-  /* 💡 유저 카드 그리드 (오른쪽이 좁아졌으므로 카드 최소 너비를 290px로 살짝 줄임) */
   .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; }
   
   .user-card { 
@@ -251,7 +265,6 @@
   <div class="category-wrap">
     <div class="category-tabs" id="categoryTabs">
       <button class="cat-tab active" data-cat="all">전체보기</button>
-      <!-- 동적 카테고리 로드 -->
     </div>
     <button class="btn-manage-cat" id="btnManageCat" onclick="openCatManageModal()">⚙️ 카테고리 관리</button>
   </div>
@@ -261,11 +274,11 @@
     <!-- 왼쪽: 독립된 사진 카드 박스 -->
     <div class="left-panel-card">
       <div class="left-tabs">
-        <button class="l-tab active" id="tabBtn_menu" onclick="switchLeftTab('menu')">📖 메뉴판</button>
+        <button class="l-tab active" id="tabBtn_menu" onclick="switchLeftTab('menu')">📖 메뉴 및 단가표</button>
         <button class="l-tab" id="tabBtn_prob" onclick="switchLeftTab('prob')">🎯 룰렛 확률표</button>
       </div>
       <div class="left-image-content" id="leftImagesGrid">
-        <div style="font-size: 14px; color: #94a3b8; text-align: center; padding: 40px 0; background: #f8fafc; border-radius: 16px;">등록된 이미지가 없습니다.</div>
+        <div style="font-size: 14px; color: #94a3b8; text-align: center; padding: 40px 0; background: #f8fafc; border-radius: 16px;">등록된 데이터가 없습니다.</div>
       </div>
     </div>
 
@@ -275,7 +288,7 @@
         <h2>🎁 업보 현황</h2>
         <div class="admin-controls">
           <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelUpload(event)">
-          <button class="admin-btn-action bg-menu" onclick="openMenuSettings()">🖼️ 사진 일괄 설정</button>
+          <button class="admin-btn-action bg-menu" onclick="openMenuSettings()">🖼️ 사진/단가 설정</button>
           <button class="admin-btn-action bg-excel" onclick="document.getElementById('excelFileInput').click()">📗 엑셀 일괄 등록</button>
           <button class="admin-btn-action bg-add" onclick="openAddModal()">+ 업보 개별 등록</button>
         </div>
@@ -322,22 +335,29 @@
   </div>
 </div>
 
-<!-- 사진 설정 모달 -->
+<!-- 사진 및 단가표 설정 모달 -->
 <div class="modal-overlay" id="menuModal" onclick="closeMenuSettings()">
-  <div class="modal-content" onclick="event.stopPropagation()">
+  <div class="modal-content" style="max-height: 90vh;" onclick="event.stopPropagation()">
     <button class="modal-close-btn" onclick="closeMenuSettings()">✕</button>
-    <h2 style="margin-top:0; color:var(--text-main); font-weight:900;">카테고리별 사진 설정</h2>
+    <h2 style="margin-top:0; color:var(--text-main); font-weight:900;">카테고리별 사진 및 단가 설정</h2>
     <div class="input-group">
       <label>적용할 카테고리 선택</label>
       <select id="menuCatSelect" onchange="loadImagesForCat()"></select>
     </div>
     <div class="input-group">
-      <label>📖 메뉴판 이미지 URL (엔터로 구분해서 여러 개 입력 가능)</label>
-      <textarea id="menuImgUrls" placeholder="메뉴판 이미지 주소 입력" style="height: 100px;"></textarea>
+      <label>📖 메뉴판 사진 URL (엔터로 여러 개 입력 시 책처럼 넘어갑니다!)</label>
+      <textarea id="menuImgUrls" placeholder="메뉴판 이미지 주소 입력" style="height: 60px;"></textarea>
     </div>
+    
     <div class="input-group">
-      <label>🎯 룰렛 확률표 이미지 URL (엔터로 구분해서 여러 개 입력 가능)</label>
-      <textarea id="probImgUrls" placeholder="확률표 이미지 주소 입력" style="height: 100px;"></textarea>
+      <label>💰 단가 및 상품 목록 (메뉴판 사진 아래에 예쁜 카드로 나옵니다)</label>
+      <div style="font-size:12px; color:#64748b; margin-top:-4px; margin-bottom:4px;">* 이미지 넣을 땐 <b>이미지주소 | 설명글</b><br>* 텍스트만 넣을 땐 <b>단첫방셀 : 100개</b> 형식으로 적어주세요.</div>
+      <textarea id="menuPriceText" placeholder="단가 및 상품 내용을 입력하세요" style="height: 120px; font-family: monospace;"></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>🎯 룰렛 확률표 사진 URL (엔터로 여러 개 입력 시 책처럼 넘어갑니다!)</label>
+      <textarea id="probImgUrls" placeholder="확률표 이미지 주소 입력" style="height: 60px;"></textarea>
     </div>
     <button class="modal-save-btn" onclick="saveMenuImages()">저장 및 적용</button>
   </div>
@@ -399,10 +419,34 @@
   let isAdmin = localStorage.getItem('mongna_home_admin') === 'true';
   let rewards = [];
   
-  let settingsData = { categories: [], menuImages: {}, probImages: {} }; 
+  let settingsData = { categories: [], menuImages: {}, probImages: {}, priceList: {} }; 
   let currentCategory = 'all';
   let searchQuery = '';
   let leftTabMode = 'menu'; 
+
+  // 슬라이드 전역 제어 함수
+  window.currentSlideIdx = 0;
+  window.moveSlide = function(dir) {
+    const inner = document.getElementById('carouselInner');
+    if(!inner) return;
+    const imgs = inner.querySelectorAll('img');
+    window.currentSlideIdx += dir;
+    if(window.currentSlideIdx < 0) window.currentSlideIdx = imgs.length - 1;
+    if(window.currentSlideIdx >= imgs.length) window.currentSlideIdx = 0;
+    updateSlide();
+  }
+  window.goToSlide = function(idx) {
+    window.currentSlideIdx = idx;
+    updateSlide();
+  }
+  window.updateSlide = function() {
+    const inner = document.getElementById('carouselInner');
+    if(!inner) return;
+    inner.style.transform = `translateX(-${window.currentSlideIdx * 100}%)`;
+    document.querySelectorAll('.carousel-dots .dot').forEach((d, i) => {
+        d.classList.toggle('active', i === window.currentSlideIdx);
+    });
+  }
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -423,6 +467,7 @@
       if(!settingsData.categories) settingsData.categories = [];
       if(!settingsData.menuImages) settingsData.menuImages = {};
       if(!settingsData.probImages) settingsData.probImages = {};
+      if(!settingsData.priceList) settingsData.priceList = {};
     }
     renderCategoryTabs();
     renderLeftImages();
@@ -463,22 +508,71 @@
     renderLeftImages();
   }
 
+  // 💡 좌측 패널 렌더링 (슬라이드 & 카드형 단가표 적용)
   function renderLeftImages() {
     const grid = document.getElementById('leftImagesGrid');
-    let imgs = [];
+    let html = '';
     
+    let imgs = leftTabMode === 'menu' ? (settingsData.menuImages[currentCategory] || []) : (settingsData.probImages[currentCategory] || []);
+    
+    // 1. 이미지 렌더링 (1장이면 일반 렌더링, 여러 장이면 슬라이드 적용)
+    if(imgs.length > 0) {
+      if(imgs.length === 1) {
+        html += `<img src="${escapeHtml(imgs[0])}" style="width:100%; border-radius:16px; border:1px solid #f1f5f9; box-shadow:0 4px 15px rgba(0,0,0,0.02); object-fit:contain; cursor:zoom-in;" onclick="openImageViewer('${escapeHtml(imgs[0])}')">`;
+      } else {
+        window.currentSlideIdx = 0;
+        let innerHtml = imgs.map(url => `<img src="${escapeHtml(url)}" onclick="openImageViewer('${escapeHtml(url)}')">`).join('');
+        let dotsHtml = imgs.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></div>`).join('');
+        
+        html += `
+        <div class="carousel-wrap" id="imgCarousel">
+          <div class="carousel-inner" id="carouselInner">
+            ${innerHtml}
+          </div>
+          <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
+          <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+          <div class="carousel-dots">${dotsHtml}</div>
+        </div>
+        `;
+      }
+    }
+
+    // 2. 단가표(텍스트) 렌더링 (메뉴 탭일 때만)
     if(leftTabMode === 'menu') {
-      imgs = settingsData.menuImages[currentCategory] || [];
-    } else {
-      imgs = settingsData.probImages[currentCategory] || [];
+      const priceText = (settingsData.priceList || {})[currentCategory] || '';
+      
+      if(priceText.trim() !== '') {
+        let tableHtml = `<div class="price-cards-container"><div class="price-table-title">💰 단가 및 상품 안내</div>`;
+        const lines = priceText.split('\n');
+        
+        lines.forEach(line => {
+          if(line.trim() === '') return;
+          
+          if (line.includes('|')) {
+            let [left, right] = line.split('|').map(s => s.trim());
+            let headerHtml = left.startsWith('http') 
+              ? `<img src="${escapeHtml(left)}" style="max-height:120px; object-fit:contain; border-radius:8px; margin-bottom:10px;">` 
+              : `<div style="font-size:22px; font-weight:900; color:#ef4444; margin-bottom:10px;">${escapeHtml(left)}</div>`;
+            tableHtml += `<div class="price-card">${headerHtml}<div class="desc">${escapeHtml(right)}</div></div>`;
+          } else if (line.includes(':')) {
+            let [left, right] = line.split(':').map(s => s.trim());
+            tableHtml += `<div class="price-card" style="padding:15px;"><div style="font-size:16px; font-weight:900; color:var(--primary); margin-bottom:5px;">${escapeHtml(left)}</div><div class="desc">${escapeHtml(right)}</div></div>`;
+          } else {
+            tableHtml += `<div class="price-card" style="padding:15px;"><div class="desc" style="text-align:center;">${escapeHtml(line.trim())}</div></div>`;
+          }
+        });
+        tableHtml += `</div>`;
+        html += tableHtml;
+      }
+    }
+
+    if(imgs.length === 0 && (!settingsData.priceList || !(settingsData.priceList[currentCategory]) || settingsData.priceList[currentCategory].trim() === '') && leftTabMode === 'menu') {
+      html = `<div style="font-size: 14px; color: #94a3b8; text-align: center; padding: 40px 0; background: #f8fafc; border-radius: 16px;">등록된 메뉴판이나 단가표가 없습니다.</div>`;
+    } else if (imgs.length === 0 && leftTabMode === 'prob') {
+      html = `<div style="font-size: 14px; color: #94a3b8; text-align: center; padding: 40px 0; background: #f8fafc; border-radius: 16px;">등록된 룰렛 확률표가 없습니다.</div>`;
     }
     
-    if(imgs.length === 0) {
-      const txt = leftTabMode === 'menu' ? '등록된 메뉴판 이미지가 없습니다.' : '등록된 룰렛 확률표가 없습니다.';
-      grid.innerHTML = `<div style="font-size: 14px; color: #94a3b8; text-align: center; padding: 40px 0; background: #f8fafc; border-radius: 16px;">${txt}</div>`;
-      return;
-    }
-    grid.innerHTML = imgs.map(url => `<img src="${escapeHtml(url)}" class="menu-img" onclick="openImageViewer('${escapeHtml(url)}')">`).join('');
+    grid.innerHTML = html;
   }
 
   window.openImageViewer = function(url) {
@@ -703,24 +797,34 @@
     const selectedCat = document.getElementById('menuCatSelect').value;
     const mImgs = (settingsData.menuImages || {})[selectedCat] || [];
     const pImgs = (settingsData.probImages || {})[selectedCat] || [];
+    const priceText = (settingsData.priceList || {})[selectedCat] || '';
+    
     document.getElementById('menuImgUrls').value = mImgs.join('\n');
     document.getElementById('probImgUrls').value = pImgs.join('\n');
+    document.getElementById('menuPriceText').value = priceText;
   }
 
   window.saveMenuImages = async function() {
     const selectedCat = document.getElementById('menuCatSelect').value;
     const menuRaw = document.getElementById('menuImgUrls').value;
     const probRaw = document.getElementById('probImgUrls').value;
+    const priceRaw = document.getElementById('menuPriceText').value; 
     
     const mUrls = menuRaw.split('\n').map(u => u.trim()).filter(u => u !== '');
     const pUrls = probRaw.split('\n').map(u => u.trim()).filter(u => u !== '');
     
     const newMenuImages = { ...(settingsData.menuImages || {}), [selectedCat]: mUrls };
     const newProbImages = { ...(settingsData.probImages || {}), [selectedCat]: pUrls };
+    const newPriceList = { ...(settingsData.priceList || {}), [selectedCat]: priceRaw }; 
     
-    await setDoc(settingsRef, { menuImages: newMenuImages, probImages: newProbImages }, { merge: true });
+    await setDoc(settingsRef, { 
+      menuImages: newMenuImages, 
+      probImages: newProbImages, 
+      priceList: newPriceList 
+    }, { merge: true });
+    
     closeMenuSettings();
-    alert("해당 카테고리의 사진이 저장되었습니다!");
+    alert("해당 카테고리의 설정이 저장되었습니다!");
   }
 
   // --- 개별 등록 모달 ---
