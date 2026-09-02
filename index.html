@@ -8,7 +8,7 @@
 <!-- 🚀 외부 서버 사전 연결 (로딩 속도 최적화) -->
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://api.rss2json.com" crossorigin>
+<link rel="preconnect" href="https://www.googleapis.com" crossorigin>
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
 <style>
@@ -260,38 +260,7 @@
       <div class="section-title">🔗 몽나링크</div>
       
       <div class="shortcut-grid" id="shortcutGrid">
-        <a href="https://www.sooplive.com/station/pinktape8" target="_blank" class="shortcut-btn">
-          <div class="shortcut-icon"><img src="https://cdn-icons-png.flaticon.com/512/3159/3159073.png" style="width:100%; height:100%; border-radius:10px; object-fit:cover;"></div>
-          <div class="shortcut-texts">
-            <div class="sc-title">숲 방송국</div>
-            <div class="sc-sub">생방송 보러가기</div>
-          </div>
-          <div class="sc-arrow">↗</div>
-        </a>
-        <a href="https://www.youtube.com/@mongnaaa" target="_blank" class="shortcut-btn">
-          <div class="shortcut-icon"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" style="width:100%; height:100%; border-radius:10px; object-fit:cover;"></div>
-          <div class="shortcut-texts">
-            <div class="sc-title">유튜브</div>
-            <div class="sc-sub">다시보기 & 하이라이트</div>
-          </div>
-          <div class="sc-arrow">↗</div>
-        </a>
-        <a href="https://cafe.naver.com/nightofmongna" target="_blank" class="shortcut-btn">
-          <div class="shortcut-icon"><img src="https://cdn-icons-png.flaticon.com/512/3054/3054889.png" style="width:100%; height:100%; border-radius:10px; object-fit:cover;"></div>
-          <div class="shortcut-texts">
-            <div class="sc-title">팬카페</div>
-            <div class="sc-sub">소통과 정보 나눔</div>
-          </div>
-          <div class="sc-arrow">↗</div>
-        </a>
-        <a href="https://www.instagram.com/m0n9na/" target="_blank" class="shortcut-btn">
-          <div class="shortcut-icon"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384063.png" style="width:100%; height:100%; border-radius:10px; object-fit:cover;"></div>
-          <div class="shortcut-texts">
-            <div class="sc-title">인스타그램</div>
-            <div class="sc-sub">일상 공유</div>
-          </div>
-          <div class="sc-arrow">↗</div>
-        </a>
+        <!-- 몽나 링크 렌더링 영역 -->
       </div>
     </div>
 
@@ -315,10 +284,16 @@
       <input type="text" id="setHeroImg" placeholder="가로/세로 상관없이 왼쪽 50% 화면에 예쁘게 꽉 차게 들어갑니다.">
     </div>
     
+    <div class="input-group">
+      <label>▶️ 유튜브 채널 ID (불변)</label>
+      <input type="text" id="setYtChannelId" placeholder="UCn4-zZl38zE901G8275_oHw">
+    </div>
+
+    <!-- 💡 유튜브 API 키 입력 칸 추가 -->
     <div class="input-group" style="margin-bottom:30px;">
-      <label>▶️ 유튜브 채널 ID (자동 연동)</label>
-      <div style="font-size:12px; color:#64748b; margin-top:-5px;">* 몽나 채널 ID: <b>UCn4-zZl38zE901G8275_oHw</b></div>
-      <input type="text" id="setYtChannelId" placeholder="UC로 시작하는 아이디 입력">
+      <label>🔑 구글 공식 유튜브 API 키</label>
+      <div style="font-size:12px; color:#10b981; margin-top:-5px;">* 발급받은 'AIzaSy...' 로 시작하는 키를 여기에 붙여넣으세요!</div>
+      <input type="text" id="setYtApiKey" placeholder="API 키를 여기에 입력하세요">
     </div>
 
     <h3 style="font-size:16px; color:#475569; margin-bottom:15px; border-bottom:2px solid #f1f5f9; padding-bottom:8px;">🔗 몽나링크 4개 커스텀 설정</h3>
@@ -351,7 +326,7 @@
   let isAdmin = localStorage.getItem('mongna_home_admin') === 'true';
   
   let homeData = {
-    heroImg: '', ytChannelId: '', isLive: false,
+    heroImg: '', ytChannelId: '', ytApiKey: '', isLive: false,
     links: [
       { title: '숲 방송국', sub: '생방송 보러가기', icon: 'https://cdn-icons-png.flaticon.com/512/3159/3159073.png', url: 'https://www.sooplive.com/station/pinktape8' },
       { title: '유튜브', sub: '다시보기 & 하이라이트', icon: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png', url: 'https://www.youtube.com/@mongnaaa' },
@@ -365,7 +340,6 @@
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  // 💡 홈 설정 데이터 연동 및 로딩 스크린 끄기
   onSnapshot(homeRef, (docSnap) => {
     if (docSnap.exists()) {
       homeData = docSnap.data();
@@ -380,7 +354,6 @@
     }
     renderHomePage();
 
-    // 🚀 파이어베이스 데이터를 다 불러오면 부드럽게 로딩 화면 지우기
     setTimeout(() => {
       const loader = document.getElementById('loadingScreen');
       if(loader) {
@@ -390,36 +363,50 @@
     }, 300);
   });
 
-  function fetchYouTubeVideos(channelId) {
+  // 💡 구글 공식 API로 영상 가져오기 (절대 안 끊기고 무료 할당량 1일 10,000건 적용!)
+  function fetchYouTubeVideos(channelId, apiKey) {
     const ytGrid = document.getElementById('youtubeGrid');
-    if (!channelId) {
-      ytGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; font-size: 14px; font-weight: bold; padding: 40px 0; background: white; border-radius: 20px;">유튜브 채널 ID가 등록되지 않았습니다. 관리자 설정(⚙️)을 확인해주세요.</div>`;
+    
+    // 기본 채널 ID (비어있으면 기본값 적용)
+    const targetChannelId = channelId || 'UCn4-zZl38zE901G8275_oHw';
+
+    if (!apiKey) {
+      ytGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 14px; font-weight: bold; padding: 40px 0; background: white; border-radius: 20px;">구글 유튜브 API 키가 입력되지 않았습니다.<br>설정(⚙️) 창을 열어 키를 붙여넣어 주세요!</div>`;
       return;
     }
 
-    const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
+    // 채널 ID의 'UC'를 'UU'로 바꾸면 그 채널의 전체 업로드 재생목록이 됨 (이 방식이 요금/포인트 소모가 가장 적음)
+    const uploadsPlaylistId = targetChannelId.replace(/^UC/, 'UU');
+    const apiUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=3&key=${apiKey}`;
 
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
-        if (data.status === 'ok' && data.items.length > 0) {
-          const latestVideos = data.items.slice(0, 3);
+        if (data.items && data.items.length > 0) {
           let ytHtml = '';
-          latestVideos.forEach(video => {
+          data.items.forEach(item => {
+            const video = item.snippet;
+            const videoId = video.resourceId.videoId;
+            const title = video.title;
+            const thumb = video.thumbnails.medium ? video.thumbnails.medium.url : (video.thumbnails.default ? video.thumbnails.default.url : '');
+            const link = `https://www.youtube.com/watch?v=${videoId}`;
+            
             ytHtml += `
-              <a href="${video.link}" target="_blank" class="yt-card">
-                <img src="${video.thumbnail}" class="yt-thumb">
-                <div class="yt-title">${escapeHtml(video.title)}</div>
+              <a href="${link}" target="_blank" class="yt-card">
+                <img src="${thumb}" class="yt-thumb">
+                <div class="yt-title">${escapeHtml(title)}</div>
               </a>
             `;
           });
           ytGrid.innerHTML = ytHtml;
         } else {
-          ytGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 14px; font-weight: bold; padding: 40px 0; background: white; border-radius: 20px;">유튜브 영상을 불러오지 못했습니다. 채널 ID를 확인해주세요.</div>`;
+          ytGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 14px; font-weight: bold; padding: 40px 0; background: white; border-radius: 20px;">유튜브 API 설정에 문제가 있거나 영상이 없습니다. 키를 다시 확인해주세요.</div>`;
         }
       })
-      .catch(error => { console.error("유튜브 로드 에러:", error); });
+      .catch(error => { 
+        console.error("유튜브 로드 에러:", error); 
+        ytGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 14px; font-weight: bold; padding: 40px 0; background: white; border-radius: 20px;">API 오류 발생! 구글 콘솔에서 'YouTube Data API v3'가 켜져 있는지 확인해주세요.</div>`;
+      });
   }
 
   function renderHomePage() {
@@ -428,7 +415,7 @@
 
     document.getElementById('liveBadge').style.display = homeData.isLive ? 'flex' : 'none';
 
-    fetchYouTubeVideos(homeData.ytChannelId);
+    fetchYouTubeVideos(homeData.ytChannelId, homeData.ytApiKey);
 
     const linkGrid = document.getElementById('shortcutGrid');
     let linkHtml = '';
@@ -535,7 +522,8 @@
   window.openHomeSettings = function() {
     if(!isAdmin) return;
     document.getElementById('setHeroImg').value = homeData.heroImg || '';
-    document.getElementById('setYtChannelId').value = homeData.ytChannelId || '';
+    document.getElementById('setYtChannelId').value = homeData.ytChannelId || 'UCn4-zZl38zE901G8275_oHw';
+    document.getElementById('setYtApiKey').value = homeData.ytApiKey || ''; // 새로 추가된 API 키
     document.getElementById('setIsLive').checked = homeData.isLive === true;
     
     const linkArea = document.getElementById('linkSettingsArea');
@@ -578,13 +566,14 @@
       isLive: document.getElementById('setIsLive').checked,
       heroImg: document.getElementById('setHeroImg').value.trim(),
       ytChannelId: document.getElementById('setYtChannelId').value.trim(),
+      ytApiKey: document.getElementById('setYtApiKey').value.trim(), // 새로 추가된 API 키 저장
       links: newLinks
     };
 
     try {
       await setDoc(homeRef, newData, { merge: true });
       window.closeHomeSettings();
-      alert("홈페이지 설정이 완벽하게 저장되었습니다!");
+      alert("홈페이지 설정 및 유튜브 연결이 완료되었습니다!");
     } catch(e) { alert("저장 실패!"); }
   };
 
