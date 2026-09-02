@@ -309,6 +309,26 @@
   </div>
 </div>
 
+<!-- 💡 엑셀 업로드 방식 선택 모달 (새로 추가됨!) -->
+<div class="modal-overlay" id="excelConfirmModal">
+  <div class="modal-content" style="width: 450px; text-align: center;">
+    <h2 style="margin-top:0; color:var(--primary); font-weight:900; font-size: 22px;">엑셀 등록 방식 선택</h2>
+    <p id="excelConfirmMsg" style="font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;"></p>
+    
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button class="modal-save-btn" style="margin:0; background: #10b981; padding: 18px;" onclick="submitExcel('append')">
+        ➕ 기존 데이터 유지하고 <b>새로 누적 추가하기</b>
+      </button>
+      <button class="modal-save-btn" style="margin:0; background: #ef4444; padding: 18px;" onclick="submitExcel('overwrite')">
+        🔄 기존 데이터 싹 지우고 <b>새로 덮어쓰기</b>
+      </button>
+      <button class="modal-save-btn" style="margin:0; background: #e2e8f0; color: #475569;" onclick="closeExcelModal()">
+        ✕ 업로드 취소
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- 이미지 확대 보기 모달 -->
 <div class="img-viewer-overlay" id="imageViewerModal" onclick="closeImageViewer()">
   <div class="img-viewer-content" onclick="event.stopPropagation()">
@@ -424,7 +444,7 @@
   let searchQuery = '';
   let leftTabMode = 'menu'; 
 
-  // 슬라이드 전역 제어 함수
+  // 슬라이드 제어
   window.currentSlideIdx = 0;
   window.moveSlide = function(dir) {
     const inner = document.getElementById('carouselInner');
@@ -484,11 +504,9 @@
   function renderCategoryTabs() {
     const container = document.getElementById('categoryTabs');
     let html = `<button class="cat-tab ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">전체보기</button>`;
-    
     settingsData.categories.forEach(cat => {
       html += `<button class="cat-tab ${currentCategory === cat ? 'active' : ''}" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`;
     });
-    
     container.innerHTML = html;
   }
 
@@ -508,14 +526,12 @@
     renderLeftImages();
   }
 
-  // 💡 좌측 패널 렌더링 (슬라이드 & 카드형 단가표 적용)
   function renderLeftImages() {
     const grid = document.getElementById('leftImagesGrid');
     let html = '';
     
     let imgs = leftTabMode === 'menu' ? (settingsData.menuImages[currentCategory] || []) : (settingsData.probImages[currentCategory] || []);
     
-    // 1. 이미지 렌더링 (1장이면 일반 렌더링, 여러 장이면 슬라이드 적용)
     if(imgs.length > 0) {
       if(imgs.length === 1) {
         html += `<img src="${escapeHtml(imgs[0])}" style="width:100%; border-radius:16px; border:1px solid #f1f5f9; box-shadow:0 4px 15px rgba(0,0,0,0.02); object-fit:contain; cursor:zoom-in;" onclick="openImageViewer('${escapeHtml(imgs[0])}')">`;
@@ -537,7 +553,6 @@
       }
     }
 
-    // 2. 단가표(텍스트) 렌더링 (메뉴 탭일 때만)
     if(leftTabMode === 'menu') {
       const priceText = (settingsData.priceList || {})[currentCategory] || '';
       
@@ -706,7 +721,6 @@
     if(mCat && currentCategory !== 'all') mCat.value = currentCategory;
   }
 
-  // --- 관리자 제어 ---
   window.toggleAdmin = function() {
     if(isAdmin) {
       if(confirm("관리자 모드를 종료하시겠습니까?")) {
@@ -737,7 +751,6 @@
     renderRewards();
   }
 
-  // --- 카테고리 관리 ---
   window.openCatManageModal = function() {
     if(!isAdmin) return;
     renderCatManageList();
@@ -783,7 +796,6 @@
     }
   }
 
-  // --- 사진 설정 모달 ---
   window.openMenuSettings = function() {
     if(!isAdmin) return;
     populateCategorySelects();
@@ -827,7 +839,6 @@
     alert("해당 카테고리의 설정이 저장되었습니다!");
   }
 
-  // --- 개별 등록 모달 ---
   window.openAddModal = function() {
     if(!isAdmin) return;
     populateCategorySelects();
@@ -861,7 +872,6 @@
     } catch(e) { alert("저장 실패"); }
   };
 
-  // --- 유저 세부 관리 모달 ---
   window.openManageModal = function(userKeyId) {
     if(!isAdmin) return;
     const userItems = rewards.filter(r => {
@@ -916,56 +926,122 @@
     closeManageModal();
   }
 
-  // --- 엑셀 처리 ---
+  // 💡 엑셀 업로드 팝업창 및 분기 처리
   window.handleExcelUpload = function(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async function(e) {
+    reader.onload = function(e) {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, {type: 'array'});
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' }); 
 
         let newItems = [];
         let now = Date.now();
         const targetCat = currentCategory === 'all' ? '미분류' : currentCategory;
 
-        json.forEach((row, index) => {
-          const nickname = row['닉네임'] || row['이름'] || row['시청자'];
-          const soopId = row['아이디'] || row['SOOP아이디'] || row['soopId'] || '';
-          const title = row['업보내용'] || row['업보'] || row['내용'];
-          const exCat = row['카테고리'] || row['분류']; 
-          let statusRaw = String(row['상태'] || row['청산여부'] || '');
-          let status = (statusRaw.includes('완료') || statusRaw === 'O' || statusRaw.toUpperCase() === 'TRUE') ? 'completed' : 'pending';
+        const reservedKeys = ['닉네임', '이름', '시청자', '아이디', 'soop아이디', 'soopid', '카테고리', '분류', '상태', '청산여부'];
 
-          if(nickname && title) {
-            newItems.push({ 
-              id: now + index, 
-              nickname: String(nickname).trim(), 
-              soopId: String(soopId).trim(), 
-              title: String(title).trim(), 
-              category: exCat ? String(exCat).trim() : targetCat,
-              status: status 
-            });
+        json.forEach((row) => {
+          let nickname = '';
+          let soopId = '';
+          let status = 'pending';
+          let exCat = targetCat;
+
+          for (let key in row) {
+            let k = key.trim().toLowerCase();
+            if (k === '닉네임' || k === '이름' || k === '시청자') nickname = String(row[key]).trim();
+            else if (k === '아이디' || k === 'soop아이디' || k === 'soopid') soopId = String(row[key]).trim();
+            else if (k === '카테고리' || k === '분류') {
+              if(row[key]) exCat = String(row[key]).trim();
+            }
+            else if (k === '상태' || k === '청산여부') {
+              let s = String(row[key]).trim();
+              if (s.includes('완료') || s === 'O' || s.toUpperCase() === 'TRUE') status = 'completed';
+            }
+          }
+
+          if (nickname) {
+            for (let key in row) {
+              let k = key.trim().toLowerCase();
+              if (!reservedKeys.includes(k)) {
+                let rewardTitle = key.trim(); 
+                let cellValue = row[key];
+                
+                let count = parseInt(cellValue, 10);
+                
+                if (!isNaN(count) && count > 0) {
+                  for (let i = 0; i < count; i++) {
+                    newItems.push({ 
+                      id: now++, nickname: nickname, soopId: soopId, title: rewardTitle, category: exCat, status: status 
+                    });
+                  }
+                } else if (typeof cellValue === 'string' && cellValue.trim() !== '' && cellValue.trim() !== '0') {
+                  let s = cellValue.trim().toUpperCase();
+                  if(s === 'O' || s === 'V' || s === 'TRUE' || s === '1') {
+                     newItems.push({ 
+                      id: now++, nickname: nickname, soopId: soopId, title: rewardTitle, category: exCat, status: status 
+                    });
+                  }
+                }
+              }
+            }
           }
         });
 
-        if(newItems.length > 0 && confirm(`총 ${newItems.length}개의 업보를 [${targetCat}] 카테고리에 일괄 추가하시겠습니까?\n(엑셀 파일 내 '카테고리' 열이 있다면 그 기준을 따릅니다)`)) {
-          await setDoc(rewardRef, { items: [...rewards, ...newItems] }, { merge: true });
-          alert("엑셀 일괄 등록 완료!");
-        } else if(newItems.length === 0) {
-          alert("유효한 데이터가 없습니다. (필수: 닉네임, 업보내용 열)");
+        if(newItems.length > 0) {
+          // 모달창에 임시 데이터 저장 후 띄우기
+          window.tempNewItems = newItems;
+          window.tempTargetCat = targetCat;
+          document.getElementById('excelConfirmMsg').innerHTML = `엑셀 표에서 <b>총 ${newItems.length}개의 업보</b>를 발견했습니다!<br><br>현재 <b>[${targetCat}]</b> 카테고리에<br>어떤 방식으로 저장할까요?`;
+          document.getElementById('excelConfirmModal').style.display = 'flex';
+        } else {
+          alert("유효한 데이터가 없습니다. (숫자가 1 이상 적힌 항목을 찾지 못했습니다)");
         }
-      } catch (err) { alert("엑셀 파일 오류"); }
+      } catch (err) { alert("엑셀 파일 오류"); console.error(err); }
       event.target.value = '';
     };
     reader.readAsArrayBuffer(file);
   };
 
-  // --- 검색창 리스너 ---
+  // 💡 선택된 방식으로 저장하는 함수
+  window.submitExcel = async function(mode) {
+    if(!window.tempNewItems) return;
+    
+    try {
+      if(mode === 'append') {
+        // 기존 데이터에 누적 추가
+        await setDoc(rewardRef, { items: [...rewards, ...window.tempNewItems] }, { merge: true });
+        alert("기존 데이터에 누적 추가되었습니다!");
+      } 
+      else if(mode === 'overwrite') {
+        // 현재 카테고리 데이터만 싹 지우고 새로 덮어쓰기
+        if(!confirm(`정말로 기존 [${window.tempTargetCat}] 카테고리의 모든 데이터를 삭제하고 덮어쓰시겠습니까?\n(이 작업은 되돌릴 수 없습니다!)`)) return;
+        
+        // 현재 타겟 카테고리가 아닌 다른 카테고리의 데이터들만 남겨둠
+        const retainedRewards = rewards.filter(r => (r.category || '미분류') !== window.tempTargetCat);
+        
+        // 남겨둔 데이터 + 새로 올린 데이터 합체
+        await setDoc(rewardRef, { items: [...retainedRewards, ...window.tempNewItems] }, { merge: true });
+        alert(`[${window.tempTargetCat}] 카테고리가 성공적으로 덮어쓰기 되었습니다!`);
+      }
+      
+      closeExcelModal();
+    } catch(e) {
+      alert("저장 실패");
+      console.error(e);
+    }
+  }
+
+  window.closeExcelModal = function() {
+    document.getElementById('excelConfirmModal').style.display = 'none';
+    window.tempNewItems = null;
+    window.tempTargetCat = null;
+  }
+
   document.getElementById('searchInput').addEventListener('input', (e) => {
     searchQuery = e.target.value;
     renderRewards();
