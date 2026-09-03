@@ -426,7 +426,7 @@
   function showError(status, channelId, ytGrid) {
     let errorMsg = "유튜브 API 오류가 발생했습니다.";
     if (status === "404") {
-      errorMsg = `🚨 <b>유튜브 채널 ID 오류 (404)</b><br><br>입력하신 ID: <b>${escapeHtml(channelId)}</b><br><br>해당 채널을 찾을 수 없습니다. 대소문자(I, l)나 숫자(0, O) 오타가 없는지 유튜브 스튜디오에서 정확히 다시 복사해주세요.`;
+      errorMsg = `🚨 <b>유튜브 채널 ID 오류 (404)</b><br><br>입력하신 ID: <b>${escapeHtml(channelId)}</b><br><br>해당 채널을 찾을 수 없습니다. 유튜브 채널 ID를 확인해주세요.`;
     } else if (status === "403") {
       errorMsg = `🚨 <b>API 키 권한 거부 (403)</b><br>구글 콘솔에서 주소 제한(*mongna-beta.vercel.app/*)을 잘못 입력했거나, 키 복사가 잘못되었습니다.`;
     }
@@ -502,19 +502,20 @@
         html += `<div class="day-cell ${isToday ? 'today' : ''}">`;
         html += `<div class="date-header ${dateColorClass}">${dayObj.dateNum}</div>`;
         
-        // 💡 캘린더 100% 실시간 색상 연동 (코딩 수정 영구 면제!)
+        // 💡 캘린더 색상 초강력 강제 매핑 로직 (DB 색상, 이름, 종류를 종합해서 판단)
         daySchedules.forEach(sch => {
-          
-          // 캘린더 DB에서 저장된 색상을 1순위로 그대로 쭉 가져옵니다.
-          let bgColor = sch.color || sch.backgroundColor || sch.bgColor || sch.eventColor;
+          let bgColor = sch.color || sch.backgroundColor || sch.bgColor || sch.eventColor || '';
 
-          // 색상이 없는 옛날 데이터일 경우에만 임시로 칠해줍니다.
+          // 만약 색상이 저장 안 된 과거 데이터라면 이름이나 타입으로 강제 색칠
           if (!bgColor) {
             let type = sch.type || '';
+            let title = sch.title || '';
+
             if (type === '겜방') bgColor = '#fbbf24';
-            else if (type === '휴방') bgColor = '#94a3b8';
+            else if (type === '휴방' || title.includes('휴방')) bgColor = '#94a3b8';
             else if (type === '합방') bgColor = '#60a5fa';
-            else bgColor = '#fb819e'; // 기본 핑크색
+            else if (type === '같이보기' || title.includes('LCK') || title.includes('같이보기')) bgColor = '#c4b5fd'; 
+            else bgColor = '#fb819e'; // 기본 방송(핑크)
           }
 
           html += `
