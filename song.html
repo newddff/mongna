@@ -9,6 +9,7 @@
   :root {
     --primary: #a855f7;
     --primary-hover: #9333ea;
+    --primary-light: #f3e8ff;
     --bg-color: #f5f3ff;
     --card-bg: #ffffff;
     --text-main: #1e293b;
@@ -46,9 +47,9 @@
   .admin-btn { background: white; border: 1px solid #ddd; padding: 6px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; color: var(--text-main); transition: 0.2s; }
   .admin-btn.on { background-color: #ffd700; border-color: #ffd700; color: #333; }
 
-  /* --- 메인 레이아웃 --- */
+  /* --- 메인 컨테이너 --- */
   .main-container {
-    max-width: 1200px; margin: 40px auto; padding: 30px;
+    max-width: 1300px; margin: 40px auto; padding: 30px;
     background: var(--card-bg); border-radius: 24px; box-shadow: 0 10px 40px rgba(168, 85, 247, 0.05);
   }
 
@@ -64,7 +65,7 @@
   .filter-count { font-size: 11px; background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 10px; margin-left: 4px; }
   .filter-btn.active .filter-count { background: #64748b; color: white; }
   
-  /* 💡 컨트롤 바 (검색 + 정렬 + 룰렛) */
+  /* 컨트롤 바 */
   .controls-row { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center; }
   
   .search-wrap { flex: 1; min-width: 250px; display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 12px 20px; border-radius: 16px; border: 1px solid #e2e8f0; transition: 0.2s; }
@@ -77,29 +78,61 @@
   .roulette-btn { padding: 12px 20px; border-radius: 16px; border: none; background: linear-gradient(135deg, #a855f7, #ec4899); color: white; font-weight: 900; font-size: 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3); display: flex; align-items: center; gap: 6px; }
   .roulette-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4); }
 
-  /* 노래 리스트 그리드 (카드 UI) */
-  .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-  .song-card {
-    display: flex; gap: 15px; padding: 15px; border: 1px solid #f1f5f9; border-radius: 16px;
-    background: white; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.02); align-items: center; position: relative;
+  /* 스플릿 레이아웃 */
+  .split-layout { display: flex; gap: 30px; align-items: flex-start; }
+  
+  .detail-view {
+    width: 320px; flex-shrink: 0; position: sticky; top: 100px;
+    background: white; border-radius: 24px; padding: 30px;
+    border: 1px solid #e2e8f0; box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+    display: flex; flex-direction: column; align-items: center; text-align: center;
   }
-  .song-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(168, 85, 247, 0.08); border-color: #cbd5e1; }
+  .detail-cover { width: 220px; height: 220px; border-radius: 24px; object-fit: cover; box-shadow: 0 15px 30px rgba(0,0,0,0.1); margin-bottom: 25px; }
+  .detail-title { font-size: 22px; font-weight: 900; color: #0f172a; margin-bottom: 8px; word-break: keep-all; line-height: 1.3;}
+  .detail-artist { font-size: 15px; color: var(--primary); font-weight: 800; margin-bottom: 20px; }
+  .detail-tags { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;}
+
+  .list-view-container { flex: 1; min-width: 0; }
+  .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
   
-  .album-cover { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .artist-group-header {
+    grid-column: 1 / -1; 
+    font-size: 20px;
+    font-weight: 900;
+    color: #1e293b;
+    margin-top: 25px;
+    margin-bottom: 5px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .artist-group-header:first-child { margin-top: 0; } 
+
+  .song-card {
+    display: flex; gap: 15px; padding: 15px; border: 2px solid #f1f5f9; border-radius: 16px;
+    background: white; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.02); align-items: center; position: relative;
+    cursor: pointer;
+  }
+  .song-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(168, 85, 247, 0.08); border-color: #cbd5e1; }
   
-  .song-info { flex: 1; min-width: 0; }
-  .song-title { font-size: 16px; font-weight: 900; color: #0f172a; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .song-artist { font-size: 13px; color: var(--text-sub); margin-bottom: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-card.selected { border-color: var(--primary); background: var(--primary-light); }
   
-  /* 알약 태그 */
-  .tag-group { display: flex; gap: 6px; align-items: center; }
+  .album-cover { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  
+  .song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .song-title-wrap { margin-bottom: 8px; }
+  .song-title-sm { font-size: 15px; font-weight: 900; color: #0f172a; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-artist-sm { font-size: 12px; color: var(--text-sub); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  
   .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; }
   .tag-kpop { background: #fce7f3; color: #db2777; }
   .tag-pop { background: #e0e7ff; color: #4f46e5; }
   .tag-jpop { background: #fef3c7; color: #ea580c; }
-  .tag-status { background: #dcfce7; color: #059669; margin-left: auto; } 
-  .tag-status-no { background: #fee2e2; color: #ef4444; margin-left: auto; }
-  .tag-status-hold { background: #fef3c7; color: #d97706; margin-left: auto; }
+  .tag-status { background: #dcfce7; color: #059669; } 
+  .tag-status-no { background: #fee2e2; color: #ef4444; }
+  .tag-status-hold { background: #fef3c7; color: #d97706; }
   
   .delete-btn {
     position: absolute; top: 10px; right: 10px; background: #fee2e2; color: #ef4444;
@@ -110,36 +143,47 @@
 
   /* 관리자 입력 폼 */
   .admin-panel { margin-top: 50px; padding: 25px; background: #fff0f0; border: 2px dashed #fca5a5; border-radius: 16px; display: none; }
-  .admin-input-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-  .admin-input-group input, .admin-input-group select { padding: 12px 15px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; font-weight: bold; }
+  .admin-input-group { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+  .admin-input-group input, .admin-input-group select { padding: 12px 15px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; font-weight: bold; width: 100%; box-sizing: border-box; }
   .admin-input-group input:focus, .admin-input-group select:focus { border-color: var(--primary); }
-  .add-btn { padding: 12px 25px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; }
+  .add-btn { padding: 12px 25px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; height: 45px; white-space: nowrap;}
   .add-btn:hover { background: var(--primary-hover); }
   .add-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
+  /* 자동 완성 드롭다운 */
+  .autocomplete-box {
+    position: absolute; top: 100%; left: 0; right: 0; background: white;
+    border: 1px solid #cbd5e1; border-radius: 12px; margin-top: 8px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15); z-index: 1000;
+    max-height: 280px; overflow-y: auto; display: none;
+  }
+  .auto-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+    cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.2s;
+  }
+  .auto-item:last-child { border-bottom: none; }
+  .auto-item:hover { background: #f8fafc; }
+  .auto-cover { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .auto-text { display: flex; flex-direction: column; }
+  .auto-title { font-size: 14px; font-weight: bold; color: #1e293b; margin-bottom: 2px;}
+  .auto-artist { font-size: 12px; color: #64748b; font-weight: 500;}
+
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-sub); font-weight: bold; }
 
-  /* 💡 랜덤 룰렛 모달창 스타일 (수정됨) */
+  /* 룰렛 모달창 */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  
-  /* 💡 모달창 크기와 여백을 더 넉넉하게 키웠습니다 */
   .roulette-box { background: white; padding: 50px 40px; border-radius: 32px; width: 450px; max-width: 90vw; min-height: 400px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); position: relative; display: flex; flex-direction: column; justify-content: center;}
-  
   .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; transition: 0.2s; }
   .modal-close:hover { color: #1e293b; }
-  
-  /* 💡 글씨가 위로 시원하게 올라가도록 마진을 늘렸습니다 */
   .r-announce { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 30px; }
-  
   .spinning-area { display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; }
   .spin-text { font-size: 28px; font-weight: 900; color: #1e293b; word-break: keep-all; line-height: 1.3;}
   .spin-sub { font-size: 16px; color: #64748b; margin-top: 10px; }
-  
-  /* 💡 앨범 커버가 텍스트와 겹치지 않도록 조정 */
   .winner-cover { width: 200px; height: 200px; border-radius: 24px; object-fit: cover; box-shadow: 0 15px 35px rgba(0,0,0,0.15); margin-bottom: 25px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  
   @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-  /* 💡 정보 수정 모달창 스타일 */
+  /* 정보 수정 모달창 */
   .edit-box { background: white; padding: 40px; border-radius: 24px; width: 400px; max-width: 90vw; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
   .e-title { font-size: 20px; font-weight: 900; color: var(--primary); margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
   .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
@@ -150,10 +194,13 @@
   .save-edit-btn:hover { background: var(--primary-hover); }
   .save-edit-btn:disabled { background: #94a3b8; }
 
+  /* 모바일 뷰 최적화 */
   @media (max-width: 768px) {
     .main-container { margin: 20px; padding: 20px; }
     .top-bar { padding: 0 20px; }
     .controls-row { flex-direction: column; align-items: stretch; }
+    .split-layout { flex-direction: column; gap: 20px; }
+    .detail-view { width: 100%; position: static; padding: 20px; box-sizing: border-box; }
     .admin-input-group { flex-direction: column; }
     .add-btn { width: 100%; }
     .roulette-box { padding: 30px 20px; min-height: 350px;}
@@ -197,45 +244,77 @@
     </div>
     
     <select id="sortSelect" class="sort-select" onchange="renderSongs()">
+      <option value="artist" selected>가수별 (가나다순)</option>
+      <option value="title">제목별 (가나다순)</option>
       <option value="latest">최근 추가된 순</option>
-      <option value="artist">가수별 (가나다순)</option>
     </select>
 
     <button class="roulette-btn" onclick="startRoulette()">🎲 랜덤 뽑기</button>
   </div>
 
-  <div class="song-grid" id="songList">
-    <!-- 자바스크립트로 렌더링 -->
+  <!-- 스플릿 레이아웃 적용 영역 -->
+  <div class="split-layout">
+    
+    <!-- 좌측 상세 뷰 -->
+    <div class="detail-view" id="detailView">
+      <div class="empty-state" style="padding: 20px;">곡을 선택해주세요.</div>
+    </div>
+
+    <!-- 우측 노래 리스트 -->
+    <div class="list-view-container">
+      <div class="song-grid" id="songList">
+        <!-- 자바스크립트로 렌더링 -->
+      </div>
+    </div>
+
   </div>
 
   <div class="admin-panel" id="adminPanel">
-    <h3 style="margin-top:0; color:#ef4444; font-size:18px;">👑 관리자: 노래 추가 (앨범 표지 자동 완성)</h3>
-    <div class="admin-input-group">
-      <input type="text" id="inputTitle" placeholder="노래 제목 (예: 사건의 지평선)" style="flex:1;">
-      <input type="text" id="inputArtist" placeholder="가수 이름 (예: 윤하)" style="flex:1;">
-      <select id="inputGenre">
-        <option value="K-POP">K-POP</option>
-        <option value="POP">POP</option>
-        <option value="J-POP">J-POP</option>
-      </select>
-      <button class="add-btn" id="addBtn" onclick="addSong()">서버에 등록하기</button>
+    <h3 style="margin-top:0; color:#ef4444; font-size:18px;">👑 관리자: 노래 추가</h3>
+    
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      
+      <div class="admin-input-group">
+        <div style="flex:1.5; position:relative; min-width:200px;">
+          <input type="text" id="inputTitle" placeholder="노래 제목을 치면 검색창이 뜹니다!" oninput="handleTitleInput()" autocomplete="off">
+          <div id="autoCompleteBox" class="autocomplete-box"></div>
+        </div>
+        
+        <div style="flex:1; min-width:120px;">
+          <input type="text" id="inputArtist" placeholder="가수 이름">
+        </div>
+        
+        <div style="width:100px;">
+          <select id="inputGenre">
+            <option value="K-POP">K-POP</option>
+            <option value="POP">POP</option>
+            <option value="J-POP">J-POP</option>
+          </select>
+        </div>
+        
+        <div>
+          <button class="add-btn" id="addBtn" onclick="addSong()">서버에 등록</button>
+        </div>
+      </div>
+
+      <div class="admin-input-group" style="margin-bottom:0;">
+        <input type="text" id="inputCustomCover" placeholder="🔗 (선택) 커스텀 앨범 표지 이미지 URL (여기에 주소를 넣으면 최우선 적용됩니다)" style="flex:1; font-weight:500; font-size:13px; color:#475569; background:#f8fafc;">
+      </div>
+
     </div>
-    <p style="font-size: 12px; color: #64748b; margin-bottom:0;">* 애플 뮤직(iTunes) 글로벌 DB를 검색해 고화질 표지를 1초 만에 자동 연결합니다.</p>
   </div>
 </div>
 
-<!-- 💡 룰렛 모달창 -->
+<!-- 룰렛 모달창 -->
 <div class="modal-overlay" id="rouletteModal">
   <div class="roulette-box">
     <button class="modal-close" onclick="closeRoulette()">✕</button>
     <div class="r-announce" id="rAnnounce">🎲 랜덤 노래 뽑기 진행 중...</div>
-    <div class="spinning-area" id="spinningArea">
-      <!-- 내용이 실시간으로 바뀝니다 -->
-    </div>
+    <div class="spinning-area" id="spinningArea"></div>
   </div>
 </div>
 
-<!-- 💡 노래 수정 모달창 -->
+<!-- 노래 수정 모달창 -->
 <div class="modal-overlay" id="editModal">
   <div class="edit-box">
     <button class="modal-close" onclick="closeEditModal()">✕</button>
@@ -269,6 +348,11 @@
         </select>
       </div>
     </div>
+
+    <div class="input-group">
+      <label>🖼️ 앨범 표지 이미지 URL (비우면 자동 검색)</label>
+      <input type="text" id="editCover" placeholder="이미지 주소를 직접 넣을 수 있습니다." style="font-weight:normal; font-size:13px;">
+    </div>
     
     <button class="save-edit-btn" id="editSaveBtn" onclick="saveEditedSong()">수정 완료</button>
   </div>
@@ -292,16 +376,35 @@
   const db = getFirestore(app);
   
   const songRef = doc(db, 'mongna_calendar_data', 'song_book');
+  // 💡 유튜브 API 키를 가져오기 위해 홈 세팅 DB를 몰래 연결합니다!
+  const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2'); 
 
   let songs = [];
   let isAdmin = localStorage.getItem('mongna_song_admin') === 'true';
   let currentFilter = '전체';
   let spinInterval = null; 
+  let selectedSongId = null;
+
+  let searchTimer;
+  let cachedCoverUrl = ""; 
+  let globalYtApiKey = ""; // 💡 훔쳐온(?) 유튜브 API 키를 저장할 변수
 
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "");
   }
+
+  function getArtistKey(artistName) {
+    if (!artistName) return '';
+    return artistName.toUpperCase().replace(/\s/g, ''); 
+  }
+
+  // 💡 홈 세팅을 스캔해서 유튜브 키를 확보해 둡니다.
+  onSnapshot(homeRef, (docSnap) => {
+    if (docSnap.exists()) {
+      globalYtApiKey = docSnap.data().ytApiKey || "";
+    }
+  });
 
   onSnapshot(songRef, (docSnap) => {
     try {
@@ -340,19 +443,95 @@
       btn.classList.remove('on'); btn.textContent = '🔒 관리자 로그인';
       panel.style.display = 'none';
     }
+    renderDetailView(); 
   }
 
-  // 💡 표지 검색용 공용 함수
+  window.handleTitleInput = function() {
+    const query = document.getElementById('inputTitle').value.trim();
+    const box = document.getElementById('autoCompleteBox');
+    
+    if(query.length < 1) {
+      box.style.display = 'none';
+      return;
+    }
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      box.innerHTML = `<div style="padding:20px; text-align:center; font-size:13px; color:#64748b; font-weight:bold;">애플뮤직 검색 중... 🎵</div>`;
+      box.style.display = 'block';
+      
+      try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=6`);
+        const data = await res.json();
+        
+        if(data.results && data.results.length > 0) {
+          let html = '';
+          data.results.forEach(track => {
+            const title = escapeHtml(track.trackName);
+            const artist = escapeHtml(track.artistName);
+            const cover = track.artworkUrl100.replace('100x100bb.jpg', '300x300bb.jpg');
+            html += `
+              <div class="auto-item" onclick="selectAutoItem('${title.replace(/'/g, "\\'")}', '${artist.replace(/'/g, "\\'")}', '${cover}')">
+                <img src="${cover}" class="auto-cover">
+                <div class="auto-text">
+                  <div class="auto-title">${title}</div>
+                  <div class="auto-artist">${artist}</div>
+                </div>
+              </div>
+            `;
+          });
+          box.innerHTML = html;
+        } else {
+          // 💡 애플뮤직에 없으면 유튜브로 알아서 찾는다는 걸 알려줍니다!
+          box.innerHTML = `<div style="padding:20px; text-align:center; font-size:13px; color:#ef4444; font-weight:bold;">애플뮤직에 없는 곡입니다 (커버/미발매 등).<br><span style="font-size:11px; color:#94a3b8; font-weight:normal; margin-top:5px; display:inline-block;">가수 이름까지 마저 쓰시고 등록을 누르시면<br>유튜브에서 썸네일을 자동으로 따옵니다! 🤖</span></div>`;
+        }
+      } catch(e) {
+        box.innerHTML = `<div style="padding:20px; text-align:center; font-size:13px; color:#ef4444;">검색 오류 발생</div>`;
+      }
+    }, 500); 
+  };
+
+  window.selectAutoItem = function(title, artist, cover) {
+    document.getElementById('inputTitle').value = title;
+    document.getElementById('inputArtist').value = artist;
+    cachedCoverUrl = cover; 
+    document.getElementById('autoCompleteBox').style.display = 'none';
+  };
+
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('autoCompleteBox');
+    if(box && e.target.id !== 'inputTitle') {
+      box.style.display = 'none';
+    }
+  });
+
+  // 💡 완벽해진 앨범 커버 자동 채집 함수 (애플뮤직 -> 유튜브 순서대로 털기!)
   async function fetchAlbumCover(title, artist) {
     const query = encodeURIComponent(`${title} ${artist}`);
-    const apiUrl = `https://itunes.apple.com/search?term=${query}&entity=song&limit=1`;
+    
+    // 1. 애플뮤직 검색
     try {
-      const response = await fetch(apiUrl);
+      const response = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`);
       const data = await response.json();
       if (data.results && data.results.length > 0) {
         return data.results[0].artworkUrl100.replace('100x100bb.jpg', '300x300bb.jpg');
       }
-    } catch (error) { console.error("표지 검색 실패:", error); }
+    } catch (error) { console.error("애플뮤직 검색 실패:", error); }
+
+    // 2. 애플뮤직에 없으면? 숨겨둔 유튜브 API 키로 유튜브 검색!
+    if (globalYtApiKey) {
+      try {
+        const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&maxResults=1&key=${globalYtApiKey}`);
+        const ytData = await ytRes.json();
+        if (ytData.items && ytData.items.length > 0) {
+          const thumb = ytData.items[0].snippet.thumbnails;
+          // 유튜브 고화질 썸네일 훔쳐오기
+          return thumb.high ? thumb.high.url : (thumb.medium ? thumb.medium.url : thumb.default.url);
+        }
+      } catch (error) { console.error("유튜브 검색 실패:", error); }
+    }
+
+    // 3. 둘 다 실패하면 기본 회색 이미지 ㅠㅠ
     return "https://via.placeholder.com/150/e2e8f0/64748b?text=No+Cover"; 
   }
 
@@ -361,25 +540,34 @@
     const titleEl = document.getElementById('inputTitle');
     const artistEl = document.getElementById('inputArtist');
     const genre = document.getElementById('inputGenre').value;
+    const customCoverEl = document.getElementById('inputCustomCover'); 
     const addBtn = document.getElementById('addBtn');
 
     const title = titleEl.value.trim();
     const artist = artistEl.value.trim();
+    const customCover = customCoverEl.value.trim();
 
     if (!title || !artist) return alert("노래 제목과 가수를 모두 입력해주세요!");
 
     addBtn.disabled = true;
-    addBtn.textContent = "앨범 표지 검색 중... ⏳";
+    addBtn.textContent = "표지 훔쳐오는 중... 🏃‍♂️💨";
 
-    const coverUrl = await fetchAlbumCover(title, artist);
+    let finalCover = customCover || cachedCoverUrl;
+    if (!finalCover) {
+      finalCover = await fetchAlbumCover(title, artist); // 💡 여기서 애플+유튜브 콤보 발동!
+    }
+
     const newId = Date.now(); 
-
-    const newSong = { id: newId, title: title, artist: artist, genre: genre, cover: coverUrl, status: '가능' };
+    const newSong = { id: newId, title: title, artist: artist, genre: genre, cover: finalCover, status: '가능' };
+    
     songs.unshift(newSong);
     
     try {
       await setDoc(songRef, { list: songs }, { merge: true });
-      titleEl.value = ''; artistEl.value = '';
+      titleEl.value = ''; 
+      artistEl.value = '';
+      customCoverEl.value = ''; 
+      cachedCoverUrl = ""; 
     } catch(e) { alert("저장 실패!"); }
     
     addBtn.disabled = false;
@@ -388,7 +576,7 @@
 
   window.deleteSong = async function(e, id) {
     if(!isAdmin) return;
-    e.stopPropagation(); // 더블클릭 이벤트(수정창 띄우기) 방지
+    e.stopPropagation(); 
     if(confirm("이 곡을 정말 삭제하시겠습니까?")) {
       songs = songs.filter(s => s.id !== id);
       try {
@@ -397,7 +585,6 @@
     }
   };
 
-  // 💡 정보 수정 모달창 열기
   window.editSong = function(id) {
     if(!isAdmin) return;
     const target = songs.find(s => s.id === id);
@@ -409,6 +596,8 @@
     document.getElementById('editGenre').value = target.genre || 'K-POP';
     document.getElementById('editStatus').value = target.status || '가능';
     
+    document.getElementById('editCover').value = target.cover || '';
+    
     document.getElementById('editModal').style.display = 'flex';
   };
 
@@ -416,7 +605,6 @@
     document.getElementById('editModal').style.display = 'none';
   };
 
-  // 💡 정보 수정 완료 및 파이어베이스 저장
   window.saveEditedSong = async function() {
     if(!isAdmin) return;
     const id = parseInt(document.getElementById('editSongId').value, 10);
@@ -424,21 +612,18 @@
     const artist = document.getElementById('editArtist').value.trim();
     const genre = document.getElementById('editGenre').value;
     const status = document.getElementById('editStatus').value;
+    const cover = document.getElementById('editCover').value.trim(); 
     const saveBtn = document.getElementById('editSaveBtn');
 
     if(!title || !artist) return alert("노래 제목과 가수를 모두 입력해주세요.");
 
     const idx = songs.findIndex(s => s.id === id);
     if(idx > -1) {
-      const oldTitle = songs[idx].title;
-      const oldArtist = songs[idx].artist;
-      let newCover = songs[idx].cover;
-
-      // 제목이나 가수를 고쳤을 경우에만 애플뮤직을 다시 검색해서 표지 갈아끼우기!
-      if(title !== oldTitle || artist !== oldArtist) {
+      let newCover = cover;
+      if (!newCover) {
         saveBtn.disabled = true;
-        saveBtn.textContent = "새 앨범 표지 검색 중... ⏳";
-        newCover = await fetchAlbumCover(title, artist);
+        saveBtn.textContent = "새 표지 훔쳐오는 중... 🏃‍♂️💨";
+        newCover = await fetchAlbumCover(title, artist); // 💡 여기서 애플+유튜브 콤보 발동!
       }
 
       songs[idx].title = title;
@@ -450,6 +635,7 @@
       try {
         await setDoc(songRef, { list: songs }, { merge: true });
         closeEditModal();
+        renderDetailView();
       } catch(e) {
         alert("수정 실패!");
       } finally {
@@ -484,7 +670,16 @@
     });
 
     if (sortType === 'artist') {
-      result.sort((a, b) => a.artist.localeCompare(b.artist, 'ko'));
+      result.sort((a, b) => {
+        const keyA = getArtistKey(a.artist);
+        const keyB = getArtistKey(b.artist);
+        
+        const artistCmp = keyA.localeCompare(keyB, 'ko');
+        if (artistCmp !== 0) return artistCmp;
+        return a.title.localeCompare(b.title, 'ko'); 
+      });
+    } else if (sortType === 'title') {
+      result.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
     } else {
       result.sort((a, b) => b.id - a.id); 
     }
@@ -492,17 +687,74 @@
     return result;
   }
 
-  window.renderSongs = function() {
-    const grid = document.getElementById('songList');
-    const filteredSongs = getFilteredAndSortedSongs();
+  window.selectSong = function(id) {
+    selectedSongId = id;
+    renderSongs(); 
+  };
 
-    if(filteredSongs.length === 0) {
-      grid.innerHTML = `<div class="empty-state">조건에 맞는 곡이 없습니다. 텅~ 🍂</div>`;
+  window.renderDetailView = function() {
+    const pane = document.getElementById('detailView');
+    const song = songs.find(s => s.id === selectedSongId);
+    
+    if (!song) {
+      pane.innerHTML = `<div class="empty-state" style="padding: 20px;">우측 리스트에서<br>곡을 선택해주세요 🎵</div>`;
       return;
     }
 
+    let genreClass = 'tag-kpop';
+    if (song.genre === 'POP') genreClass = 'tag-pop';
+    if (song.genre === 'J-POP') genreClass = 'tag-jpop';
+    
+    let statusClass = 'tag-status';
+    let statusText = song.status || '가능';
+    if (statusText === '불가') statusClass = 'tag-status-no';
+    if (statusText === '보류') statusClass = 'tag-status-hold';
+
+    const adminControlsHtml = isAdmin ? `
+      <div style="margin-top:25px; display:flex; gap:10px; width:100%;">
+        <button onclick="editSong(${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; color:#475569; font-weight:bold; cursor:pointer; transition:0.2s;">✏️ 정보 수정</button>
+        <button onclick="deleteSong(event, ${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#fee2e2; color:#ef4444; font-weight:bold; cursor:pointer; transition:0.2s;">🗑️ 삭제하기</button>
+      </div>
+    ` : '';
+
+    pane.innerHTML = `
+      <img src="${escapeHtml(song.cover)}" class="detail-cover" alt="커버">
+      <div class="detail-title">${escapeHtml(song.title)}</div>
+      <div class="detail-artist">${escapeHtml(song.artist)}</div>
+      <div class="detail-tags">
+        <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
+        <span class="tag ${statusClass}">${escapeHtml(statusText)}</span>
+      </div>
+      ${adminControlsHtml}
+    `;
+  };
+
+  window.renderSongs = function() {
+    const grid = document.getElementById('songList');
+    const filteredSongs = getFilteredAndSortedSongs();
+    const sortType = document.getElementById('sortSelect').value;
+
+    if(filteredSongs.length === 0) {
+      grid.innerHTML = `<div class="empty-state">조건에 맞는 곡이 없습니다. 텅~ 🍂</div>`;
+      renderDetailView();
+      return;
+    }
+
+    if (!selectedSongId || !filteredSongs.find(s => s.id === selectedSongId)) {
+      selectedSongId = filteredSongs[0].id;
+    }
+
     let html = '';
+    let currentGroupKey = ''; 
+
     filteredSongs.forEach(song => {
+      const songArtistKey = getArtistKey(song.artist);
+
+      if (sortType === 'artist' && songArtistKey !== currentGroupKey) {
+        currentGroupKey = songArtistKey;
+        html += `<div class="artist-group-header">🎤 ${escapeHtml(song.artist)}</div>`;
+      }
+
       let genreClass = 'tag-kpop';
       if (song.genre === 'POP') genreClass = 'tag-pop';
       if (song.genre === 'J-POP') genreClass = 'tag-jpop';
@@ -512,20 +764,20 @@
       if (statusText === '불가') statusClass = 'tag-status-no';
       if (statusText === '보류') statusClass = 'tag-status-hold';
       
-      // 💡 관리자용 X 버튼 및 더블클릭 수정 기능 활성화
-      const deleteBtnHtml = isAdmin ? `<button class="delete-btn" style="display:flex;" onclick="deleteSong(event, ${song.id})">✕</button>` : '';
+      const isSelected = song.id === selectedSongId ? 'selected' : '';
       const adminClick = isAdmin ? `ondblclick="editSong(${song.id})"` : '';
-      const cursorStyle = isAdmin ? `cursor:pointer;` : '';
-      const tooltip = isAdmin ? `title="더블클릭하여 정보 수정"` : '';
+      const deleteBtnHtml = isAdmin ? `<button class="delete-btn" style="display:flex;" onclick="deleteSong(event, ${song.id})">✕</button>` : '';
 
       html += `
-        <div class="song-card" ${adminClick} style="${cursorStyle}" ${tooltip}>
+        <div class="song-card ${isSelected}" onclick="selectSong(${song.id})" ${adminClick}>
           ${deleteBtnHtml}
           <img src="${escapeHtml(song.cover)}" alt="커버" class="album-cover" loading="lazy">
           <div class="song-info">
-            <div class="song-title">${escapeHtml(song.title)}</div>
-            <div class="song-artist">${escapeHtml(song.artist)}</div>
-            <div class="tag-group">
+            <div class="song-title-wrap">
+              <div class="song-title-sm">${escapeHtml(song.title)}</div>
+              <div class="song-artist-sm">${escapeHtml(song.artist)}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
               <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
               <span class="tag ${statusClass}">${escapeHtml(statusText)}</span>
             </div>
@@ -533,7 +785,9 @@
         </div>
       `;
     });
+    
     grid.innerHTML = html;
+    renderDetailView(); 
   };
 
   window.startRoulette = function() {
@@ -585,6 +839,8 @@
       <div class="spin-text">${escapeHtml(winner.title)}</div>
       <div class="spin-sub" style="color:var(--primary); font-weight:bold;">${escapeHtml(winner.artist)}</div>
     `;
+    
+    selectSong(winner.id); 
   }
 
   window.closeRoulette = function() {
