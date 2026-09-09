@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>몽다살 - MONGNA VOD</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #0d0b0f;
+    --card-bg: #18151c;
+    --input-bg: #231f29;
+    --border-color: #2e2836;
+    --text-main: #f5f3f7;
+    --text-sub: #a197ad;
+    --text-dim: #6a5d78;
+    --primary: #C1ACD7; 
+    --primary-dim: rgba(193, 172, 215, 0.15);
+    --primary-hover: #d8c8e8;
+    --success: #a3e635;
+    --danger: #ff6b6b;
+    --radius-box: 24px;
+    --radius-pill: 99px;
+    --shadow-soft: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  
+  html[data-theme="light"] {
+    --bg-color: #f5f3ff;
+    --card-bg: #ffffff;
+    --input-bg: #f0edf4;
+    --border-color: #e4dceb;
+    --text-main: #1e293b;
+    --text-sub: #64748b;
+    --primary: #a855f7; 
+    --primary-dim: rgba(168, 85, 247, 0.1);
+    --primary-hover: #9333ea;
+    --shadow-soft: 0 10px 30px rgba(168, 85, 247, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  body { 
+    margin: 0; padding: 0; 
+    background-color: var(--bg-color); color: var(--text-main); 
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; 
+    transition: background-color 0.3s, color 0.3s;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  .num-font { font-family: 'Outfit', sans-serif; }
+
+  /* --- 상단 네비게이션 --- */
+  .top-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(var(--card-bg), 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  
+  .logo-wrap {
+    display: flex; align-items: center; text-decoration: none;
+    transition: 0.2s;
+  }
+  .logo-wrap:hover { transform: scale(1.02); }
+  .logo-img { height: 40px; object-fit: contain; }
+
+  .nav-menu { display: flex; gap: 30px; font-weight: 800; color: var(--text-main); font-size: 15px;}
+  .nav-menu a { text-decoration: none; color: inherit; transition: 0.2s; position: relative;}
+  .nav-menu a:hover, .nav-menu a.active { color: var(--primary); }
+  .nav-menu a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 3px; background: var(--primary); border-radius: 2px;}
+
+  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: var(--radius-pill); border: 1px solid var(--border-color);
+    background: var(--card-bg); color: var(--text-sub); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .icon-btn:hover { background: var(--input-bg); color: var(--text-main); border-color: var(--primary); }
+  
+  .auth-badge {
+    padding: 8px 18px; border-radius: var(--radius-pill); background: var(--primary-dim); color: var(--primary);
+    font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+  }
+  .auth-badge:hover { border-color: var(--primary); }
+
+  @media (max-width: 850px) {
+    .nav-menu { display: none; }
+  }
+
+  /* --- 메인 콘텐츠 레이아웃 --- */
+  .app-container { max-width: 1000px; margin: 0 auto; padding: 30px 20px 100px; display: flex; flex-direction: column; gap: 24px; }
+
+  .profile-section { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; background: var(--card-bg); padding: 24px 30px; border-radius: var(--radius-box); box-shadow: var(--shadow-soft); }
+  .profile-info { display: flex; align-items: center; gap: 16px; }
+  .profile-img { width: 60px; height: 60px; border-radius: 20px; background: var(--primary-dim); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: var(--primary); overflow: hidden; }
+  .profile-img img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-text h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+  .profile-text p { margin: 0; font-size: 14px; color: var(--text-sub); }
+  
+  .primary-action-btn {
+    background: var(--primary); color: var(--bg-color); font-weight: 700; font-size: 15px;
+    padding: 14px 28px; border-radius: var(--radius-pill); border: none; cursor: pointer;
+    box-shadow: 0 6px 20px var(--primary-dim); transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .primary-action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  .primary-action-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+  .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .control-box { background: var(--card-bg); padding: 24px; border-radius: var(--radius-box); border: 1px solid var(--border-color); }
+  .box-title { font-size: 14px; font-weight: 600; color: var(--text-sub); margin: 0 0 16px; }
+  
+  .input-group { display: flex; gap: 10px; align-items: center; }
+  input[type="number"], select {
+    background: var(--input-bg); border: 1px solid transparent; color: var(--text-main);
+    padding: 12px 16px; border-radius: 12px; font-size: 14px; outline: none; transition: all 0.2s; width: 100%;
+    font-family: inherit;
+  }
+  input[type="number"]:focus, select:focus { border-color: var(--primary); }
+  
+  .check-wrap { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 14px; color: var(--text-sub); cursor: pointer; }
+  .check-wrap input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+  
+  .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; padding: 12px 20px; border-radius: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .btn-outline:hover { background: var(--input-bg); border-color: var(--primary); color: var(--primary); }
+
+  .status-indicator { display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: var(--card-bg); border-radius: var(--radius-pill); width: fit-content; border: 1px solid var(--border-color); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-color); transition: all 0.3s; }
+  .dot.active { background: var(--primary); box-shadow: 0 0 12px var(--primary); animation: pulse 1.5s infinite alternate; }
+  @keyframes pulse { 0% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
+  .status-text { font-size: 14px; font-weight: 500; color: var(--text-sub); }
+  .status-text b { color: var(--primary); }
+
+  .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
+  .filter-tabs { display: flex; background: var(--input-bg); padding: 4px; border-radius: var(--radius-pill); }
+  .tab { padding: 8px 16px; font-size: 14px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-radius: var(--radius-pill); transition: all 0.2s; border: none; background: transparent; }
+  .tab.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  
+  .list-utils { display: flex; align-items: center; gap: 12px; }
+  .total-badge { background: var(--primary-dim); color: var(--primary); padding: 6px 14px; border-radius: var(--radius-pill); font-weight: 700; font-size: 13px; }
+  
+  .video-list { display: flex; flex-direction: column; gap: 12px; }
+  .video-item { 
+    background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; 
+    padding: 16px 20px; display: flex; align-items: center; gap: 20px; transition: all 0.2s;
+  }
+  .video-item:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+  .video-item.playing { border-color: var(--primary); background: var(--primary-dim); }
+  
+  .v-check { accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer; }
+  .v-thumb { width: 100px; height: 56px; border-radius: 12px; background: #000; overflow: hidden; flex-shrink: 0; }
+  .v-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .v-info { flex: 1; min-width: 0; }
+  .v-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v-title a { color: var(--text-main); text-decoration: none; }
+  .v-title a:hover { color: var(--primary); text-decoration: underline; }
+  
+  .v-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .v-views { font-weight: 700; font-size: 14px; color: var(--text-main); }
+  .v-views.low { color: var(--danger); }
+  .v-delta { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+  .v-delta.up { background: rgba(163,230,53,0.2); color: var(--success); }
+  .v-delta.down { background: rgba(255,107,107,0.2); color: var(--danger); }
+  .v-delta.flat { background: var(--input-bg); color: var(--text-sub); }
+  .v-date { font-size: 12px; color: var(--text-sub); }
+  
+  .tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; }
+  .tag.save { background: rgba(163,230,53,0.2); color: var(--success); }
+  .tag.del { background: rgba(255,107,107,0.2); color: var(--danger); }
+  .tag.sub { background: var(--input-bg); color: var(--text-sub); }
+  .tag.play { background: var(--primary); color: var(--bg-color); }
+
+  .refresh-btn { background: transparent; border: 1px solid var(--border-color); border-radius: var(--radius-pill); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--text-sub); cursor: pointer; transition: all 0.2s; }
+  .refresh-btn:hover:not(:disabled) { background: var(--input-bg); color: var(--text-main); border-color: var(--primary); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .refresh-btn svg { width: 16px; height: 16px; }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  .player-section { display: none; background: var(--card-bg); padding: 24px; border-radius: var(--radius-box); border: 1px solid var(--primary); margin-bottom: 24px; }
+  .player-section.active { display: block; }
+  .player-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .player-top h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--primary); }
+  .grid-players { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .vid-box { position: relative; border-radius: 16px; overflow: hidden; background: #000; box-shadow: var(--shadow-soft); }
+  .vid-close { position: absolute; top: 10px; right: 10px; z-index: 10; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; }
+  .vid-close:hover { background: var(--danger); border-color: var(--danger); transform: scale(1.1); }
+  .player-title { font-size: 12px; color: var(--text-sub); padding: 8px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--card-bg); }
+
+  .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: var(--bg-color); width: 400px; max-width: 90%; border-radius: 30px; padding: 30px; border: 1px solid var(--border-color); position: relative; }
+  .modal-box.wide { width: 600px; }
+  .modal-close-btn { position: absolute; top: 20px; right: 20px; background: transparent; border: none; color: var(--text-sub); font-size: 24px; cursor: pointer; }
+  
+  .auth-switch { display: flex; background: var(--input-bg); border-radius: 16px; padding: 6px; margin-bottom: 24px; }
+  .auth-switch button { flex: 1; padding: 12px; background: transparent; border: none; color: var(--text-sub); font-weight: 600; font-size: 15px; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+  .auth-switch button.on { background: var(--card-bg); color: var(--text-main); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  
+  .auth-form { display: none; flex-direction: column; gap: 16px; }
+  .auth-form.on { display: flex; }
+  .auth-form input { padding: 14px 18px; font-size: 15px; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 12px; outline: none; transition: all 0.2s; }
+  .auth-form input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-dim); }
+
+  html:not([data-theme="light"]) .auth-form input { background: rgba(255, 255, 255, 0.05); color: #ffffff; border-color: rgba(255, 255, 255, 0.1); }
+  html:not([data-theme="light"]) .auth-form input::placeholder { color: #cfc5dc; opacity: 0.9; }
+  html[data-theme="light"] .auth-form input::placeholder { color: var(--text-sub); }
+
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 20px; margin-bottom: 20px; }
+  .stat-val { font-size: 28px; font-weight: 700; color: var(--primary); margin-top: 8px; }
+  
+  .rank-row { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color); }
+  .rank-row:last-child { border: none; }
+  .r-num { width: 30px; font-weight: 700; color: var(--text-sub); }
+  .r-name { flex: 1; font-weight: 600; }
+  .r-score { font-weight: 700; color: var(--primary); }
+
+  .empty-msg { text-align: center; padding: 60px 0; color: var(--text-sub); font-size: 15px; }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="logo-wrap">
+      <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
+    </a>
+
+    <div class="nav-menu">
+      <a href="index.html">홈</a>
+      <a href="https://mongcalender.netlify.app/" target="_blank">캘린더</a>
+      <a href="song.html">노래책</a>
+      <a href="reward.html">업보(보상)</a>
+      <a href="#" class="active">VOD</a>
+    </div>
+
+    <div class="nav-actions">
+      <button class="icon-btn" id="themeToggle" title="테마 변경">🌙</button>
+      <button class="icon-btn" id="rankingBtn" title="랭킹 및 통계">🏆</button>
+      <button class="auth-badge" id="authBtn">로그인 해주세요</button>
+    </div>
+  </div>
+</nav>
+
+<main class="app-container">
+  
+  <section class="profile-section">
+    <div class="profile-info" id="streamerProfileArea">
+      <div class="profile-img">
+        <img src="https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg" alt="몽나" onerror="this.style.display='none'; this.parentNode.innerText='몽';">
+      </div>
+      <div class="profile-text">
+        <h2>몽나_</h2>
+        <p class="num-font">@pinktape8</p>
+      </div>
+    </div>
+    <button class="primary-action-btn" id="fetchBtn">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36" stroke-linecap="round"/><polyline points="21 3 21 9 15 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      최신 데이터 가져오기
+    </button>
+  </section>
+
+  <div class="status-indicator">
+    <div class="dot" id="meterDot"></div>
+    <div class="status-text" id="statusText">대기 중... <b>최신 데이터 가져오기</b> 버튼을 눌러주세요.</div>
+  </div>
+
+  <section class="controls-grid">
+    <div class="control-box">
+      <h3 class="box-title">목록 보기 필터</h3>
+      <div class="input-group">
+        <input type="number" id="minCount" class="num-font" value="0" min="0" placeholder="MIN">
+        <span style="color:var(--text-sub);">~</span>
+        <input type="number" id="maxCount" class="num-font" value="999" min="0" placeholder="MAX">
+      </div>
+      <label class="check-wrap">
+        <input type="checkbox" id="deleteSoonOnly"> 30일 내 삭제예정만
+      </label>
+    </div>
+
+    <div class="control-box">
+      <h3 class="box-title">자동 일괄 재생 설정</h3>
+      <div class="input-group" style="margin-bottom:12px;">
+        <select id="sortOrder">
+          <option value="oldest">오래된 순서대로</option>
+          <option value="newest">최근 방송 순서대로</option>
+          <option value="views_asc">조회수 낮은 순서</option>
+          <option value="views_desc">조회수 높은 순서</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <input type="number" id="playCount" class="num-font" value="1" min="1" max="10" placeholder="개수" style="width:80px;">
+        <button class="btn-outline" id="startBatchPlayBtn" style="flex:1;">▶ 동시 재생 시작</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="player-section" id="playerSection">
+    <div class="player-top">
+      <h3>동시 재생 중 <span id="playerCount" class="num-font" style="font-weight:400; color:var(--text-sub); font-size:15px; margin-left:6px;"></span></h3>
+      <button class="btn-outline" id="playerCloseAll" style="padding: 8px 16px; font-size:13px;">모두 정지</button>
+    </div>
+    <div class="grid-players" id="playerGrid"></div>
+  </section>
+
+  <section class="list-container">
+    <div class="list-header">
+      <div class="filter-tabs" id="resultsTabGroup">
+        <button class="tab active" data-tab="all">전체보기</button>
+        <button class="tab" data-tab="achieved">영구보관 완료</button>
+        <button class="tab" data-tab="subscription">구독자 전용</button>
+      </div>
+      <div class="list-utils">
+        <select id="listSortOrder" style="width:130px; padding:8px 12px; background:var(--card-bg);">
+          <option value="newest">최신순</option>
+          <option value="oldest">오래된순</option>
+          <option value="views_asc">조회수 낮은순</option>
+          <option value="views_desc">조회수 높은순</option>
+        </select>
+        <span class="num-font" id="refreshTimer" style="display:none;"></span>
+        <button class="refresh-btn" id="refreshBtn" type="button" title="수동 갱신" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/>
+          </svg>
+        </button>
+        <div class="total-badge num-font" id="resultsCount">0</div>
+      </div>
+    </div>
+
+    <div class="video-list" id="results">
+      <div class="empty-msg">목록을 불러오려면 상단의 데이터 갱신 버튼을 눌러주세요.</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal-bg" id="authModal">
+  <div class="modal-box">
+    <button class="modal-close-btn" id="authModalClose">✕</button>
+    
+    <div class="auth-switch">
+      <button class="on" data-target="loginForm">로그인</button>
+      <button data-target="regForm">간편 가입</button>
+    </div>
+
+    <div class="auth-form on" id="loginForm">
+      <input type="text" id="loginId" placeholder="아이디" class="num-font">
+      <input type="password" id="loginPw" placeholder="비밀번호">
+      <button class="primary-action-btn" id="doLoginBtn" style="justify-content:center; margin-top:8px;">시작하기</button>
+    </div>
+
+    <div class="auth-form" id="regForm">
+      <input type="text" id="regNickname" placeholder="닉네임 (SOOP과 동일 권장)">
+      <input type="text" id="regId" placeholder="사용할 아이디" class="num-font">
+      <input type="password" id="regPw" placeholder="비밀번호">
+      <button class="primary-action-btn" id="doRegBtn" style="justify-content:center; margin-top:8px;">가입 완료</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="rankingModal">
+  <div class="modal-box wide">
+    <button class="modal-close-btn" id="rankingModalClose">✕</button>
+    
+    <h2 style="margin:0 0 20px; font-size:20px;">월간 활동 통계</h2>
+    
+    <div class="auth-switch" style="width: fit-content; margin-bottom:20px;">
+      <button class="on rank-period-btn" id="rankPeriodCurrentBtn" data-period="current" style="padding:8px 20px;">이번 달</button>
+      <button class="rank-period-btn" id="rankPeriodPrevBtn" data-period="prev" style="padding:8px 20px;">지난 달</button>
+    </div>
+
+    <div class="stat-card" id="myStatsBox" style="display:none;">
+      <div style="font-size:13px; color:var(--text-sub); margin-bottom:4px;">내 기여도</div>
+      <div style="display:flex; gap:40px;">
+        <div>
+          <div style="font-size:12px; color:var(--text-sub); margin-bottom:4px;">🔥 살린 VOD 수</div>
+          <div class="stat-val num-font" id="myRevivedCount">0</div>
+        </div>
+        <div>
+          <div style="font-size:12px; color:var(--text-sub); margin-bottom:4px;">⏱ 누적 시청 포인트 (조회수 기준)</div>
+          <div class="stat-val num-font" id="myWatchTime">0 P</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px; margin: 30px 0 12px; color:var(--text-sub);">🏆 누적 시청 포인트 랭킹 TOP 10</h3>
+    <div id="rankingList" style="max-height: 250px; overflow-y:auto; padding-right:10px;"></div>
+
+    <h3 style="font-size:15px; margin: 30px 0 12px; color:var(--text-sub);">▶ 현재 영상을 틀어둔 팬들</h3>
+    <div id="liveViewerList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
+    authDomain: "mongna-vod.firebaseapp.com",
+    projectId: "mongna-vod",
+    storageBucket: "mongna-vod.firebasestorage.app",
+    messagingSenderId: "310663611402",
+    appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
+  };
+  const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+  const $ = sel => document.querySelector(sel);
+  
+  const THEME_KEY = 'mongna-theme-v2';
+  function applyTheme(theme){ 
+    document.documentElement.setAttribute('data-theme', theme); 
+    $('#themeToggle').textContent = theme === 'light' ? '🌙' : '☀️'; 
+  }
+  function initTheme(){ let saved = localStorage.getItem(THEME_KEY); if(!saved) saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; applyTheme(saved); }
+  $('#themeToggle').addEventListener('click', () => { const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem(THEME_KEY, next); });
+  initTheme();
+
+  const AUTO_LOGIN_KEY = 'mongna-auto-login';
+  const COL_USERS = 'mongna_users';
+  const COL_RECORDS = 'mongna_records';
+  const COL_LIVE = 'mongna_live_viewers';
+
+  function getKstNow() { return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })); }
+  function getPeriodKey(d = getKstNow()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+  function getPrevPeriodKey(d = getKstNow()) { const p = new Date(d.getFullYear(), d.getMonth() - 1, 1); return `${p.getFullYear()}-${String(p.getMonth() + 1).padStart(2, '0')}`; }
+  const EMPTY_STATS = { total: 0, revived: 0 };
+  const STATS_SYNC_MS = 10 * 1000;
+  function formatPoints(pt) { return Number(pt).toLocaleString() + ' P'; }
+
+  let currentUser = null, pendingStats = { total: 0, revived: 0 }, pendingRevivedEvents = [];
+  let statAccumulateInterval = null, statSyncInterval = null;
+
+  function updateUIWithStats() {
+    if(currentUser) { const displayTotal = (currentUser.stats.total || 0) + pendingStats.total; $('#authBtn').innerHTML = `${currentUser.nickname} <span style="font-weight:400; opacity:0.6; margin:0 4px;">|</span> 🏆 <span class="num-font">${formatPoints(displayTotal)}</span>`; }
+  }
+
+  async function syncStatsToDB() {
+    if (!currentUser) return;
+    if (pendingStats.total === 0 && pendingStats.revived === 0 && pendingRevivedEvents.length === 0) return;
+    const updateObj = {};
+    for (let key in pendingStats) {
+      if (pendingStats[key] > 0) { updateObj[`stats.${key}`] = increment(pendingStats[key]); currentUser.stats[key] = (currentUser.stats[key] || 0) + pendingStats[key]; }
+    }
+    const events = pendingRevivedEvents; pendingStats = { total: 0, revived: 0 }; pendingRevivedEvents = [];
+    try {
+      if (Object.keys(updateObj).length > 0) await updateDoc(doc(db, COL_USERS, currentUser.id), updateObj);
+      for (const ev of events) await setDoc(doc(collection(db, COL_RECORDS)), { nickname: currentUser.nickname, userId: currentUser.id, titleNo: ev.titleNo, title: ev.title, periodKey: getPeriodKey(), createdAt: serverTimestamp() });
+    } catch (e) {}
+  }
+
+  async function checkAndRolloverMonth() {
+    if (!currentUser) return;
+    const nowKey = getPeriodKey();
+    if (!currentUser.periodKey) { currentUser.periodKey = nowKey; try { await updateDoc(doc(db, COL_USERS, currentUser.id), { periodKey: nowKey }); } catch (e){} return; }
+    if (currentUser.periodKey === nowKey) return;
+    const prevKey = currentUser.periodKey, snapshot = { ...currentUser.stats };
+    try {
+      await updateDoc(doc(db, COL_USERS, currentUser.id), { [`history.${prevKey}`]: snapshot, stats: { ...EMPTY_STATS }, periodKey: nowKey });
+      currentUser.stats = { ...EMPTY_STATS }; currentUser.periodKey = nowKey; pendingStats = { total: 0, revived: 0 }; updateUIWithStats();
+    } catch (e) {}
+  }
+
+  async function upsertLiveViewer() { if (!currentUser) return; try { await setDoc(doc(db, COL_LIVE, currentUser.id), { nickname: currentUser.nickname, updatedAt: serverTimestamp() }); } catch (e) {} }
+  async function removeLiveViewer() { if (!currentUser) return; try { await deleteDoc(doc(db, COL_LIVE, currentUser.id)); } catch (e) {} }
+
+  function updatePointsTimer() {
+    if (openPlayers.length > 0 && currentUser) {
+      upsertLiveViewer();
+      if (!statAccumulateInterval) statAccumulateInterval = setInterval(async () => { 
+        if(openPlayers.length === 0 || !currentUser) return; 
+        await checkAndRolloverMonth(); 
+        openPlayers.forEach(() => { pendingStats.total++; }); 
+        updateUIWithStats(); 
+        upsertLiveViewer(); 
+        syncStatsToDB(); 
+      }, 75000);
+      if (!statSyncInterval) statSyncInterval = setInterval(syncStatsToDB, STATS_SYNC_MS);
+    } else {
+      if (statAccumulateInterval) { clearInterval(statAccumulateInterval); statAccumulateInterval = null; }
+      if (statSyncInterval) { clearInterval(statSyncInterval); statSyncInterval = null; syncStatsToDB(); }
+      removeLiveViewer();
+    }
+  }
+
+  const authModal = $('#authModal'), rankingModal = $('#rankingModal');
+  $('#authBtn').addEventListener('click', async () => { 
+    if (!currentUser) { authModal.style.display = 'flex'; }
+    else if(confirm("로그아웃 하시겠습니까?")) { await syncStatsToDB(); await removeLiveViewer(); currentUser = null; localStorage.removeItem(AUTO_LOGIN_KEY); $('#authBtn').innerHTML = '로그인 해주세요'; updatePointsTimer(); }
+  });
+  $('#authModalClose').addEventListener('click', () => authModal.style.display = 'none');
+  $('#rankingModalClose').addEventListener('click', () => rankingModal.style.display = 'none');
+
+  document.querySelectorAll('.auth-switch button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const isRank = e.target.classList.contains('rank-period-btn');
+      if(!isRank) {
+        document.querySelectorAll('.auth-switch button:not(.rank-period-btn)').forEach(b => b.classList.remove('on'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('on'));
+        e.target.classList.add('on'); document.getElementById(e.target.dataset.target).classList.add('on');
+      }
+    });
+  });
+
+  $('#doRegBtn').addEventListener('click', async () => {
+    const nick = $('#regNickname').value.trim(), id = $('#regId').value.trim(), pw = $('#regPw').value.trim();
+    if (!nick || !id || !pw) return alert("빈칸을 모두 채워주세요.");
+    try {
+      const userRef = doc(db, COL_USERS, id), snap = await getDoc(userRef);
+      if (snap.exists()) return alert("이미 가입된 아이디입니다.");
+      await setDoc(userRef, { nickname: nick, id: id, password: pw, stats: { total: 0, revived: 0 }, periodKey: getPeriodKey(), history: {} });
+      alert("환영합니다! 가입이 완료되었습니다.");
+      $('#regNickname').value = ''; $('#regId').value = ''; $('#regPw').value = '';
+      processLogin(id, pw, false);
+    } catch (error) { alert("서버 오류가 발생했습니다."); }
+  });
+
+  async function processLogin(id, pw = null, isAutoLogin = false) {
+    try {
+      const userRef = doc(db, COL_USERS, id), snap = await getDoc(userRef);
+      if (!snap.exists()) { if (!isAutoLogin) alert("가입되지 않은 아이디입니다."); localStorage.removeItem(AUTO_LOGIN_KEY); return; }
+      const userData = snap.data();
+      if (!isAutoLogin && userData.password !== pw) return alert("비밀번호가 일치하지 않습니다.");
+      const dbStats = userData.stats || {};
+      currentUser = { id: id, nickname: userData.nickname, periodKey: userData.periodKey || null, history: userData.history || {}, stats: { total: dbStats.total || 0, revived: dbStats.revived || 0 } };
+      await checkAndRolloverMonth(); localStorage.setItem(AUTO_LOGIN_KEY, id); updateUIWithStats(); authModal.style.display = 'none'; updatePointsTimer();
+    } catch (error) { if (!isAutoLogin) alert("서버 오류가 발생했습니다."); localStorage.removeItem(AUTO_LOGIN_KEY); }
+  }
+  
+  $('#doLoginBtn').addEventListener('click', () => {
+    const id = $('#loginId').value.trim(), pw = $('#loginPw').value.trim();
+    if (!id || !pw) return alert("정보를 입력해주세요."); processLogin(id, pw, false);
+  });
+  if (localStorage.getItem(AUTO_LOGIN_KEY)) processLogin(localStorage.getItem(AUTO_LOGIN_KEY), null, true);
+
+  let selectedRankPeriod = 'current', statsCache = {};
+  
+  function updateMyStatsBox() {
+    if (!currentUser) { $('#myStatsBox').style.display = 'none'; return; }
+    let r=0, t=0;
+    if (selectedRankPeriod === 'prev') { const s = (currentUser.history||{})[getPrevPeriodKey()]||{}; r = s.revived||0; t = s.total||0; } 
+    else { r = (currentUser.stats.revived||0) + pendingStats.revived; t = (currentUser.stats.total||0) + pendingStats.total; }
+    $('#myStatsBox').style.display = 'block'; $('#myRevivedCount').textContent = `${Number(r).toLocaleString()}건`; $('#myWatchTime').textContent = formatPoints(t);
+  }
+
+  async function loadRanking() {
+    const isPrev = selectedRankPeriod === 'prev', key = isPrev ? getPrevPeriodKey() : getPeriodKey();
+    const now = Date.now(), cacheKey = selectedRankPeriod;
+    if (statsCache[cacheKey] && (now - statsCache[cacheKey].time < 600000)) { $('#rankingList').innerHTML = statsCache[cacheKey].html; return; }
+    $('#rankingList').innerHTML = '<div class="empty-msg">데이터를 불러오는 중입니다...</div>';
+    try {
+      const field = isPrev ? `history.${key}` : 'stats';
+      const q = query(collection(db, COL_USERS), orderBy(`${field}.total`, "desc"), limit(10));
+      const snap = await getDocs(q); let html = '', rank = 1;
+      snap.forEach(doc => {
+        const s = (isPrev ? (doc.data().history||{})[key] : doc.data().stats) || {}; if ((s.total||0) < 1) return;
+        let icon = rank; if(rank===1)icon='🥇'; if(rank===2)icon='🥈'; if(rank===3)icon='🥉';
+        html += `<div class="rank-row"><div class="r-num num-font">${icon}</div><div class="r-name">${doc.data().nickname}</div><div class="r-score num-font">${Number(s.total).toLocaleString()} <span style="font-size:12px; font-weight:400; color:var(--text-sub); font-family:'Pretendard', sans-serif;">P</span></div></div>`; rank++;
+      });
+      if (!html) html = `<div class="empty-msg">아직 기록이 없습니다. 첫 번째 영웅이 되어보세요!</div>`;
+      $('#rankingList').innerHTML = html; statsCache[cacheKey] = { time: now, html: html };
+    } catch (e) { $('#rankingList').innerHTML = '<div class="empty-msg">데이터를 불러오지 못했습니다.</div>'; }
+  }
+
+  async function loadLiveViewers() {
+    $('#liveViewerList').innerHTML = '<div class="empty-msg" style="padding:10px 0;">불러오는 중...</div>';
+    try {
+      const snap = await getDocs(collection(db, COL_LIVE)), names = [];
+      snap.forEach(doc => { const d = doc.data(), t = d.updatedAt?.toMillis ? d.updatedAt.toMillis() : 0; if (d.nickname && (Date.now() - t) < 180000) names.push(d.nickname); });
+      $('#liveViewerList').innerHTML = names.length > 0 ? names.map(n => `<span style="background:var(--primary-dim); color:var(--primary); padding:6px 14px; border-radius:99px; font-size:13px; font-weight:600;">📡 ${n}</span>`).join('') : '<div class="empty-msg" style="padding:10px 0;">현재 재생 중인 유저가 없습니다.</div>';
+    } catch (e) {}
+  }
+
+  $('#rankingBtn').addEventListener('click', () => { rankingModal.style.display = 'flex'; updateMyStatsBox(); loadRanking(); loadLiveViewers(); });
+  ['current', 'prev'].forEach(p => $(`#rankPeriod${p==='current'?'Current':'Prev'}Btn`).addEventListener('click', e => {
+    if (selectedRankPeriod === p) return; selectedRankPeriod = p;
+    $('#rankPeriodCurrentBtn').classList.toggle('on', p === 'current'); $('#rankPeriodPrevBtn').classList.toggle('on', p === 'prev');
+    updateMyStatsBox(); loadRanking();
+  }));
+
+  const TARGET_STREAMER_ID = 'pinktape8';
+  let store = [], busy = false, selectedManualVods = new Map();
+  const THRESHOLD_DATE = new Date('2025-01-14T11:35:00+09:00'), REG_DATE_CUTOFF = new Date('2024-01-01T00:00:00+09:00');
+  
+  function setStatus(html, isBusy){ $('#statusText').innerHTML = html; $('#meterDot').className = `dot ${isBusy?'active':''}`; }
+  function calcDc(v){ const c = new Date(v.regDate.replace(' ','T')+'+09:00') < THRESHOLD_DATE ? (v.basicCount||v.count) : v.count; return Number.isFinite(c)?c:0; }
+  function fmtDate(s){ const m = String(s||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; }
+
+  async function fetchVods() {
+    const items = [];
+    let page = 1;
+    let keepFetching = true;
+
+    while (keepFetching) {
+      if (page > 1) {
+        setStatus(`과거 영상 딥 스캔 중... (현재 ${page}페이지 탐색)`, true);
+      }
+      
+      const res = await fetch(`https://chapi.sooplive.com/api/${TARGET_STREAMER_ID}/vods/review?per_page=100&page=${page}`, {headers:{'Accept':'application/json'}});
+      const data = (await res.json())?.data || [];
+      
+      if (data.length === 0) break;
+
+      for (const r of data) {
+        const tNo = String(r.title_no ?? r.titleNo ?? ''); 
+        if (!tNo) continue;
+        
+        const c = r.count || {}, grade = (r.ucc || {}).grade ?? r.grade ?? 0, auth = r.authNo ?? r.auth_no ?? 101;
+        const item = { 
+          titleNo: tNo, regDate: r.reg_date ?? r.regDate, 
+          basicCount: parseInt(c.read_cnt ?? c.readCnt ?? r.read_cnt ?? 0, 10) || 0, 
+          count: c.vod_read_cnt ?? c.vodReadCnt ?? 0, 
+          isAgeLimited: Number(grade) !== 0, 
+          isSubscriptionOnly: Number(auth) !== 101, 
+          title: r.title_name ?? r.title ?? (r.ucc || {}).title ?? '제목없음', 
+          thumb: (r.ucc || {}).thumb ?? r.thumb ?? '', 
+          vodUrl: `https://vod.sooplive.com/player/${tNo}`, 
+          isPerm: false, autoDeleteDate: null, infoState: 'pending' 
+        };
+        
+        if (new Date(item.regDate.replace(' ', 'T') + '+09:00') >= REG_DATE_CUTOFF) {
+          items.push(item);
+        } else {
+          keepFetching = false;
+        }
+      }
+      
+      page++;
+      if (page > 20) break;
+    }
+    return items;
+  }
+
+  async function fetchInfoBatch(vods){
+    const pxs = [u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`, u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
+    let idx = 0;
+    await Promise.all(Array.from({length: 10}, async () => {
+      while(idx < vods.length){
+        const v = vods[idx++];
+        try {
+          let res, p = new URLSearchParams({nTitleNo:v.titleNo});
+          for(const b of [u=>u, ...pxs]){ try{ res = await fetch(b('https://api.m.sooplive.com/station/video/a/view'),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()}); if(res.ok)break; }catch(e){} }
+          if(res){ const j=await res.json(); if(j?.result===1){ const d=j.data?.vod||j.data; v.autoDeleteDate=d.auto_delete_date??null; v.isPerm=d.permanence==='Y'; v.infoState='done'; }else v.infoState='error'; }else v.infoState='error';
+        } catch(e){ v.infoState='error'; }
+        setStatus(`영구보관 상태 확인 중... <b>${idx} / ${vods.length}</b>`, true); 
+        render(); 
+      }
+    }));
+  }
+
+  let resultsTab = 'all';
+  function render(){
+    let filtered = resultsTab==='achieved' ? store.filter(v=>calcDc(v)>=1000) : resultsTab==='subscription' ? store.filter(v=>v.isSubscriptionOnly) : store.filter(v=>{
+      if(v.isSubscriptionOnly||v.isAgeLimited) return false; const dc=calcDc(v), mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)||0;
+      let isDel = false; if(v.autoDeleteDate && !v.isPerm) { const ms = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now(); isDel = ms<=0 || Math.ceil(ms/86400000)<=30; }
+      return dc>=mn && dc<=mx && (!$('#deleteSoonOnly').checked || isDel);
+    });
+    const sv = $('#listSortOrder').value;
+    if(sv==='oldest') filtered.sort((a,b)=>new Date(a.regDate)-new Date(b.regDate)); else if(sv==='views_asc') filtered.sort((a,b)=>calcDc(a)-calcDc(b)); else if(sv==='views_desc') filtered.sort((a,b)=>calcDc(b)-calcDc(a)); else filtered.sort((a,b)=>new Date(b.regDate)-new Date(a.regDate));
+    
+    $('#resultsCount').textContent = filtered.length;
+    if(!filtered.length){ $('#results').innerHTML = `<div class="empty-msg">조건에 맞는 영상이 없습니다.</div>`; return; }
+    $('#results').innerHTML = filtered.map((v, i) => {
+      const dc = calcDc(v), isPlay = openPlayers.some(p=>p.titleNo===v.titleNo);
+      let dWarn = null; if(v.autoDeleteDate && !v.isPerm) { const dLeft = Math.ceil((new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now())/86400000); dWarn = dLeft<=0 ? '기한초과' : `${dLeft}일 남음`; }
+      let bg = v.infoState==='pending'?`<span class="tag sub">조회중</span>`:v.isPerm?`<span class="tag save">영구보관 완료</span>`:dWarn?`<span class="tag del">삭제예정 (${dWarn})</span>`:'';
+      let delta = ''; if(typeof v.viewDelta==='number') delta = v.viewDelta>0?`<span class="v-delta up">+${v.viewDelta}</span>`:v.viewDelta<0?`<span class="v-delta down">${v.viewDelta}</span>`:`<span class="v-delta flat">-</span>`;
+      return `<div class="video-item ${isPlay?'playing':''}"><input type="checkbox" class="v-check manual-cb" data-titleno="${v.titleNo}" data-title="${(v.title||'').replace(/</g,'&lt;')}" ${selectedManualVods.has(v.titleNo)?'checked':''}><div class="v-thumb"><img src="${v.thumb}" loading="lazy"></div><div class="v-info"><h4 class="v-title"><a href="${v.vodUrl}" target="_blank">${(v.title||'').replace(/</g,'&lt;')}</a></h4><div class="v-meta"><span class="v-views num-font ${dc<1000?'low':''}">${dc.toLocaleString()}</span>${delta}<span class="v-date num-font">${fmtDate(v.regDate)}</span>${bg}${v.isSubscriptionOnly?`<span class="tag sub">구독전용</span>`:''}${v.isAgeLimited?`<span class="tag del">19+</span>`:''}${isPlay?`<span class="tag play">재생중</span>`:''}</div></div></div>`;
+    }).join('');
+  }
+  $('#results').addEventListener('change', e => { if(e.target.classList.contains('manual-cb')) { if(e.target.checked) selectedManualVods.set(e.target.dataset.titleno, {titleNo:e.target.dataset.titleno, title:e.target.dataset.title}); else selectedManualVods.delete(e.target.dataset.titleno); } });
+
+  let rfTimer=null, cdTimer=null, nxRf=null;
+  function updateCd(){ 
+    if(!nxRf) { $('#refreshTimer').style.display = 'none'; return; } 
+    const ms=nxRf-Date.now(); 
+    $('#refreshTimer').style.display = 'inline-block';
+    if(ms<=0){ if(!busy) setStatus('데이터를 <b>자동 갱신 중</b>입니다...', true); return; } 
+    const mm = String(Math.floor(Math.ceil(ms/1000)/60)).padStart(2,'0');
+    const ss = String(Math.ceil(ms/1000)%60).padStart(2,'0');
+    if(!busy) setStatus(`다음 갱신까지 <b>${mm}:${ss}</b> 남았습니다.`, false); 
+  }
+  function startRf(){ if(rfTimer) clearTimeout(rfTimer); nxRf=Date.now()+60000; rfTimer=setTimeout(async()=>{ await doRf(); startRf(); },60000); if(cdTimer) clearInterval(cdTimer); cdTimer=setInterval(updateCd,1000); $('#refreshBtn').disabled=false; updateCd(); }
+  function stopRf(){ if(rfTimer) clearTimeout(rfTimer); if(cdTimer) clearInterval(cdTimer); nxRf=null; $('#refreshBtn').disabled=true; $('#refreshTimer').style.display='none';}
+
+  async function doRf(){
+    if(busy||!store.length) return; 
+    busy=true; $('#refreshBtn').disabled=true; $('#refreshBtn').classList.add('spinning');
+    setStatus('데이터를 <b>자동 갱신 중</b>입니다...', true);
+    try{
+      const fMap = new Map((await fetchVods()).map(v=>[v.titleNo, v]));
+      store.forEach(v=>{
+        const f=fMap.get(v.titleNo); if(f){ const pDc=calcDc(v); v.count=f.count; v.basicCount=f.basicCount; const nDc=calcDc(v); v.viewDelta=nDc-pDc;
+          if(currentUser&&pDc<1000&&nDc>=1000&&openPlayers.some(p=>p.titleNo===v.titleNo)){ pendingStats.revived++; pendingRevivedEvents.push({titleNo:v.titleNo, title:v.title}); updateUIWithStats(); }
+        }
+      });
+      render(); 
+    }catch(e){}finally{ $('#refreshBtn').classList.remove('spinning'); $('#refreshBtn').disabled=!store.length; busy=false; }
+  }
+
+  $('#fetchBtn').addEventListener('click', async()=>{
+    if(busy) return; busy=true; $('#fetchBtn').disabled=true; stopRf(); $('#results').innerHTML=''; store=[]; render();
+    try{ 
+      setStatus(`VOD 목록을 빠르게 가져오는 중...`, true); 
+      store = await fetchVods(); 
+      render(); 
+      startRf(); 
+      fetchInfoBatch(store).then(() => {
+        setStatus(`가장 최신 데이터입니다. (${new Date().toLocaleTimeString()})`, false); 
+        $('#fetchBtn').disabled=false; 
+        busy=false; 
+      });
+    }catch(err){ 
+      $('#results').innerHTML=`<div class="empty-msg">오류 발생: ${err}</div>`; 
+      setStatus('조회 실패', false); 
+      $('#fetchBtn').disabled=false; 
+      busy=false; 
+    }
+  });
+
+  const pSec=$('#playerSection'), pGrid=$('#playerGrid');
+  let openPlayers=[], activeTimers=[];
+
+  function clearAllTimers() {
+    activeTimers.forEach(t => clearTimeout(t));
+    activeTimers = [];
+  }
+
+  function renderP(){
+    pSec.style.display = openPlayers.length ? 'block' : 'none'; 
+    $('#playerCount').textContent = openPlayers.length ? `${openPlayers.length} / 10` : '';
+    
+    clearAllTimers();
+
+    pGrid.innerHTML = openPlayers.map(p=>`<div class="vid-box"><button class="vid-close" data-titleno="${p.titleNo}" style="background:rgba(193,172,215,0.8);">✕</button><div style="position:relative;width:100%;padding-top:56.25%;"><iframe id="iframe-${p.titleNo}" src="https://vod.sooplive.com/player/${p.titleNo}/embed?showChat=false&autoPlay=true&mutePlay=true&quality=540p&_r=${Date.now()}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div><div class="player-title">${p.title}</div></div>`).join('');
+    
+    if(openPlayers.length > 0) {
+      function playCycle() {
+        activeTimers = [];
+
+        const skipTimer = setTimeout(() => {
+          pGrid.querySelectorAll('iframe').forEach(f => {
+            f.src = f.src.split('&_r=')[0] + '&_r=' + Date.now();
+          });
+
+          const mainTimer = setTimeout(() => {
+            pGrid.querySelectorAll('iframe').forEach(f => {
+              f.src = f.src.split('&_r=')[0] + '&_r=' + Date.now();
+            });
+            
+            playCycle(); 
+          }, 60000);
+          
+          activeTimers.push(mainTimer);
+        }, 15000);
+        
+        activeTimers.push(skipTimer);
+      }
+
+      playCycle();
+    }
+    
+    updatePointsTimer();
+  }
+
+  $('#startBatchPlayBtn').addEventListener('click', ()=>{
+    const n = Math.max(0, Math.min(10, parseInt($('#playCount').value, 10)||0)); if(!n) return;
+    let ds = Array.from(selectedManualVods.values()).filter(m=>{ const v=store.find(s=>s.titleNo===m.titleNo); return v&&!v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000; }).slice(0,n);
+    if(ds.length<n){
+      const mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)||0, sv=$('#sortOrder').value;
+      let pl=store.filter(v=>{ let iD=false; if(v.autoDeleteDate&&!v.isPerm){ const ms=new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now(); iD=ms<=0||Math.ceil(ms/86400000)<=30; } return !v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000&&calcDc(v)>=mn&&calcDc(v)<=mx&&(!$('#deleteSoonOnly').checked||iD); });
+      if(sv==='oldest') pl.sort((a,b)=>new Date(a.regDate)-new Date(b.regDate)); else if(sv==='views_asc') pl.sort((a,b)=>calcDc(a)-calcDc(b)); else if(sv==='views_desc') pl.sort((a,b)=>calcDc(b)-calcDc(a)); else pl.sort((a,b)=>new Date(b.regDate)-new Date(a.regDate));
+      ds = ds.concat(pl.filter(v=>!selectedManualVods.has(v.titleNo)).slice(0,n-ds.length).map(v=>({titleNo:v.titleNo, title:v.title||'제목없음'})));
+    }
+    if(!ds.length) return alert("재생 조건에 맞는 영상이 없습니다."); openPlayers=ds; renderP(); selectedManualVods.clear(); render();
+  });
+
+  $('#playerCloseAll').addEventListener('click', ()=>{ openPlayers=[]; renderP(); render(); });
+  pGrid.addEventListener('click', e=>{ if(e.target.classList.contains('vid-close')){ openPlayers=openPlayers.filter(p=>p.titleNo!==e.target.dataset.titleno); renderP(); render(); } });
+
+  $('#refreshBtn').addEventListener('click', async()=>{ if(!$('#refreshBtn').disabled&&!busy){ await doRf(); startRf(); } });
+  
+  $('#minCount').addEventListener('input', render);
+  $('#maxCount').addEventListener('input', render);
+  $('#deleteSoonOnly').addEventListener('change', render);
+  $('#listSortOrder').addEventListener('change', render);
+  $('#resultsTabGroup').addEventListener('click', e=>{ if(e.target.classList.contains('tab')){ resultsTab=e.target.dataset.tab; $('#resultsTabGroup').querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b===e.target)); render(); } });
+</script>
+</body>
+</html>
