@@ -35,7 +35,6 @@ export default function CalendarPage() {
   const [inputMembers, setInputMembers] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [inputVod, setInputVod] = useState('');
-  const [inputColor, setInputColor] = useState('#fb819e');
 
   const [viewModalData, setViewModalData] = useState<any>(null);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
@@ -183,7 +182,6 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
-    setInputColor('#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -200,7 +198,6 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
-    setInputColor(target.backgroundColor || target.color || '#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -226,12 +223,12 @@ export default function CalendarPage() {
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
         if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
         }
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
       updatedSchedules[selectedDateKey].push(newSch);
     }
 
@@ -307,7 +304,7 @@ export default function CalendarPage() {
 
     if (query) {
       const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: '#f59e0b', color: '#f59e0b'
+        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: (categoryColors as any)['겜방'] || '#f59e0b'
       };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
@@ -625,17 +622,6 @@ export default function CalendarPage() {
                   <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 츄르, 카푸)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
                 </div>
               )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>🎨 일정 색상 직접 지정</label>
-                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                  <div onClick={() => setInputColor('#fb819e')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#fb819e', cursor: 'pointer', border: inputColor === '#fb819e' ? '3px solid #1e293b' : 'none' }} title="기본 핑크" />
-                  <div onClick={() => setInputColor('#6b7280')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#6b7280', cursor: 'pointer', border: inputColor === '#6b7280' ? '3px solid #1e293b' : 'none' }} title="회색 (휴뱅)" />
-                  <div onClick={() => setInputColor('#7c3aed')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#7c3aed', cursor: 'pointer', border: inputColor === '#7c3aed' ? '3px solid #1e293b' : 'none' }} title="보라색 (LCK)" />
-                  <div onClick={() => setInputColor('#d97706')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#d97706', cursor: 'pointer', border: inputColor === '#d97706' ? '3px solid #1e293b' : 'none' }} title="주황색" />
-                  <input type="color" value={inputColor} onChange={e => setInputColor(e.target.value)} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} />
-                </div>
-              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>상세 내용 (선택)</label>
