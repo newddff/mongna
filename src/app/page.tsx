@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-// 🚨 바로 이 부분이 에러의 원인이어서, Next.js 전용 정식 수입 방식으로 수정했습니다!
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
@@ -16,10 +15,10 @@ export default function HomePage() {
       { title: '인스타그램', sub: '일상 공유', icon: '📷', url: 'https://www.instagram.com/m0n9na/' }
     ]
   });
-  const [scheduleData, setScheduleData] = useState({});
+  const [scheduleData, setScheduleData] = useState<any>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [ytVideos, setYtVideos] = useState([]);
+  const [ytVideos, setYtVideos] = useState<any[]>([]);
   const [ytError, setYtError] = useState('');
 
   // 설정 모달 입력 값 상태
@@ -27,7 +26,7 @@ export default function HomePage() {
   const [inputYtChannelId, setInputYtChannelId] = useState('');
   const [inputYtApiKey, setInputYtApiKey] = useState('');
   const [inputIsLive, setInputIsLive] = useState(false);
-  const [inputLinks, setInputLinks] = useState([]);
+  const [inputLinks, setInputLinks] = useState<any[]>([]);
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true');
@@ -49,7 +48,7 @@ export default function HomePage() {
 
     const unsubHome = onSnapshot(homeRef, (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const data = docSnap.data() as any;
         if (data.links && data.links.length > 0) {
           setHomeData(data);
         }
@@ -223,34 +222,46 @@ export default function HomePage() {
 
       {/* 메인 컨테이너 */}
       <div style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
+        
+        {/* 좌측 메인 영웅 이미지 */}
         <div style={{ flex: 1, position: 'sticky', top: '110px', height: 'calc(100vh - 150px)', minHeight: '500px', display: 'flex' }}>
           <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', height: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
         </div>
 
+        {/* 우측 콘텐츠 영역 */}
         <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
           
-          {/* 이번 주 일정 */}
+          {/* 이번 주 일정 (레이아웃 및 색상 연동 수정) */}
           <div style={{ background: '#ffffff', borderRadius: '24px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
               <a href="/calender" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', minWidth: '800px', overflowX: 'auto' }}>
+            
+            {/* gridTemplateColumns를 minmax(0, 1fr)로 변경하여 삐져나감(overflow) 방지 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '10px', width: '100%' }}>
               {thisWeekKeys.map(dayObj => {
                 const daySchedules = scheduleData[dayObj.key] || [];
                 const isToday = (dayObj.key === todayStr);
                 let dateColor = '#1e293b';
-                if (dayObj.dayIdx === 0) dateColor = '#ef4444';
-                else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
+                if (dayObj.dayIdx === 0) dateColor = '#ef4444'; // 일요일 빨간색
+                else if (dayObj.dayIdx === 6) dateColor = '#3b82f6'; // 토요일 파란색
 
                 return (
-                  <div key={dayObj.key} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '12px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 900, color: dateColor, marginBottom: '5px' }}>{dayObj.dateNum}</div>
-                    {daySchedules.map((sch, idx) => {
-                      let bgColor = sch.color || sch.backgroundColor || sch.bgColor || '#fb819e';
+                  <div key={dayObj.key} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: dateColor, marginBottom: '2px', textAlign: 'center' }}>
+                      {dayObj.dateNum}
+                    </div>
+                    {daySchedules.map((sch: any, idx: number) => {
+                      // 캘린더 색상 데이터를 완벽하게 우선 적용 (없을 경우 기본 핑크색)
+                      let bgColor = sch.backgroundColor || sch.bgColor || sch.color || '#fb819e';
+                      let txtColor = sch.textColor || 'white';
+                      
                       return (
-                        <div key={idx} style={{ borderRadius: '8px', padding: '8px', color: 'white', fontSize: '13px', backgroundColor: bgColor }}>
-                          <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 6px', borderRadius: '6px', fontSize: '11px', fontWeight: 900, marginBottom: '5px' }}>[{sch.time || '미정'}]</div>
+                        <div key={idx} style={{ borderRadius: '6px', padding: '6px', color: txtColor, fontSize: '12px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3' }}>
+                          <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: 'white' }}>
+                            [{sch.time || '미정'}]
+                          </div>
                           <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
                         </div>
                       );
@@ -283,15 +294,22 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 몽나링크 */}
+          {/* 몽나링크 (이미지 아이콘 지원 포함) */}
           <div>
             <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
-              {homeData.links.map((link, idx) => (
+              {homeData.links.map((link: any, idx: number) => (
                 <a key={idx} href={link.url || '#'} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
-                  <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
-                    {link.icon || '🔗'}
+                  
+                  {/* http로 시작하면 사진(img)으로, 아니면 이모티콘으로 출력 */}
+                  <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
+                    {link.icon && link.icon.startsWith('http') ? (
+                      <img src={link.icon} alt="아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      link.icon || '🔗'
+                    )}
                   </div>
+                  
                   <div>
                     <div style={{ fontSize: '16px', fontWeight: 900, marginBottom: '4px' }}>{link.title}</div>
                     <div style={{ fontSize: '13px', color: '#64748b' }}>{link.sub}</div>
@@ -340,7 +358,7 @@ export default function HomePage() {
                   <input type="text" placeholder="제목" value={l.title} onChange={e => { const n = [...inputLinks]; n[i].title = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
                   <input type="text" placeholder="설명" value={l.sub} onChange={e => { const n = [...inputLinks]; n[i].sub = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
                 </div>
-                <input type="text" placeholder="아이콘(이모티콘)" value={l.icon} onChange={e => { const n = [...inputLinks]; n[i].icon = e.target.value; setInputLinks(n); }} style={{ width: '100%', marginBottom: '8px', padding: '6px', boxSizing: 'border-box' }} />
+                <input type="text" placeholder="아이콘(이모티콘 또는 이미지 주소)" value={l.icon} onChange={e => { const n = [...inputLinks]; n[i].icon = e.target.value; setInputLinks(n); }} style={{ width: '100%', marginBottom: '8px', padding: '6px', boxSizing: 'border-box' }} />
                 <input type="text" placeholder="URL" value={l.url} onChange={e => { const n = [...inputLinks]; n[i].url = e.target.value; setInputLinks(n); }} style={{ width: '100%', padding: '6px', boxSizing: 'border-box' }} />
               </div>
             ))}
