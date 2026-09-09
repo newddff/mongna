@@ -37,7 +37,6 @@ export default function CalendarPage() {
   const [inputMembers, setInputMembers] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [inputVod, setInputVod] = useState('');
-  const [inputColor, setInputColor] = useState('#fb819e');
 
   // 뷰어 모달 상태
   const [viewModalData, setViewModalData] = useState<any>(null);
@@ -45,7 +44,7 @@ export default function CalendarPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // Firebase 초기화 및 데이터 구독 (window 안전 처리)
+  // Firebase 초기화 및 데이터 구독
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsAdmin(localStorage.getItem('mongna_calendar_admin') === 'true' || localStorage.getItem('mongna_home_admin') === 'true');
@@ -193,7 +192,6 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
-    setInputColor('#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -211,7 +209,6 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
-    setInputColor(target.backgroundColor || target.color || '#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -238,12 +235,12 @@ export default function CalendarPage() {
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
         if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
         }
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
       updatedSchedules[selectedDateKey].push(newSch);
     }
 
@@ -322,7 +319,7 @@ export default function CalendarPage() {
 
     if (query) {
       const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: '#f59e0b', color: '#f59e0b'
+        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: ''
       };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
@@ -407,7 +404,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 상단 네비게이션바 (홈만 '/' 경로 연동) */}
+      {/* 💡 옛날 레이아웃의 상단 네비게이션바 (우측 상단 관리자 버튼 및 톱니바퀴 완벽 복원) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -502,11 +499,8 @@ export default function CalendarPage() {
                             <div 
                               key={sch.id}
                               onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
-                              style={{ 
-                                fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
-                                backgroundColor: sch.backgroundColor || undefined
-                              }}
-                              className={sch.backgroundColor ? undefined : `type-${sch.type}`}
+                              style={{ fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left' }}
+                              className={`type-${sch.type}`}
                             >
                               {sch.time && sch.time !== '시간 미정' && (
                                 <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '4px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 6px', borderRadius: '4px' }}>[{sch.time}]</span>
@@ -605,7 +599,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가/수정 모달 (💡 방송 분류 6개 동일 사이즈 한 줄 정렬) */}
+      {/* 일정 추가/수정 모달 (💡 방송 분류 6개가 동일 사이즈 한 줄에 꽉 차게 정렬됨) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
@@ -760,7 +754,7 @@ export default function CalendarPage() {
 
       {/* 톱니바퀴: 카테고리 색상 설정 모달 */}
       {isColorModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} >
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
