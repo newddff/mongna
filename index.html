@@ -203,16 +203,16 @@
 <!-- 🚀 몽나 로딩 스크린 끝 -->
 
 <div class="top-bar">
-  <a href="index.html" class="logo-wrap">
+  <a href="/" class="logo-wrap">
     <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
   </a>
   
   <div class="nav-menu">
-    <a href="index.html" class="active">홈</a>
-    <a href="calender.html">캘린더</a>
-    <a href="song.html">노래책</a>
-    <a href="reward.html">업보(보상)</a>
-    <a href="vod.html">VOD</a>
+    <a href="/" class="active">홈</a>
+    <a href="/">캘린더</a>
+    <a href="/song.html">노래책</a>
+    <a href="/reward.html">업보(보상)</a>
+    <a href="/vod.html">VOD</a>
   </div>
 
   <div class="right-menu">
@@ -233,7 +233,7 @@
     <div class="info-card">
       <div class="card-header">
         <h3>📅 이번 주 일정</h3>
-        <a href="calender.html" class="more-btn">전체보기</a>
+        <a href="/" class="more-btn">전체보기</a>
       </div>
       <div class="week-calendar-wrap">
         <div class="week-calendar-grid" id="thisWeekScheduleList">
@@ -502,11 +502,9 @@
         html += `<div class="day-cell ${isToday ? 'today' : ''}">`;
         html += `<div class="date-header ${dateColorClass}">${dayObj.dateNum}</div>`;
         
-        // 💡 캘린더 색상 초강력 강제 매핑 로직 (DB 색상, 이름, 종류를 종합해서 판단)
         daySchedules.forEach(sch => {
           let bgColor = sch.color || sch.backgroundColor || sch.bgColor || sch.eventColor || '';
 
-          // 만약 색상이 저장 안 된 과거 데이터라면 이름이나 타입으로 강제 색칠
           if (!bgColor) {
             let type = sch.type || '';
             let title = sch.title || '';
@@ -515,7 +513,7 @@
             else if (type === '휴방' || title.includes('휴방')) bgColor = '#94a3b8';
             else if (type === '합방') bgColor = '#60a5fa';
             else if (type === '같이보기' || title.includes('LCK') || title.includes('같이보기')) bgColor = '#c4b5fd'; 
-            else bgColor = '#fb819e'; // 기본 방송(핑크)
+            else bgColor = '#fb819e';
           }
 
           html += `
