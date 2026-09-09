@@ -630,7 +630,7 @@ export default function CalendarPage() {
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분)</label>
-                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 츄르, 카푸)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 송현_, 츄르)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
                 </div>
               )}
 
@@ -670,19 +670,28 @@ export default function CalendarPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {viewModalData.sch.members.map((name: string, idx: number) => {
                     const trimmedName = name.trim();
-                    const stationId = trimmedName; 
+                    
+                    // 💡 숲 닉네임과 실제 영문 ID 매핑 사전 (추가로 필요한 멤버는 여기에 계속 적어주시면 됩니다!)
+                    const streamerMap: { [key: string]: { id: string, name: string } } = {
+                      "송현_": { id: "songhy", name: "송현_" },
+                      "송현": { id: "songhy", name: "송현_" },
+                    };
+
+                    const mapped = streamerMap[trimmedName] || { id: trimmedName, name: trimmedName };
+                    const stationId = mapped.id;
+                    const displayName = mapped.name;
                     const stationUrl = `https://www.sooplive.com/station/${stationId}`;
                     const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
 
                     return (
-                      <a key={idx} href={stationUrl} target="_blank" rel="noreferrer" title={`${trimmedName} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
+                      <a key={idx} href={stationUrl} target="_blank" rel="noreferrer" title={`${displayName} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
                         <img 
                           src={profileImg} 
-                          alt={trimmedName} 
+                          alt={displayName} 
                           style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                          onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
+                          onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(displayName.charAt(0))}`; }}
                         />
-                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{trimmedName}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{displayName}</span>
                       </a>
                     );
                   })}
