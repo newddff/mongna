@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
-// 주요 스트리머 기본 매핑 (필요시 추가 가능, 없어도 숲 주소로 자동 추적됨)
+// 주요 스트리머 방송국 ID 매핑 (여기에 없는 스트리머는 닉네임을 그대로 방송국 ID로 자동 인식합니다)
 const streamerStationMap: { [key: string]: string } = {
   "몽나": "pinktape8",
-  "다룽": "dalung",
+  "다룽": "daarung22",
   "최또": "chwitto",
   "카푸": "kapu",
   "달묘": "dalmyo",
@@ -15,7 +15,8 @@ const streamerStationMap: { [key: string]: string } = {
   "콧시": "kossi",
   "감치치": "gamchichi",
   "달푸": "dalpu",
-  "몽또": "mongtto"
+  "몽또": "mongtto",
+  "달타": "dalta"
 };
 
 export default function CalendarPage() {
@@ -660,10 +661,10 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 💡 일정 상세 보기 모달 (캡처 화면처럼 중앙에 아바타와 방송국 링크 카드 배치) */}
+      {/* 💡 일정 상세 보기 모달 (스크린샷과 똑같은 중앙 아바타 & 방송국 링크 카드 배치) */}
       {viewModalItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalItem(null)}>
-          <div style={{ background: 'white', borderRadius: '24px', width: '480px', maxWidth: '90vw', padding: '40px', position: 'relative', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '450px', maxWidth: '90vw', padding: '40px', position: 'relative', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setViewModalItem(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#888' }}>✕</button>
             
             <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#222', margin: 0 }}>{viewModalItem.sch.title}</h2>
@@ -675,13 +676,15 @@ export default function CalendarPage() {
               <span style={{ background: viewModalItem.sch.backgroundColor || '#8b5cf6', color: 'white', padding: '6px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{viewModalItem.sch.type}</span>
             </div>
 
-            {/* 💡 합방 참여자 동적 프로필 사진 및 숲 방송국 연동 카드 (캡처본 디자인 반영) */}
+            {/* 💡 합방 참여자 중앙 아바타 & 숲 방송국 링크 연동 (스크린샷 디자인 반영) */}
             {viewModalItem.sch.type === '합방' && viewModalItem.sch.members && viewModalItem.sch.members.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%', margin: '10px 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', width: '100%', margin: '10px 0' }}>
                 {viewModalItem.sch.members.map((memberName: string, mIdx: number) => {
                   const name = memberName.trim();
-                  const stationId = streamerStationMap[name] || name; // 매핑된 ID가 없으면 닉네임 자체를 ID로 사용
+                  // 매핑된 ID가 있으면 사용, 없으면 닉네임 사용
+                  const stationId = streamerStationMap[name] || name;
                   const stationUrl = `https://www.sooplive.com/station/${stationId}`;
+                  // SOOP 공식 프로필 이미지 URL 포맷 적용
                   const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
 
                   return (
@@ -698,9 +701,9 @@ export default function CalendarPage() {
                       <img 
                         src={profileImg} 
                         alt={name} 
-                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #8b5cf6', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #8b5cf6', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', background: '#eee' }}
                         onError={(e: any) => {
-                          // 공식 프사가 없을 경우 대체 이미지 또는 이니셜 아바타 처리
+                          // 프로필 이미지가 없을 경우 첫 글자 이니셜 아바타로 대체
                           e.target.src = `https://via.placeholder.com/64/8b5cf6/ffffff?text=${encodeURIComponent(name.charAt(0))}`;
                         }}
                       />
