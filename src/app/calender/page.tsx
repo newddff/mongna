@@ -66,7 +66,6 @@ export default function CalendarPage() {
     const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
     const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors');
 
-    // 색상 데이터 구독
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
       try {
         if (docSnap.exists()) {
@@ -76,7 +75,6 @@ export default function CalendarPage() {
       } catch (e) { console.error("색상 로드 오류:", e); }
     });
 
-    // 사이드바 구독
     const unsubSidebar = onSnapshot(sidebarRef, (docSnap) => {
       try {
         if (docSnap.exists()) {
@@ -90,7 +88,6 @@ export default function CalendarPage() {
       } catch (e) { console.error("사이드바 로드 에러:", e); }
     });
 
-    // 일정 데이터 구독
     const initialSchedules = {
       "2024-3-5": [{ id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" }],
     };
@@ -114,7 +111,6 @@ export default function CalendarPage() {
     };
   }, []);
 
-  // 관리자 토글
   const toggleAdmin = () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
@@ -139,7 +135,6 @@ export default function CalendarPage() {
     }
   };
 
-  // 달력 계산
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -178,7 +173,6 @@ export default function CalendarPage() {
     setSelectedMonth(m);
   };
 
-  // 일정 추가 모달 열기
   const openAddModal = (dateKey: string) => {
     if (!isAdmin) {
       alert("일정 추가는 관리자만 가능합니다.");
@@ -195,7 +189,6 @@ export default function CalendarPage() {
     setIsAddModalOpen(true);
   };
 
-  // 일정 수정 모달 열기
   const openEditModal = () => {
     setViewModalData(null);
     setIsEditMode(true);
@@ -212,7 +205,6 @@ export default function CalendarPage() {
     setIsAddModalOpen(true);
   };
 
-  // 일정 저장하기
   const saveSchedule = async () => {
     const title = inputTitle.trim();
     if (!title) {
@@ -252,7 +244,6 @@ export default function CalendarPage() {
     }
   };
 
-  // 일정 삭제하기
   const deleteSchedule = async () => {
     if (confirm("정말로 이 일정을 삭제하시겠습니까?")) {
       const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
@@ -274,7 +265,6 @@ export default function CalendarPage() {
     }
   };
 
-  // 종겜 검색
   const searchGame = async (engine: 'steam' | 'google') => {
     if (!isAdmin) return alert("관리자만 검색 기록을 남길 수 있습니다.");
     const query = gameSearchQuery.trim();
@@ -308,7 +298,6 @@ export default function CalendarPage() {
     await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
   };
 
-  // 드래그 앤 드롭
   const dropGame = async (e: React.DragEvent, dateKey: string) => {
     if (!isAdmin) return;
     e.preventDefault();
@@ -338,7 +327,6 @@ export default function CalendarPage() {
     }
   };
 
-  // 메모 저장
   const saveMemo = async () => {
     if (!isAdmin) return alert("관리자만 작성할 수 있습니다.");
     const text = memoInputText.trim();
@@ -368,7 +356,6 @@ export default function CalendarPage() {
     await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
   };
 
-  // 카테고리 색상 저장
   const saveCategoryColors = async () => {
     if (!isAdmin) return;
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
@@ -404,7 +391,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 💡 옛날 레이아웃의 상단 네비게이션바 (우측 상단 관리자 버튼 및 톱니바퀴 완벽 복원) */}
+      {/* 💡 스크린샷과 정확히 일치하는 상단 네비게이션바 */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -437,35 +424,31 @@ export default function CalendarPage() {
             {/* 왼쪽: 캘린더 영역 */}
             <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
               
-              {/* 년/월 빠른 이동 헤더 */}
+              {/* 년/월 빠른 이동 헤더 (스크린샷의 알약 박스 디자인) */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
                 <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>◀</button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <select value={selectedYear} onChange={(e) => jumpToDate(parseInt(e.target.value), selectedMonth)} style={{ backgroundColor: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '12px', padding: '8px 36px 8px 16px', fontSize: '26px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '99px', padding: '6px 20px' }}>
+                  <select value={selectedYear} onChange={(e) => jumpToDate(parseInt(e.target.value), selectedMonth)} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
                     {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
-                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#555' }}>년</span>
-                  <select value={selectedMonth} onChange={(e) => jumpToDate(selectedYear, parseInt(e.target.value))} style={{ backgroundColor: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '12px', padding: '8px 36px 8px 16px', fontSize: '26px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: '#555' }}>년</span>
+                  <select value={selectedMonth} onChange={(e) => jumpToDate(selectedYear, parseInt(e.target.value))} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
                     {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
                   </select>
-                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#555' }}>월</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: '#555' }}>월</span>
                 </div>
                 <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>▶</button>
               </div>
 
-              {/* 달력 본문 그리드 */}
+              {/* 달력 그리드 (스크린샷의 점선 요일 박스 디자인) */}
               <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fafafa', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', borderTop: '1px solid #ddd', borderLeft: '1px solid #ddd' }}>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', color: '#ff6b6b' }}>일</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>월</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>화</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>수</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>목</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>금</div>
-                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', color: '#4dabf7' }}>토</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
+                  {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+                    <div key={day} style={{ padding: '12px 0', border: '1px dashed #e4dceb', borderRadius: '12px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#333', backgroundColor: '#fcfbfe' }}>{day}</div>
+                  ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderLeft: '1px solid #ddd' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderTop: '1px solid #ddd', borderLeft: '1px solid #ddd' }}>
                   {calendarDays.map((dateObj, idx) => {
                     if (!dateObj) {
                       return <div key={idx} style={{ minHeight: '120px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', backgroundColor: '#fff' }} />;
@@ -516,7 +499,7 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* 오른쪽: 사이드바 (종겜 링크 찾기 & 메모장) */}
+            {/* 오른쪽: 사이드바 (종겜 링크 찾기 & 몽나 메모장) */}
             <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
               
               {/* 종겜 링크 찾기 */}
