@@ -397,39 +397,43 @@ export default function CalendarPage() {
           </div>
         </nav>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', padding: '40px', boxSizing: 'border-box', marginBottom: '40px' }}>
+        {/* 캘린더 메인 컨테이너 (부드러운 보라빛 년/월 선택기 및 둥근 래퍼 적용) */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '50px' }}>
+          <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
               
               {/* 왼쪽: 캘린더 영역 */}
               <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
-                  <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>◀</button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '99px', padding: '6px 20px' }}>
-                    <select value={selectedYear} onChange={(e) => jumpToDate(parseInt(e.target.value), selectedMonth)} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
+                {/* 상단 년/월 이동 바 (보라색 타원형 스타일) */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
+                  <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>◀</button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f0fa', border: '2px solid #e4dceb', borderRadius: '99px', padding: '8px 25px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                    <select value={selectedYear} onChange={(e) => jumpToDate(parseInt(e.target.value), selectedMonth)} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 800, color: '#4a3b5c', cursor: 'pointer', outline: 'none' }}>
                       {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
-                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#555' }}>년</span>
-                    <select value={selectedMonth} onChange={(e) => jumpToDate(selectedYear, parseInt(e.target.value))} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 700, color: '#333', cursor: 'pointer', outline: 'none' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#6b5b7d' }}>년</span>
+                    <select value={selectedMonth} onChange={(e) => jumpToDate(selectedYear, parseInt(e.target.value))} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 800, color: '#4a3b5c', cursor: 'pointer', outline: 'none' }}>
                       {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
                     </select>
-                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#555' }}>월</span>
+                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#6b5b7d' }}>월</span>
                   </div>
-                  <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>▶</button>
+                  <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>▶</button>
                 </div>
 
                 <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
+                  {/* 요일 셀 (점선 테두리 디자인) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
                     {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-                      <div key={day} style={{ padding: '12px 0', border: '1px dashed #e4dceb', borderRadius: '12px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#333', backgroundColor: '#fcfbfe' }}>{day}</div>
+                      <div key={day} style={{ padding: '14px 0', border: '2px dashed #dcd0ec', borderRadius: '16px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#4a3b5c', backgroundColor: '#fcfbfe', fontSize: '15px', fontWeight: 900 }}>{day}</div>
                     ))}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderTop: '1px solid #ddd', borderLeft: '1px solid #ddd' }}>
+                  {/* 날짜 그리드 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderTop: '1px solid #eee', borderLeft: '1px solid #eee', borderRadius: '16px', overflow: 'hidden' }}>
                     {calendarDays.map((dateObj, idx) => {
                       if (!dateObj) {
-                        return <div key={idx} style={{ minHeight: '120px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', backgroundColor: '#fff' }} />;
+                        return <div key={idx} style={{ minHeight: '130px', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', backgroundColor: '#faf9fc' }} />;
                       }
 
                       const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
@@ -445,17 +449,17 @@ export default function CalendarPage() {
                         <div 
                           key={idx}
                           onDoubleClick={() => openAddModal(dateKey)}
-                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f0f4ff'; }}
-                          onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? 'rgba(193, 172, 215, 0.2)' : '#fff'; }}
+                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f3e8ff'; }}
+                          onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? 'rgba(193, 172, 215, 0.25)' : '#fff'; }}
                           onDrop={(e) => dropGame(e, dateKey)}
                           style={{
-                            minHeight: '120px', padding: '8px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd',
-                            backgroundColor: isToday ? 'rgba(193, 172, 215, 0.2)' : '#fff', display: 'flex', flexDirection: 'column',
-                            cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden'
+                            minHeight: '130px', padding: '10px', borderRight: '1px solid #eee', borderBottom: '1px solid #eee',
+                            backgroundColor: isToday ? 'rgba(193, 172, 215, 0.25)' : '#fff', display: 'flex', flexDirection: 'column',
+                            cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden', transition: 'background 0.2s'
                           }}
                         >
-                          <span style={{ fontSize: '15px', fontWeight: 'bold', color: numColor, marginBottom: '5px' }}>{dateObj.getDate()}</span>
-                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '5px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 900, color: numColor, marginBottom: '6px' }}>{dateObj.getDate()}</span>
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                             {daySchedules.map((sch: any) => {
                               const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
                               return (
@@ -463,12 +467,12 @@ export default function CalendarPage() {
                                   key={sch.id}
                                   onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
                                   style={{ 
-                                    fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
+                                    fontSize: '11px', padding: '6px 8px', borderRadius: '8px', fontWeight: 700, boxShadow: '0 2px 5px rgba(0,0,0,0.08)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
                                     backgroundColor: bg, color: '#fff'
                                   }}
                                 >
                                   {sch.time && sch.time !== '시간 미정' && (
-                                    <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '4px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 6px', borderRadius: '4px' }}>[{sch.time}]</span>
+                                    <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '3px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 5px', borderRadius: '4px' }}>[{sch.time}]</span>
                                   )}
                                   <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sch.title}</span>
                                 </div>
@@ -483,11 +487,11 @@ export default function CalendarPage() {
               </div>
 
               {/* 오른쪽: 사이드바 */}
-              <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
+              <div style={{ flex: 1, backgroundColor: '#fcfbfe', borderRadius: '24px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
                 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '12px' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px', color: '#5d4037', display: 'flex', alignItems: 'center', gap: '8px' }}>🎮 종겜 링크 찾기</h2>
+                    <h2 style={{ margin: 0, fontSize: '18px', color: '#4a3b5c', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 900 }}>🎮 종겜 링크 찾기</h2>
                   </div>
                   {isAdmin && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -497,11 +501,11 @@ export default function CalendarPage() {
                         onChange={(e) => setGameSearchQuery(e.target.value)} 
                         placeholder="게임 이름 입력 (예: 팰월드)" 
                         onKeyPress={(e) => { if(e.key==='Enter') searchGame('steam'); }} 
-                        style={{ padding: '12px 14px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', fontSize: '14px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box' }}
+                        style={{ padding: '12px 14px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box', backgroundColor: '#fff' }}
                       />
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => searchGame('steam')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#1b2838', color: 'white', fontSize: '13px' }}>Steam 검색</button>
-                        <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
+                        <button onClick={() => searchGame('steam')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#1b2838', color: 'white', fontSize: '13px' }}>Steam 검색</button>
+                        <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '1px', border: '1px solid #e4dceb', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
                       </div>
                     </div>
                   )}
@@ -518,7 +522,7 @@ export default function CalendarPage() {
                             e.dataTransfer.setData("gameLink", link);
                             e.dataTransfer.setData("gameIndex", index.toString());
                           }}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', fontWeight: 500, cursor: isAdmin ? 'grab' : 'default' }}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #eee', fontSize: '13px', fontWeight: 500, cursor: isAdmin ? 'grab' : 'default', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}
                         >
                           <a href={link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#333', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {h.engine === 'steam' ? '💨' : '🔍'} {h.query}
@@ -530,16 +534,16 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                <hr style={{ border: 0, borderTop: '1px dashed #ddd', margin: '10px 0' }} />
+                <hr style={{ border: 0, borderTop: '1px dashed #e4dceb', margin: '5px 0' }} />
 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '12px' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px', color: '#5d4037', display: 'flex', alignItems: 'center', gap: '8px' }}>📝 몽나 메모장</h2>
+                    <h2 style={{ margin: 0, fontSize: '18px', color: '#4a3b5c', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 900 }}>📝 몽나 메모장</h2>
                   </div>
                   {isAdmin && (
                     <div>
-                      <textarea value={memoInputText} onChange={(e) => setMemoInputText(e.target.value)} placeholder="아이디어나 메모를 적어보세요!" style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', fontSize: '14px', resize: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}></textarea>
-                      <button onClick={saveMemo} style={{ marginTop: '8px', width: '100%', padding: '10px', backgroundColor: '#C1ACD7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }}>메모 저장하기</button>
+                      <textarea value={memoInputText} onChange={(e) => setMemoInputText(e.target.value)} placeholder="아이디어나 메모를 적어보세요!" style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', resize: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}></textarea>
+                      <button onClick={saveMemo} style={{ marginTop: '10px', width: '100%', padding: '12px', backgroundColor: '#C1ACD7', color: '#fff', fontWeight: 900, border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 10px rgba(193, 172, 215, 0.4)' }}>메모 저장하기</button>
                     </div>
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', marginTop: '12px' }}>
@@ -547,7 +551,7 @@ export default function CalendarPage() {
                     {memoList.map((memo: any, index: number) => {
                       if (!memo || !memo.text) return null;
                       return (
-                        <div key={index} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '12px', padding: '12px', position: 'relative', fontSize: '13px', lineHeight: '1.4' }}>
+                        <div key={index} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '14px', padding: '14px', position: 'relative', fontSize: '13px', lineHeight: '1.4', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
                           {isAdmin && <button onClick={() => deleteMemo(index)} style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✕</button>}
                           <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px' }}>{memo.date}</div>
                           <div style={{ color: '#333', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{memo.text}</div>
@@ -566,20 +570,20 @@ export default function CalendarPage() {
         {/* 일정 추가/수정 모달 */}
         {isAddModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>{selectedDateKey} 일정 등록</span>
+                <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 14px', borderRadius: '10px', fontSize: '14px' }}>{selectedDateKey} 일정 등록</span>
                 <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>일정 제목</label>
-                <input type="text" value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} placeholder="제목" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} placeholder="제목" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>⏰ 방송 시간 선택</label>
-                <select value={inputTime} onChange={(e) => setInputTime(e.target.value)} style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none', backgroundColor: '#fff' }}>
+                <select value={inputTime} onChange={(e) => setInputTime(e.target.value)} style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', backgroundColor: '#fff' }}>
                   <option value="시간 미정">시간 미정</option>
                   {Array.from({length: 24}).map((_, i) => {
                     const ampm = i < 12 ? '오전' : '오후';
@@ -604,10 +608,10 @@ export default function CalendarPage() {
                       type="button" 
                       onClick={() => setCurrentSchType(type)} 
                       style={{ 
-                        border: 'none', padding: '10px 0', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px',
+                        border: 'none', padding: '12px 0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px',
                         backgroundColor: currentSchType === type ? (categoryColors as any)[type] || '#8b5cf6' : '#f2f2f2', 
                         color: currentSchType === type ? '#fff' : '#777',
-                        boxShadow: currentSchType === type ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                        boxShadow: currentSchType === type ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
                       }}
                     >
                       {type}
@@ -619,21 +623,21 @@ export default function CalendarPage() {
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분)</label>
-                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 츄르, 카푸)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 츄르, 카푸)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
                 </div>
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>상세 내용 (선택)</label>
-                <textarea value={inputContent} onChange={(e) => setInputContent(e.target.value)} placeholder="내용" style={{ height: '80px', border: '1px solid #e0e0e0', borderRadius: '10px', padding: '12px 14px', fontSize: '14px', resize: 'none', outline: 'none' }} />
+                <textarea value={inputContent} onChange={(e) => setInputContent(e.target.value)} placeholder="내용" style={{ height: '80px', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', fontSize: '14px', resize: 'none', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>📺 VOD (다시보기) 링크</label>
-                <input type="text" value={inputVod} onChange={(e) => setInputVod(e.target.value)} placeholder="VOD 주소" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={inputVod} onChange={(e) => setInputVod(e.target.value)} placeholder="VOD 주소" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
-              <button onClick={saveSchedule} style={{ backgroundColor: '#ff7676', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}>
+              <button onClick={saveSchedule} style={{ backgroundColor: '#ff7676', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', boxShadow: '0 4px 15px rgba(255, 118, 118, 0.4)' }}>
                 {isEditMode ? '일정 수정 완료' : '일정 등록하기'}
               </button>
             </div>
