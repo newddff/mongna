@@ -4,6 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
+// 💡 스트리머 닉네임별 SOOP 방송국 ID 및 프로필 이미지 매핑 사전
+const streamerMap: { [key: string]: { station: string; img: string } } = {
+  "몽나": { station: "pinktape8", img: "https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" },
+  "츄르": { station: "churu", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=츄" },
+  "카푸": { station: "kapu", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=카" },
+  "달묘": { station: "dalmyo", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=달" },
+  "콧시": { station: "kossi", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=콧" },
+  "감치치": { station: "gamchichi", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=감" },
+  "달푸": { station: "dalpu", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=푸" },
+  "몽또": { station: "mongtto", img: "https://via.placeholder.com/40/C1ACD7/ffffff?text=또" }
+};
+
 export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [scheduleData, setScheduleData] = useState<any>({});
@@ -16,6 +28,11 @@ export default function CalendarPage() {
   const [inputTitle, setInputTitle] = useState('');
   const [inputTime, setInputTime] = useState('');
   const [inputColor, setInputColor] = useState('#fb819e'); // 기본 핑크
+  const [inputType, setInputType] = useState('방송'); // 방송 유형 (합방, 방송 등)
+  const [inputMembers, setInputMembers] = useState(''); // 참여자 닉네임
+
+  // 일정 상세(뷰어) 모달 상태
+  const [viewModalItem, setViewModalItem] = useState<any>(null);
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true' || localStorage.getItem('mongna_calendar_admin') === 'true');
@@ -92,6 +109,8 @@ export default function CalendarPage() {
     setInputTitle('');
     setInputTime('');
     setInputColor('#fb819e');
+    setInputType('방송');
+    setInputMembers('');
     setIsModalOpen(true);
   };
 
@@ -119,9 +138,18 @@ export default function CalendarPage() {
       updatedData[selectedDateKey] = [];
     }
 
+    // 합방일 경우 쉼표 기준으로 참여자 파싱
+    let membersArr: string[] = [];
+    if (inputType === '합방' && inputMembers.trim()) {
+      membersArr = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
+    }
+
     updatedData[selectedDateKey].push({
+      id: Date.now(),
       title: inputTitle.trim(),
       time: inputTime.trim() || '미정',
+      type: inputType,
+      members: membersArr,
       backgroundColor: inputColor,
       color: inputColor
     });
@@ -136,8 +164,8 @@ export default function CalendarPage() {
   };
 
   // 일정 삭제하기 (관리자)
-  const deleteSchedule = async (dateKey: string, index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const deleteSchedule = async (dateKey: string, index: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!confirm("이 일정을 삭제하시겠습니까?")) return;
 
     const firebaseConfig = {
@@ -162,6 +190,7 @@ export default function CalendarPage() {
 
     try {
       await setDoc(scheduleRef, { data: updatedData }, { merge: true });
+      setViewModalItem(null);
     } catch (e) {
       alert("삭제 실패!");
     }
@@ -176,7 +205,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 상단바 */}
+      {/* 상단바 (전체 웹사이트와 통일된 링크 구조) */}
       <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(168, 85, 247, 0.1)' }}>
         <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
           <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '40px', objectFit: 'contain' }} />
@@ -267,6 +296,10 @@ export default function CalendarPage() {
                   return (
                     <div 
                       key={sIdx} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewModalItem({ sch, dateKey: key, index: sIdx });
+                      }}
                       style={{ 
                         background: bgColor, 
                         color: 'white', 
@@ -275,7 +308,8 @@ export default function CalendarPage() {
                         fontSize: '12px', 
                         fontWeight: 'bold',
                         position: 'relative',
-                        wordBreak: 'keep-all'
+                        wordBreak: 'keep-all',
+                        cursor: 'pointer'
                       }}
                     >
                       <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 5px', borderRadius: '4px', fontSize: '10px', marginBottom: '3px' }}>
@@ -316,6 +350,26 @@ export default function CalendarPage() {
               <input type="text" value={inputTime} onChange={e => setInputTime(e.target.value)} placeholder="예: 오후 8:00 또는 미정" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
             </div>
 
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>🏷️ 방송 분류 (타입)</label>
+              <select value={inputType} onChange={e => setInputType(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontWeight: 'bold' }}>
+                <option value="방송">방송</option>
+                <option value="합방">합방</option>
+                <option value="휴방">휴방</option>
+                <option value="겜방">겜방</option>
+                <option value="LCK">LCK</option>
+                <option value="같이보기">같이보기</option>
+              </select>
+            </div>
+
+            {/* 합방일 경우 참여자 입력창 노출 */}
+            {inputType === '합방' && (
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>👥 참여자 닉네임 (쉼표로 구분)</label>
+                <input type="text" value={inputMembers} onChange={e => setInputMembers(e.target.value)} placeholder="예: 츄르, 카푸, 달묘" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              </div>
+            )}
+
             <div style={{ marginBottom: '25px' }}>
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '10px' }}>🎨 일정 색상 선택</label>
               <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
@@ -328,6 +382,67 @@ export default function CalendarPage() {
             </div>
 
             <button onClick={saveSchedule} style={{ background: '#a855f7', color: 'white', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>일정 저장하기</button>
+          </div>
+        </div>
+      )}
+
+      {/* 💡 일정 상세 보기 모달 (참여자 프사 & 방송국 링크 연동) */}
+      {viewModalItem && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalItem(null)}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '450px', padding: '35px', position: 'relative', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setViewModalItem(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            
+            <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#1e293b', marginBottom: '15px' }}>{viewModalItem.sch.title}</h2>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+              <span style={{ background: '#fbc531', color: 'white', padding: '6px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{viewModalItem.sch.time || '미정'}</span>
+              <span style={{ background: viewModalItem.sch.backgroundColor || '#fb819e', color: 'white', padding: '6px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{viewModalItem.sch.type || '방송'}</span>
+            </div>
+
+            {/* 참여자 숲(SOOP) 프로필 사진 및 방송국 링크 카드 영역 */}
+            {viewModalItem.sch.type === '합방' && viewModalItem.sch.members && viewModalItem.sch.members.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b', marginBottom: '10px' }}>🤝 함께한 스트리머 (클릭 시 방송국 이동)</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  {viewModalItem.sch.members.map((memberName: string, mIdx: number) => {
+                    const trimmed = memberName.trim();
+                    const info = streamerMap[trimmed] || {
+                      station: trimmed,
+                      img: `https://via.placeholder.com/40/C1ACD7/ffffff?text=${encodeURIComponent(trimmed.charAt(0))}`
+                    };
+                    const stationUrl = `https://www.sooplive.com/station/${info.station}`;
+
+                    return (
+                      <a 
+                        key={mIdx} 
+                        href={stationUrl} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        title={`${trimmed} 방송국 바로가기`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f0edf4', color: '#5d4037', padding: '6px 14px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', transition: '0.2s' }}
+                      >
+                        <img 
+                          src={info.img} 
+                          alt={trimmed} 
+                          style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', background: '#ddd' }} 
+                          onError={(e: any) => { e.target.src = 'https://via.placeholder.com/28/C1ACD7/ffffff?text=👤'; }}
+                        />
+                        <span>{trimmed}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {isAdmin && (
+              <button 
+                onClick={() => deleteSchedule(viewModalItem.dateKey, viewModalItem.index)}
+                style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px', width: '100%' }}
+              >
+                이 일정 삭제하기
+              </button>
+            )}
           </div>
         </div>
       )}
