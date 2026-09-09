@@ -4,32 +4,58 @@ import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
-export default function HomePage() {
+// 주요 스트리머 기본 매핑 (필요시 추가 가능, 없어도 숲 주소로 자동 추적됨)
+const streamerStationMap: { [key: string]: string } = {
+  "몽나": "pinktape8",
+  "다룽": "dalung",
+  "최또": "chwitto",
+  "카푸": "kapu",
+  "달묘": "dalmyo",
+  "츄르": "churu",
+  "콧시": "kossi",
+  "감치치": "gamchichi",
+  "달푸": "dalpu",
+  "몽또": "mongtto"
+};
+
+export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [homeData, setHomeData] = useState({
-    heroImg: '', ytChannelId: '', ytApiKey: '', isLive: false,
-    links: [
-      { title: '숲 방송국', sub: '생방송 보러가기', icon: '📺', url: 'https://www.sooplive.com/station/pinktape8' },
-      { title: '유튜브', sub: '다시보기 & 하이라이트', icon: '🎬', url: 'https://www.youtube.com/@mongnaaa' },
-      { title: '팬카페', sub: '소통과 정보 나눔', icon: '☕', url: 'https://cafe.naver.com/nightofmongna' },
-      { title: '인스타그램', sub: '일상 공유', icon: '📷', url: 'https://www.instagram.com/m0n9na/' }
-    ]
-  });
   const [scheduleData, setScheduleData] = useState<any>({});
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<any[]>([]);
+  const [memoList, setMemoList] = useState<any[]>([]);
+  const [categoryColors, setCategoryColors] = useState({
+    합방: "#4dabf7",
+    방송: "#ff9eb5",
+    휴방: "#9ca3af",
+    겜방: "#f59e0b",
+    LCK: "#8b5cf6",
+    같이보기: "#20c997"
+  });
+
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
-  const [ytVideos, setYtVideos] = useState<any[]>([]);
-  const [ytError, setYtError] = useState('');
 
-  // 설정 모달 입력 값 상태
-  const [inputHeroImg, setInputHeroImg] = useState('');
-  const [inputYtChannelId, setInputYtChannelId] = useState('');
-  const [inputYtApiKey, setInputYtApiKey] = useState('');
-  const [inputIsLive, setInputIsLive] = useState(false);
-  const [inputLinks, setInputLinks] = useState<any[]>([]);
+  // 모달 상태들
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedDateKey, setSelectedDateKey] = useState('');
+  const [editSchId, setEditSchId] = useState<number | null>(null);
 
+  const [inputTitle, setInputTitle] = useState('');
+  const [inputTime, setInputTime] = useState('오후 8:00');
+  const [inputType, setInputType] = useState('방송');
+  const [inputMembers, setInputMembers] = useState('');
+  const [inputContent, setInputContent] = useState('');
+  const [inputVod, setInputVod] = useState('');
+
+  const [viewModalItem, setViewModalItem] = useState<any>(null);
+  const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+  const [gameSearchQuery, setGameSearchQuery] = useState('');
+  const [memoInputText, setMemoInputText] = useState('');
+
+  // Firebase 초기화 및 데이터 구독
   useEffect(() => {
-    setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true');
+    setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true' || localStorage.getItem('mongna_calendar_admin') === 'true');
 
     const firebaseConfig = {
       apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
@@ -43,82 +69,52 @@ export default function HomePage() {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2');
     const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
-
-    const unsubHome = onSnapshot(homeRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as any;
-        if (data.links && data.links.length > 0) {
-          setHomeData(data);
-        }
-      }
-      setIsLoading(false);
-    });
+    const sidebarRef = doc(db, 'mongna_calendar_data', 'sidebar_state');
+    const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors');
 
     const unsubSchedule = onSnapshot(scheduleRef, (docSnap) => {
       if (docSnap.exists()) {
         setScheduleData(docSnap.data().data || {});
       }
+      setIsLoading(false);
+    });
+
+    const unsubSidebar = onSnapshot(sidebarRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSearchHistory(Array.isArray(data.searchHistory) ? data.searchHistory : []);
+        setMemoList(Array.isArray(data.memoList) ? data.memoList : []);
+      }
+    });
+
+    const unsubColors = onSnapshot(colorsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        setCategoryColors(prev => ({ ...prev, ...data }));
+      }
     });
 
     return () => {
-      unsubHome();
       unsubSchedule();
+      unsubSidebar();
+      unsubColors();
     };
   }, []);
-
-  // 유튜브 데이터 불러오기
-  useEffect(() => {
-    const channelId = (homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw').trim();
-    const apiKey = homeData.ytApiKey;
-
-    if (!apiKey) {
-      setYtError("구글 유튜브 API 키가 입력되지 않았습니다. 설정(⚙️) 창을 열어 키를 붙여넣어 주세요!");
-      return;
-    }
-
-    const uploadsPlaylistId = channelId.replace(/^UC/, 'UU');
-    const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=3&key=${apiKey}`;
-
-    fetch(playlistUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(res.status.toString());
-        return res.json();
-      })
-      .then(data => {
-        setYtVideos(data.items || []);
-        setYtError('');
-      })
-      .catch(err => {
-        if (err.message === "404") {
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=3&order=date&type=video&key=${apiKey}`;
-          fetch(searchUrl)
-            .then(res => res.json())
-            .then(data => {
-              setYtVideos(data.items || []);
-              setYtError('');
-            })
-            .catch(() => setYtError("유튜브 API 오류가 발생했습니다. 채널 ID를 확인해주세요."));
-        } else if (err.message === "403") {
-          setYtError("API 키 권한 거부 (403): 구글 콘솔 설정을 확인해주세요.");
-        } else {
-          setYtError("유튜브 API 오류가 발생했습니다.");
-        }
-      });
-  }, [homeData.ytChannelId, homeData.ytApiKey]);
 
   const toggleAdmin = () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
         localStorage.removeItem('mongna_home_admin');
+        localStorage.removeItem('mongna_calendar_admin');
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
       if (pwd === "mongna1234") {
         setIsAdmin(true);
         localStorage.setItem('mongna_home_admin', 'true');
+        localStorage.setItem('mongna_calendar_admin', 'true');
         alert("관리자 인증 성공!");
       } else if (pwd) {
         alert("비밀번호 오류");
@@ -126,16 +122,70 @@ export default function HomePage() {
     }
   };
 
-  const openSettings = () => {
-    setInputHeroImg(homeData.heroImg || '');
-    setInputYtChannelId(homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw');
-    setInputYtApiKey(homeData.ytApiKey || '');
-    setInputIsLive(homeData.isLive || false);
-    setInputLinks(JSON.parse(JSON.stringify(homeData.links)));
-    setIsModalOpen(true);
+  // 연/월 빠른 이동
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const calendarDays = [];
+  for (let i = 0; i < firstDayIndex; i++) {
+    calendarDays.push(null);
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    calendarDays.push(new Date(year, month, d));
+  }
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentDate(new Date(parseInt(e.target.value, 10), month, 1));
   };
 
-  const saveSettings = async () => {
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentDate(new Date(year, parseInt(e.target.value, 10) - 1, 1));
+  };
+
+  // 일정 추가 모달 열기
+  const handleDateClick = (dateObj: Date) => {
+    if (!isAdmin) return;
+    const key = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+    setSelectedDateKey(key);
+    setIsEditMode(false);
+    setEditSchId(null);
+    setInputTitle('');
+    setInputTime('오후 8:00');
+    setInputType('방송');
+    setInputMembers('');
+    setInputContent('');
+    setInputVod('');
+    setIsAddModalOpen(true);
+  };
+
+  // 일정 수정 모달 열기
+  const openEditModal = (sch: any, dateKey: string) => {
+    setSelectedDateKey(dateKey);
+    setIsEditMode(true);
+    setEditSchId(sch.id);
+    setInputTitle(sch.title || '');
+    setInputTime(sch.time || '오후 8:00');
+    setInputType(sch.type || '방송');
+    setInputMembers(sch.members ? sch.members.join(', ') : '');
+    setInputContent(sch.content || '');
+    setInputVod(sch.vodLink || '');
+    setViewModalItem(null);
+    setIsAddModalOpen(true);
+  };
+
+  // 일정 저장 (추가/수정)
+  const saveSchedule = async () => {
+    if (!inputTitle.trim()) {
+      alert("일정 제목을 입력해주세요!");
+      return;
+    }
+
     const firebaseConfig = {
       apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
       authDomain: "mongna-vod.firebaseapp.com",
@@ -146,240 +196,579 @@ export default function HomePage() {
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2');
+    const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
 
-    const newData = {
-      isLive: inputIsLive,
-      heroImg: inputHeroImg.trim(),
-      ytChannelId: inputYtChannelId.trim(),
-      ytApiKey: inputYtApiKey.trim(),
-      links: inputLinks
-    };
+    const updatedData = { ...scheduleData };
+    if (!updatedData[selectedDateKey]) {
+      updatedData[selectedDateKey] = [];
+    }
+
+    let membersArr: string[] = [];
+    if (inputType === '합방' && inputMembers.trim()) {
+      membersArr = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
+    }
+
+    const colorVal = (categoryColors as any)[inputType] || '#fb819e';
+
+    if (isEditMode && editSchId !== null) {
+      updatedData[selectedDateKey] = updatedData[selectedDateKey].map((s: any) => {
+        if (s.id === editSchId) {
+          return {
+            ...s,
+            title: inputTitle.trim(),
+            time: inputTime.trim(),
+            type: inputType,
+            members: membersArr,
+            content: inputContent,
+            vodLink: inputVod.trim(),
+            backgroundColor: colorVal,
+            color: colorVal
+          };
+        }
+        return s;
+      });
+    } else {
+      updatedData[selectedDateKey].push({
+        id: Date.now(),
+        title: inputTitle.trim(),
+        time: inputTime.trim(),
+        type: inputType,
+        members: membersArr,
+        content: inputContent,
+        vodLink: inputVod.trim(),
+        backgroundColor: colorVal,
+        color: colorVal
+      });
+    }
 
     try {
-      await setDoc(homeRef, newData, { merge: true });
-      setIsModalOpen(false);
-      alert("설정이 파이어베이스에 안전하게 저장되었습니다!");
+      await setDoc(scheduleRef, { data: updatedData }, { merge: true });
+      setIsAddModalOpen(false);
+      alert("일정이 저장되었습니다!");
     } catch (e) {
       alert("저장 실패!");
     }
   };
 
-  // 💡 캘린더 일정 색상을 100% 추적하여 가져오는 스마트 함수
-  const getEventColor = (sch: any) => {
-    if (sch.backgroundColor) return sch.backgroundColor;
-    if (sch.color) return sch.color;
-    if (sch.bgColor) return sch.bgColor;
-    if (sch.eventColor) return sch.eventColor;
-    if (sch.extendedProps?.backgroundColor) return sch.extendedProps.backgroundColor;
-    if (sch.extendedProps?.color) return sch.extendedProps.color;
+  // 일정 삭제
+  const deleteSchedule = async (dateKey: string, schId: number) => {
+    if (!confirm("정말로 이 일정을 삭제하시겠습니까?")) return;
 
-    // 제목 키워드에 따른 자동 색상 맞춤 (캘린더와 동일한 색상 테마)
-    const title = (sch.title || '').toLowerCase();
-    if (title.includes('휴뱅') || title.includes('휴식')) {
-      return '#6b7280'; // 회색
+    const firebaseConfig = {
+      apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
+      authDomain: "mongna-vod.firebaseapp.com",
+      projectId: "mongna-vod",
+      storageBucket: "mongna-vod.firebasestorage.app",
+      messagingSenderId: "310663611402",
+      appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
+
+    const updatedData = { ...scheduleData };
+    if (updatedData[dateKey]) {
+      updatedData[dateKey] = updatedData[dateKey].filter((s: any) => s.id !== schId);
+      if (updatedData[dateKey].length === 0) {
+        delete updatedData[dateKey];
+      }
     }
-    if (title.includes('lck') || title.includes('lol') || title.includes('롤') || title.includes('결승')) {
-      return '#7c3aed'; // 보라색
+
+    try {
+      await setDoc(scheduleRef, { data: updatedData }, { merge: true });
+      setViewModalItem(null);
+    } catch (e) {
+      alert("삭제 실패!");
     }
-    if (title.includes('탐정') || title.includes('게임') || title.includes('특집') || title.includes('합방')) {
-      return '#d97706'; // 주황색
-    }
-    return '#fb819e'; // 기본 핑크색
   };
 
-  // 이번 주 일정 계산
-  const todayObj = new Date();
-  const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;
-  const currentDay = todayObj.getDay();
-  const sunday = new Date(todayObj.getTime());
-  sunday.setDate(todayObj.getDate() - currentDay);
+  // 종겜 검색 및 드래그 앤 드랍
+  const searchGame = async (engine: 'steam' | 'google') => {
+    if (!isAdmin) return alert("관리자만 검색할 수 있습니다.");
+    const query = gameSearchQuery.trim();
+    if (!query) {
+      alert("게임 제목을 입력해주세요!");
+      return;
+    }
+    const link = engine === 'steam' 
+      ? `https://store.steampowered.com/search/?term=${encodeURIComponent(query)}` 
+      : `https://www.google.com/search?q=${encodeURIComponent(query + ' 게임')}`;
+    
+    window.open(link, '_blank');
 
-  const thisWeekKeys = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + i);
-    thisWeekKeys.push({
-      key: `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`,
-      dateNum: d.getDate(),
-      dayIdx: d.getDay()
-    });
-  }
+    const newHistory = [{ query, engine }, ...searchHistory.filter(h => h.query !== query)].slice(0, 5);
+    setSearchHistory(newHistory);
+    setGameSearchQuery('');
+
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
+  };
+
+  const deleteHistory = async (index: number) => {
+    if (!isAdmin) return;
+    const newHistory = searchHistory.filter((_, i) => i !== index);
+    setSearchHistory(newHistory);
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
+  };
+
+  const handleDropGame = async (e: React.DragEvent, dateKey: string) => {
+    if (!isAdmin) return;
+    e.preventDefault();
+    e.currentTarget.style.background = '#fff';
+    const q = e.dataTransfer.getData("gameQuery");
+    const link = e.dataTransfer.getData("gameLink");
+    if (!q) return;
+
+    const updatedData = { ...scheduleData };
+    if (!updatedData[dateKey]) updatedData[dateKey] = [];
+    
+    const newSch = {
+      id: Date.now(),
+      title: q,
+      time: '오후 8:00',
+      type: '겜방',
+      members: [],
+      content: `[GAME_LINK]${q}|${link}`,
+      vodLink: '',
+      backgroundColor: categoryColors.겜방,
+      color: categoryColors.겜방
+    };
+    updatedData[dateKey].push(newSch);
+
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'schedule_data'), { data: updatedData }, { merge: true });
+    setViewModalItem({ sch: newSch, dateKey });
+  };
+
+  // 메모장
+  const saveMemo = async () => {
+    if (!isAdmin) return;
+    const text = memoInputText.trim();
+    if (!text) {
+      alert("메모 내용을 입력해주세요!");
+      return;
+    }
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const newMemos = [{ date: dateStr, text }, ...memoList];
+    setMemoList(newMemos);
+    setMemoInputText('');
+
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+  };
+
+  const deleteMemo = async (index: number) => {
+    if (!isAdmin) return;
+    const newMemos = memoList.filter((_, i) => i !== index);
+    setMemoList(newMemos);
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+  };
+
+  // 카테고리 색상 저장
+  const saveCategoryColors = async () => {
+    if (!isAdmin) return;
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'category_colors'), categoryColors, { merge: true });
+    setIsColorModalOpen(false);
+    alert("카테고리 색상이 저장되었습니다!");
+  };
 
   return (
-    <div style={{ background: 'linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%)', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, sans-serif' }}>
+    <div style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, sans-serif' }}>
+      {/* 로딩 오버레이 */}
       {isLoading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-          <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '50px', marginBottom: '20px' }} />
-          <div style={{ color: '#a855f7', fontWeight: 800, fontSize: '15px' }}>데이터를 불러오는 중입니다... 🌙</div>
+          <div style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '16px' }}>캘린더를 불러오는 중입니다... 🌙</div>
         </div>
       )}
 
-      {/* 상단바 */}
-      <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(168, 85, 247, 0.1)' }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '40px', objectFit: 'contain' }} />
-        </a>
+      {/* 상단 네비게이션 바 */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
+          </a>
 
-        <div style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
-          <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
-          <a href="/calender" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
-          <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
-          <a href="/reward.html" style={{ textDecoration: 'none', color: '#1e293b' }}>업보(보상)</a>
-          <a href="/vod.html" style={{ textDecoration: 'none', color: '#1e293b' }}>VOD</a>
+          <div style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
+            <a href="/" style={{ textDecoration: 'none', color: '#333' }}>홈</a>
+            <a href="/calender" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '4px' }}>캘린더</a>
+            <a href="/song.html" style={{ textDecoration: 'none', color: '#333' }}>노래책</a>
+            <a href="/reward.html" style={{ textDecoration: 'none', color: '#333' }}>업보(보상)</a>
+            <a href="/vod.html" style={{ textDecoration: 'none', color: '#333' }}>VOD</a>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {isAdmin && (
+              <button onClick={() => setIsColorModalOpen(true)} style={{ width: '40px', height: '40px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }} title="카테고리 색상 설정">⚙️</button>
+            )}
+            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'rgba(139, 92, 246, 0.1)', color: isAdmin ? '#333' : '#8b5cf6' }}>
+              {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
+            </button>
+          </div>
         </div>
+      </nav>
 
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          {homeData.isLive && (
-            <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
-          )}
-          {isAdmin && (
-            <button onClick={openSettings} style={{ background: '#f1f5f9', border: 'none', fontSize: '18px', cursor: 'pointer', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚙️</button>
-          )}
-          <button onClick={toggleAdmin} style={{ background: isAdmin ? '#ffd700' : 'white', border: '1px solid #ddd', padding: '6px 16px', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' }}>
-            {isAdmin ? '👑 관리자' : '🔒 로그인'}
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '40px', boxSizing: 'border-box', marginBottom: '40px' }}>
+          
+          <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
+            
+            {/* 왼쪽: 캘린더 영역 */}
+            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
+              
+              {/* 년/월 헤더 */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
+                <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>◀</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <select value={year} onChange={handleYearChange} style={{ background: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '12px', padding: '8px 20px', fontSize: '24px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}>
+                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <span style={{ fontSize: '20px', fontWeight: 700 }}>년</span>
+                  <select value={month + 1} onChange={handleMonthChange} style={{ background: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '12px', padding: '8px 20px', fontSize: '24px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}>
+                    {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
+                  </select>
+                  <span style={{ fontSize: '20px', fontWeight: 700 }}>월</span>
+                </div>
+                <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>▶</button>
+              </div>
+
+              {/* 달력 그리드 */}
+              <div style={{ width: '100%', overflowX: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fafafa', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', borderTop: '1px solid #ddd', borderLeft: '1px solid #ddd' }}>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', color: '#ff6b6b' }}>일</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>월</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>화</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>수</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>목</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>금</div>
+                  <div style={{ padding: '15px 0', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', color: '#4dabf7' }}>토</div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderLeft: '1px solid #ddd' }}>
+                  {calendarDays.map((dateObj, idx) => {
+                    if (!dateObj) {
+                      return <div key={idx} style={{ minHeight: '120px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', background: '#fff' }} />;
+                    }
+
+                    const key = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+                    const daySchedules = scheduleData[key] || [];
+                    const todayStr = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+                    const isToday = (key === todayStr);
+                    const dayOfWeek = dateObj.getDay();
+
+                    let numColor = '#333';
+                    if (dayOfWeek === 0) numColor = '#ff6b6b';
+                    else if (dayOfWeek === 6) numColor = '#4dabf7';
+
+                    return (
+                      <div 
+                        key={idx}
+                        onDoubleClick={() => handleDateClick(dateObj)}
+                        onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.background = '#f0f4ff'; }}
+                        onDragLeave={(e) => { e.currentTarget.style.background = isToday ? 'rgba(193, 172, 215, 0.2)' : '#fff'; }}
+                        onDrop={(e) => handleDropGame(e, key)}
+                        style={{
+                          minHeight: '120px', padding: '8px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd',
+                          backgroundColor: isToday ? 'rgba(193, 172, 215, 0.2)' : '#fff', display: 'flex', flexDirection: 'column',
+                          cursor: isAdmin ? 'pointer' : 'default', position: 'relative', overflow: 'hidden'
+                        }}
+                      >
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: numColor, marginBottom: '5px' }}>
+                          {dateObj.getDate()}
+                        </span>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                          {daySchedules.map((sch: any) => {
+                            const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
+                            return (
+                              <div
+                                key={sch.id}
+                                onClick={(e) => { e.stopPropagation(); setViewModalItem({ sch, dateKey: key }); }}
+                                style={{
+                                  backgroundColor: bg, color: '#fff', fontSize: '11px', padding: '6px', borderRadius: '6px',
+                                  fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', overflow: 'hidden'
+                                }}
+                              >
+                                {sch.time && sch.time !== '시간 미정' && (
+                                  <div style={{ display: 'inline-block', opacity: 0.95, marginBottom: '2px', fontSize: '0.85em', background: 'rgba(0,0,0,0.15)', padding: '2px 4px', borderRadius: '4px' }}>
+                                    [{sch.time}]
+                                  </div>
+                                )}
+                                <div>{sch.title}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 사이드바 (종겜 링크 찾기 & 메모장) */}
+            <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
+              
+              {/* 종겜 링크 찾기 */}
+              <div>
+                <h2 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#5d4037' }}>🎮 종겜 링크 찾기</h2>
+                {isAdmin ? (
+                  <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                      <input 
+                        type="text" 
+                        value={gameSearchQuery} 
+                        onChange={(e) => setGameSearchQuery(e.target.value)} 
+                        placeholder="게임 이름 입력 (예: 팰월드)" 
+                        onKeyPress={(e) => { if(e.key === 'Enter') searchGame('steam'); }}
+                        style={{ padding: '12px 14px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', fontSize: '14px', fontWeight: 'bold', boxSizing: 'border-box', width: '100%' }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => searchGame('steam')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', background: '#1b2838', color: '#fff', fontSize: '13px' }}>Steam 검색</button>
+                        <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', background: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#888', textAlign: 'center', margin: '0 0 10px 0' }}>* 검색 기록을 드래그해서 캘린더 날짜에 놓아보세요!</p>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '12px', color: '#888' }}>관리자 로그인 시 종겜 검색 및 드래그 앤 드랍이 가능합니다.</p>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {searchHistory.map((h, i) => {
+                    const link = h.engine === 'steam' ? `https://store.steampowered.com/search/?term=${encodeURIComponent(h.query)}` : `https://www.google.com/search?q=${encodeURIComponent(h.query + ' 게임')}`;
+                    return (
+                      <div 
+                        key={i} 
+                        draggable={isAdmin}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("gameQuery", h.query);
+                          e.dataTransfer.setData("gameLink", link);
+                        }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '13px', cursor: isAdmin ? 'grab' : 'default' }}
+                      >
+                        <a href={link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#333', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {h.engine === 'steam' ? '💨' : '🔍'} {h.query}
+                        </a>
+                        {isAdmin && <button onClick={() => deleteHistory(i)} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr style={{ border: 0, borderTop: '1px dashed #ddd', margin: 0 }} />
+
+              {/* 몽나 메모장 */}
+              <div>
+                <h2 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#5d4037' }}>📝 몽나 메모장</h2>
+                {isAdmin && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <textarea 
+                      value={memoInputText} 
+                      onChange={(e) => setMemoInputText(e.target.value)} 
+                      placeholder="아이디어나 메모를 적어보세요!" 
+                      style={{ width: '100%', height: '90px', padding: '12px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', fontSize: '14px', boxSizing: 'border-box', resize: 'none' }}
+                    />
+                    <button onClick={saveMemo} style={{ marginTop: '8px', width: '100%', padding: '10px', background: '#C1ACD7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>메모 저장하기</button>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto' }}>
+                  {memoList.map((m, i) => (
+                    <div key={i} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '12px', padding: '12px', position: 'relative', fontSize: '13px' }}>
+                      {isAdmin && <button onClick={() => deleteMemo(i)} style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>}
+                      <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px' }}>{m.date}</div>
+                      <div style={{ color: '#333', whiteSpace: 'pre-wrap' }}>{m.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
       </div>
 
-      <div style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
-        
-        {/* 좌측 메인 이미지 */}
-        <div style={{ flex: 1, position: 'sticky', top: '110px', height: 'calc(100vh - 150px)', minHeight: '500px', display: 'flex' }}>
-          <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', height: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
-        </div>
+      {/* 일정 추가/수정 모달 */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '480px', maxWidth: '90vw', padding: '35px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsAddModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#8b5cf6', marginBottom: '20px' }}>📅 {isEditMode ? '일정 수정' : '일정 등록'} ({selectedDateKey})</h2>
 
-        <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
-          
-          {/* 이번 주 일정 */}
-          <div style={{ background: '#ffffff', borderRadius: '24px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
-              <a href="/calender" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>일정 제목</label>
+              <input type="text" value={inputTitle} onChange={e => setInputTitle(e.target.value)} placeholder="예: 휴뱅 (본가), LCK 결승전" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box', fontWeight: 'bold' }} />
             </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '10px', width: '100%' }}>
-              {thisWeekKeys.map(dayObj => {
-                const daySchedules = scheduleData[dayObj.key] || [];
-                const isToday = (dayObj.key === todayStr);
-                let dateColor = '#1e293b';
-                if (dayObj.dayIdx === 0) dateColor = '#ef4444';
-                else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
 
-                return (
-                  <div key={dayObj.key} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: dateColor, marginBottom: '2px', textAlign: 'center' }}>
-                      {dayObj.dateNum}
-                    </div>
-                    {daySchedules.map((sch: any, idx: number) => {
-                      const bgColor = getEventColor(sch);
-                      const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
-                      
-                      return (
-                        <div key={idx} style={{ borderRadius: '6px', padding: '6px', color: txtColor, fontSize: '12px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3' }}>
-                          <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: 'white' }}>
-                            [{sch.time || '미정'}]
-                          </div>
-                          <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>방송 시간</label>
+              <input type="text" value={inputTime} onChange={e => setInputTime(e.target.value)} placeholder="예: 오후 8:00" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box', fontWeight: 'bold' }} />
             </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>방송 분류</label>
+              <select value={inputType} onChange={e => setInputType(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box', fontWeight: 'bold' }}>
+                <option value="방송">방송</option>
+                <option value="합방">합방</option>
+                <option value="휴방">휴방</option>
+                <option value="겜방">겜방</option>
+                <option value="LCK">LCK</option>
+                <option value="같이보기">같이보기</option>
+              </select>
+            </div>
+
+            {inputType === '합방' && (
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>참여자 닉네임 (쉼표로 구분)</label>
+                <input type="text" value={inputMembers} onChange={e => setInputMembers(e.target.value)} placeholder="예: 다룽, 츄르, 카푸" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box', fontWeight: 'bold' }} />
+              </div>
+            )}
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>상세 내용</label>
+              <textarea value={inputContent} onChange={e => setInputContent(e.target.value)} placeholder="내용 입력" style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box', resize: 'none' }} />
+            </div>
+
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px', color: '#666' }}>VOD 링크</label>
+              <input type="text" value={inputVod} onChange={e => setInputVod(e.target.value)} placeholder="VOD 주소 입력" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
+            </div>
+
+            <button onClick={saveSchedule} style={{ background: '#8b5cf6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>
+              {isEditMode ? '일정 수정 완료' : '일정 등록하기'}
+            </button>
           </div>
+        </div>
+      )}
 
-          {/* 몽튜브 최신 영상 */}
-          <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>▶️ 몽튜브 최신 영상</div>
-            {ytError ? (
-              <div style={{ textAlign: 'center', color: '#ef4444', fontSize: '14px', padding: '40px 0', background: 'white', borderRadius: '20px' }} dangerouslySetInnerHTML={{ __html: ytError }} />
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                {ytVideos.map((item, idx) => {
-                  const video = item.snippet;
-                  const videoId = item.id.videoId || video.resourceId?.videoId;
-                  const thumb = video.thumbnails?.medium?.url || '';
+      {/* 💡 일정 상세 보기 모달 (캡처 화면처럼 중앙에 아바타와 방송국 링크 카드 배치) */}
+      {viewModalItem && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalItem(null)}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '480px', maxWidth: '90vw', padding: '40px', position: 'relative', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setViewModalItem(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#888' }}>✕</button>
+            
+            <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#222', margin: 0 }}>{viewModalItem.sch.title}</h2>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {viewModalItem.sch.time && viewModalItem.sch.time !== '시간 미정' && (
+                <span style={{ background: '#fbc531', color: 'white', padding: '6px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{viewModalItem.sch.time}</span>
+              )}
+              <span style={{ background: viewModalItem.sch.backgroundColor || '#8b5cf6', color: 'white', padding: '6px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{viewModalItem.sch.type}</span>
+            </div>
+
+            {/* 💡 합방 참여자 동적 프로필 사진 및 숲 방송국 연동 카드 (캡처본 디자인 반영) */}
+            {viewModalItem.sch.type === '합방' && viewModalItem.sch.members && viewModalItem.sch.members.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%', margin: '10px 0' }}>
+                {viewModalItem.sch.members.map((memberName: string, mIdx: number) => {
+                  const name = memberName.trim();
+                  const stationId = streamerStationMap[name] || name; // 매핑된 ID가 없으면 닉네임 자체를 ID로 사용
+                  const stationUrl = `https://www.sooplive.com/station/${stationId}`;
+                  const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
+
                   return (
-                    <a key={idx} href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
-                      <img src={thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
-                      <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4' }}>{video.title}</div>
+                    <a 
+                      key={mIdx} 
+                      href={stationUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      title={`${name} 숲 방송국 방문하기`}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }}
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      <img 
+                        src={profileImg} 
+                        alt={name} 
+                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #8b5cf6', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                        onError={(e: any) => {
+                          // 공식 프사가 없을 경우 대체 이미지 또는 이니셜 아바타 처리
+                          e.target.src = `https://via.placeholder.com/64/8b5cf6/ffffff?text=${encodeURIComponent(name.charAt(0))}`;
+                        }}
+                      />
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{name}</span>
                     </a>
                   );
                 })}
               </div>
             )}
-          </div>
 
-          {/* 몽나링크 */}
-          <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
-              {homeData.links.map((link: any, idx: number) => (
-                <a key={idx} href={link.url || '#'} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
-                  
-                  <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
-                    {link.icon && link.icon.startsWith('http') ? (
-                      <img src={link.icon} alt="아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      link.icon || '🔗'
-                    )}
+            {/* 상세 내용 */}
+            {viewModalItem.sch.content && (
+              <div style={{ width: '100%' }}>
+                {viewModalItem.sch.content.startsWith('[GAME_LINK]') ? (
+                  (() => {
+                    const parts = viewModalItem.sch.content.replace('[GAME_LINK]', '').split('|');
+                    return (
+                      <a href={parts[1] || '#'} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#f8f9fa', padding: '12px 20px', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)', color: '#333', fontWeight: 'bold', textDecoration: 'none', border: '1px solid #eee' }}>
+                        🎮 {parts[0]}
+                      </a>
+                    );
+                  })()
+                ) : (
+                  <div style={{ fontSize: '15px', color: '#555', background: '#f9f9f9', padding: '15px', borderRadius: '12px', whiteSpace: 'pre-wrap', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
+                    {viewModalItem.sch.content}
                   </div>
-                  
-                  <div>
-                    <div style={{ fontSize: '16px', fontWeight: 900, marginBottom: '4px' }}>{link.title}</div>
-                    <div style={{ fontSize: '13px', color: '#64748b' }}>{link.sub}</div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
+                )}
+              </div>
+            )}
 
+            {/* VOD 시청 버튼 */}
+            {viewModalItem.sch.vodLink && (
+              <a href={viewModalItem.sch.vodLink.startsWith('http') ? viewModalItem.sch.vodLink : `https://${viewModalItem.sch.vodLink}`} target="_blank" rel="noreferrer" style={{ display: 'block', width: '100%', textAlign: 'center', backgroundColor: '#ff4757', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', textDecoration: 'none', boxSizing: 'border-box' }}>
+                📺 다시보기 시청
+              </a>
+            )}
+
+            {/* 관리자 전용 수정/삭제 버튼 */}
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '5px' }}>
+                <button onClick={() => openEditModal(viewModalItem.sch, viewModalItem.dateKey)} style={{ flex: 1, background: 'none', border: '1px solid #3b82f6', color: '#3b82f6', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>수정하기</button>
+                <button onClick={() => deleteSchedule(viewModalItem.dateKey, viewModalItem.sch.id)} style={{ flex: 1, background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>삭제하기</button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 설정 모달 */}
-      {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsModalOpen(false)}>
-          <div style={{ background: 'white', borderRadius: '24px', width: '650px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto', padding: '40px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>✕</button>
-            <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#a855f7', marginBottom: '20px' }}>⚙️ 홈페이지 설정</h2>
-            
-            <div style={{ marginBottom: '20px', background: '#fff0f0', padding: '15px', borderRadius: '12px' }}>
-              <label style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', gap: '8px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={inputIsLive} onChange={e => setInputIsLive(e.target.checked)} />
-                🚨 현재 방송중 배지 켜기
-              </label>
-            </div>
+      {/* 톱니바퀴: 카테고리 색상 설정 모달 */}
+      {isColorModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '480px', padding: '35px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsColorModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#8b5cf6', marginBottom: '20px' }}>🎨 카테고리 색상 설정</h2>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>📸 좌측 메인 사진 URL</label>
-              <input type="text" value={inputHeroImg} onChange={e => setInputHeroImg(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶️ 유튜브 채널 ID</label>
-              <input type="text" value={inputYtChannelId} onChange={e => setInputYtChannelId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ marginBottom: '30px' }}>
-              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>🔑 구글 공식 유튜브 API 키</label>
-              <input type="text" value={inputYtApiKey} onChange={e => setInputYtApiKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-            </div>
-
-            <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>🔗 몽나링크 4개 설정</h3>
-            {inputLinks.map((l, i) => (
-              <div key={i} style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <input type="text" placeholder="제목" value={l.title} onChange={e => { const n = [...inputLinks]; n[i].title = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
-                  <input type="text" placeholder="설명" value={l.sub} onChange={e => { const n = [...inputLinks]; n[i].sub = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
-                </div>
-                <input type="text" placeholder="아이콘(이모티콘 또는 이미지 주소)" value={l.icon} onChange={e => { const n = [...inputLinks]; n[i].icon = e.target.value; setInputLinks(n); }} style={{ width: '100%', marginBottom: '8px', padding: '6px', boxSizing: 'border-box' }} />
-                <input type="text" placeholder="URL" value={l.url} onChange={e => { const n = [...inputLinks]; n[i].url = e.target.value; setInputLinks(n); }} style={{ width: '100%', padding: '6px', boxSizing: 'border-box' }} />
+            {Object.keys(categoryColors).map((catKey) => (
+              <div key={catKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0', padding: '10px 0' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{catKey} 색상</span>
+                <input 
+                  type="color" 
+                  value={(categoryColors as any)[catKey]} 
+                  onChange={(e) => setCategoryColors({ ...categoryColors, [catKey]: e.target.value })} 
+                  style={{ width: '60px', height: '35px', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer' }}
+                />
               </div>
             ))}
 
-            <button onClick={saveSettings} style={{ background: '#a855f7', color: 'white', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', width: '100%', marginTop: '20px', cursor: 'pointer' }}>설정 저장 및 적용하기</button>
+            <button onClick={saveCategoryColors} style={{ marginTop: '20px', background: '#8b5cf6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>색상 저장 적용하기</button>
           </div>
         </div>
       )}
