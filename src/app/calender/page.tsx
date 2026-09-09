@@ -390,7 +390,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 상단 네비게이션바 */}
+      {/* 상단 네비게이션바 (홈 링크 '/' 완벽 고정) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -420,10 +420,9 @@ export default function CalendarPage() {
         <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', padding: '40px', boxSizing: 'border-box', marginBottom: '40px' }}>
           <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
             
-            {/* 왼쪽: 캘린더 영역 */}
+            {/* 왼쪽: 캘린더 영역 (원본 점선 요일 & 둥근 테두리 템플릿 적용) */}
             <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
               
-              {/* 년/월 빠른 이동 헤더 (알약 박스) */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
                 <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>◀</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8f6fb', border: '1px solid #e4dceb', borderRadius: '99px', padding: '6px 20px' }}>
@@ -439,7 +438,6 @@ export default function CalendarPage() {
                 <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer' }}>▶</button>
               </div>
 
-              {/* 달력 그리드 (점선 요일 박스) */}
               <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
                   {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
@@ -503,10 +501,9 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* 오른쪽: 사이드바 (종겜 링크 찾기 & 메모장) */}
+            {/* 오른쪽: 사이드바 */}
             <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
               
-              {/* 종겜 링크 찾기 */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ marginBottom: '12px' }}>
                   <h2 style={{ margin: 0, fontSize: '18px', color: '#5d4037', display: 'flex', alignItems: 'center', gap: '8px' }}>🎮 종겜 링크 찾기</h2>
@@ -554,7 +551,6 @@ export default function CalendarPage() {
 
               <hr style={{ border: 0, borderTop: '1px dashed #ddd', margin: '10px 0' }} />
 
-              {/* 몽나 메모장 */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ marginBottom: '12px' }}>
                   <h2 style={{ margin: 0, fontSize: '18px', color: '#5d4037', display: 'flex', alignItems: 'center', gap: '8px' }}>📝 몽나 메모장</h2>
@@ -586,7 +582,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가/수정 모달 (방송 분류 6개 한 줄 동일 사이즈 정렬 + 색상 직접 지정) */}
+      {/* 💡 일정 추가/수정 모달 (방송 분류 6개 버튼 한 줄 동일 사이즈 정렬) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
@@ -689,7 +685,6 @@ export default function CalendarPage() {
               <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px' }}>{viewModalData.sch.type}</span>
             </div>
 
-            {/* 참여자 프사 & 방송국 링크 자동 연동 카드 */}
             {viewModalData.sch.type === '합방' && viewModalData.sch.members && viewModalData.sch.members.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                 {viewModalData.sch.members.map((name: string, idx: number) => {
