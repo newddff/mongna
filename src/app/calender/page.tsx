@@ -37,6 +37,7 @@ export default function CalendarPage() {
   const [inputMembers, setInputMembers] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [inputVod, setInputVod] = useState('');
+  const [inputColor, setInputColor] = useState('#fb819e');
 
   // 뷰어 모달 상태
   const [viewModalData, setViewModalData] = useState<any>(null);
@@ -44,9 +45,11 @@ export default function CalendarPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // Firebase 초기화 및 데이터 구독
+  // Firebase 초기화 및 데이터 구독 (window 안전 처리)
   useEffect(() => {
-    setIsAdmin(localStorage.getItem('mongna_calendar_admin') === 'true' || localStorage.getItem('mongna_home_admin') === 'true');
+    if (typeof window !== 'undefined') {
+      setIsAdmin(localStorage.getItem('mongna_calendar_admin') === 'true' || localStorage.getItem('mongna_home_admin') === 'true');
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
@@ -88,7 +91,7 @@ export default function CalendarPage() {
       } catch (e) { console.error("사이드바 로드 에러:", e); }
     });
 
-    // 일정 데이터 구독 (기존 원본 하드코딩 데이터 보존 병합)
+    // 일정 데이터 구독
     const initialSchedules = {
       "2024-3-5": [{ id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" }],
     };
@@ -117,15 +120,19 @@ export default function CalendarPage() {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
-        localStorage.removeItem('mongna_calendar_admin');
-        localStorage.removeItem('mongna_home_admin');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('mongna_calendar_admin');
+          localStorage.removeItem('mongna_home_admin');
+        }
       }
     } else {
       const password = prompt("관리자 비밀번호를 입력해주세요.");
       if (password === "mongna1234") {
         setIsAdmin(true);
-        localStorage.setItem('mongna_calendar_admin', 'true');
-        localStorage.setItem('mongna_home_admin', 'true');
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mongna_calendar_admin', 'true');
+          localStorage.setItem('mongna_home_admin', 'true');
+        }
         alert("관리자 인증 성공!");
       } else if (password !== null) {
         alert("비밀번호가 틀렸습니다.");
@@ -186,6 +193,7 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
+    setInputColor('#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -203,6 +211,7 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
+    setInputColor(target.backgroundColor || target.color || '#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -229,12 +238,12 @@ export default function CalendarPage() {
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
         if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
+          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
         }
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
+      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
       updatedSchedules[selectedDateKey].push(newSch);
     }
 
@@ -313,7 +322,7 @@ export default function CalendarPage() {
 
     if (query) {
       const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: ''
+        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: '#f59e0b', color: '#f59e0b'
       };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
@@ -325,7 +334,6 @@ export default function CalendarPage() {
       const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
-      await setDoc(doc(scheduleRef, 'schedule_data'), { data: updatedSchedules }, { merge: true });
       await setDoc(doc(db, 'mongna_calendar_data', 'schedule_data'), { data: updatedSchedules }, { merge: true });
       await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
 
@@ -427,10 +435,10 @@ export default function CalendarPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', padding: '40px', boxSizing: 'border-box', marginBottom: '40px' }}>
-          <div style={{ display: 'flex', gap: '40px', flexDirection: window.innerWidth <= 850 ? 'column' : 'row' }}>
+          <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
             
             {/* 왼쪽: 캘린더 영역 */}
-            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
               
               {/* 년/월 빠른 이동 헤더 */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
@@ -494,8 +502,11 @@ export default function CalendarPage() {
                             <div 
                               key={sch.id}
                               onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
-                              style={{ fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left' }}
-                              className={`type-${sch.type}`}
+                              style={{ 
+                                fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
+                                backgroundColor: sch.backgroundColor || undefined
+                              }}
+                              className={sch.backgroundColor ? undefined : `type-${sch.type}`}
                             >
                               {sch.time && sch.time !== '시간 미정' && (
                                 <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '4px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 6px', borderRadius: '4px' }}>[{sch.time}]</span>
@@ -512,7 +523,7 @@ export default function CalendarPage() {
             </div>
 
             {/* 오른쪽: 사이드바 (종겜 링크 찾기 & 메모장) */}
-            <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content' }}>
+            <div style={{ flex: 1, backgroundColor: '#faf8f5', borderRadius: '20px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
               
               {/* 종겜 링크 찾기 */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -594,7 +605,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가/수정 모달 (💡 방송 분류 6개가 동일 사이즈로 한 줄에 꽉 차게 정렬되도록 수정됨) */}
+      {/* 일정 추가/수정 모달 (💡 방송 분류 6개 동일 사이즈 한 줄 정렬) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
@@ -749,7 +760,7 @@ export default function CalendarPage() {
 
       {/* 톱니바퀴: 카테고리 색상 설정 모달 */}
       {isColorModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} >
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
