@@ -352,7 +352,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -597,8 +597,8 @@ export default function CalendarPage() {
                     const hour = i % 12 === 0 ? 12 : i % 12;
                     return (
                       <React.Fragment key={i}>
-                        <option value={`${ampm} ${hour}:00`}>{ampm} {hour}:00</option>
-                        <option value={`${ampm} ${hour}:30`}>{ampm} {hour}:30</option>
+                        <option value={`${ampm} ${hour}:00`}>{ampm} ${hour}:00</option>
+                        <option value={`${ampm} ${hour}:30`}>{ampm} ${hour}:30</option>
                       </React.Fragment>
                     );
                   })}
@@ -630,7 +630,7 @@ export default function CalendarPage() {
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분)</label>
-                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 송현_, 츄르)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 입력 (예: 송현_, 마또, 히무루)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
                 </div>
               )}
 
@@ -671,17 +671,23 @@ export default function CalendarPage() {
                   {viewModalData.sch.members.map((name: string, idx: number) => {
                     const trimmedName = name.trim();
                     
-                    // 💡 숲 닉네임과 실제 영문 ID 매핑 사전 (추가로 필요한 멤버는 여기에 계속 적어주시면 됩니다!)
+                    // 💡 숲 닉네임과 실제 영문 ID 매핑 사전
                     const streamerMap: { [key: string]: { id: string, name: string } } = {
                       "송현_": { id: "songhy", name: "송현_" },
                       "송현": { id: "songhy", name: "송현_" },
+                      "마또": { id: "mattomaro", name: "마또" },
+                      "히무루": { id: "himuru", name: "히무루" },
+                      "몽나": { id: "pinktape8", name: "몽나" },
+                      "몽나_": { id: "pinktape8", name: "몽나_" }
                     };
 
-                    const mapped = streamerMap[trimmedName] || { id: trimmedName, name: trimmedName };
+                    const mapped = streamerMap[trimmedName] || { id: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''), name: trimmedName };
                     const stationId = mapped.id;
                     const displayName = mapped.name;
                     const stationUrl = `https://www.sooplive.com/station/${stationId}`;
-                    const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
+                    const idLower = stationId.toLowerCase();
+                    const prefix = idLower.substring(0, 2);
+                    const profileImg = `https://profile.img.afreecatv.com/LOGO/${prefix}/${idLower}/${idLower}.jpg`;
 
                     return (
                       <a key={idx} href={stationUrl} target="_blank" rel="noreferrer" title={`${displayName} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
