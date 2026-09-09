@@ -92,7 +92,6 @@ export default function HomePage() {
       })
       .catch(err => {
         if (err.message === "404") {
-          // 검색 API로 재시도
           const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=3&order=date&type=video&key=${apiKey}`;
           fetch(searchUrl)
             .then(res => res.json())
@@ -185,7 +184,6 @@ export default function HomePage() {
 
   return (
     <div style={{ background: 'linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%)', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, sans-serif' }}>
-      {/* 로딩 스크린 */}
       {isLoading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '50px', marginBottom: '20px' }} />
@@ -220,32 +218,29 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 메인 컨테이너 */}
       <div style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
         
-        {/* 좌측 메인 영웅 이미지 */}
+        {/* 좌측 메인 이미지 */}
         <div style={{ flex: 1, position: 'sticky', top: '110px', height: 'calc(100vh - 150px)', minHeight: '500px', display: 'flex' }}>
           <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', height: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
         </div>
 
-        {/* 우측 콘텐츠 영역 */}
         <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
           
-          {/* 이번 주 일정 (레이아웃 및 색상 연동 수정) */}
+          {/* 이번 주 일정 */}
           <div style={{ background: '#ffffff', borderRadius: '24px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
               <a href="/calender" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
             </div>
             
-            {/* gridTemplateColumns를 minmax(0, 1fr)로 변경하여 삐져나감(overflow) 방지 */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '10px', width: '100%' }}>
               {thisWeekKeys.map(dayObj => {
                 const daySchedules = scheduleData[dayObj.key] || [];
                 const isToday = (dayObj.key === todayStr);
                 let dateColor = '#1e293b';
-                if (dayObj.dayIdx === 0) dateColor = '#ef4444'; // 일요일 빨간색
-                else if (dayObj.dayIdx === 6) dateColor = '#3b82f6'; // 토요일 파란색
+                if (dayObj.dayIdx === 0) dateColor = '#ef4444';
+                else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
 
                 return (
                   <div key={dayObj.key} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -253,9 +248,9 @@ export default function HomePage() {
                       {dayObj.dateNum}
                     </div>
                     {daySchedules.map((sch: any, idx: number) => {
-                      // 캘린더 색상 데이터를 완벽하게 우선 적용 (없을 경우 기본 핑크색)
-                      let bgColor = sch.backgroundColor || sch.bgColor || sch.color || '#fb819e';
-                      let txtColor = sch.textColor || 'white';
+                      // 💡 캘린더 색상 데이터를 완벽하게 추적하는 로직 (기본, 확장 속성 모두 탐색)
+                      let bgColor = sch.backgroundColor || sch.bgColor || sch.color || sch.eventColor || (sch.extendedProps && (sch.extendedProps.backgroundColor || sch.extendedProps.bgColor || sch.extendedProps.color)) || '#fb819e';
+                      let txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
                       
                       return (
                         <div key={idx} style={{ borderRadius: '6px', padding: '6px', color: txtColor, fontSize: '12px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3' }}>
@@ -294,14 +289,13 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 몽나링크 (이미지 아이콘 지원 포함) */}
+          {/* 몽나링크 */}
           <div>
             <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
               {homeData.links.map((link: any, idx: number) => (
                 <a key={idx} href={link.url || '#'} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
                   
-                  {/* http로 시작하면 사진(img)으로, 아니면 이모티콘으로 출력 */}
                   <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
                     {link.icon && link.icon.startsWith('http') ? (
                       <img src={link.icon} alt="아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
