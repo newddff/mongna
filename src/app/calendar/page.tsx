@@ -397,7 +397,7 @@ export default function CalendarPage() {
           </div>
         </nav>
 
-        {/* 캘린더 메인 컨테이너 (부드러운 보라빛 년/월 선택기 및 둥근 래퍼 적용) */}
+        {/* 캘린더 메인 컨테이너 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '50px' }}>
           <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -405,7 +405,7 @@ export default function CalendarPage() {
               {/* 왼쪽: 캘린더 영역 */}
               <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
-                {/* 상단 년/월 이동 바 (보라색 타원형 스타일) */}
+                {/* 상단 년/월 이동 바 */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
                   <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>◀</button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f0fa', border: '2px solid #e4dceb', borderRadius: '99px', padding: '8px 25px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -422,18 +422,18 @@ export default function CalendarPage() {
                 </div>
 
                 <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
-                  {/* 요일 셀 (점선 테두리 디자인) */}
+                  {/* 요일 셀 (점선 박스) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
                     {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
                       <div key={day} style={{ padding: '14px 0', border: '2px dashed #dcd0ec', borderRadius: '16px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#4a3b5c', backgroundColor: '#fcfbfe', fontSize: '15px', fontWeight: 900 }}>{day}</div>
                     ))}
                   </div>
 
-                  {/* 날짜 그리드 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minWidth: '700px', borderTop: '1px solid #eee', borderLeft: '1px solid #eee', borderRadius: '16px', overflow: 'hidden' }}>
+                  {/* 1번 사진 스타일: 개별 카드형 둥근 날짜 칸 그리드 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', minWidth: '700px' }}>
                     {calendarDays.map((dateObj, idx) => {
                       if (!dateObj) {
-                        return <div key={idx} style={{ minHeight: '130px', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', backgroundColor: '#faf9fc' }} />;
+                        return <div key={idx} style={{ minHeight: '130px', backgroundColor: 'transparent' }} />;
                       }
 
                       const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
@@ -450,12 +450,16 @@ export default function CalendarPage() {
                           key={idx}
                           onDoubleClick={() => openAddModal(dateKey)}
                           onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f3e8ff'; }}
-                          onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? 'rgba(193, 172, 215, 0.25)' : '#fff'; }}
+                          onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? '#f3e8ff' : '#ffffff'; }}
                           onDrop={(e) => dropGame(e, dateKey)}
                           style={{
-                            minHeight: '130px', padding: '10px', borderRight: '1px solid #eee', borderBottom: '1px solid #eee',
-                            backgroundColor: isToday ? 'rgba(193, 172, 215, 0.25)' : '#fff', display: 'flex', flexDirection: 'column',
-                            cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden', transition: 'background 0.2s'
+                            minHeight: '130px', padding: '10px', 
+                            border: isToday ? '2px solid #a855f7' : '1px solid #f1f3f5', 
+                            borderRadius: '20px',
+                            backgroundColor: isToday ? '#f3e8ff' : '#ffffff', 
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                            display: 'flex', flexDirection: 'column',
+                            cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden', transition: 'all 0.2s'
                           }}
                         >
                           <span style={{ fontSize: '15px', fontWeight: 900, color: numColor, marginBottom: '6px' }}>{dateObj.getDate()}</span>
@@ -505,7 +509,7 @@ export default function CalendarPage() {
                       />
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button onClick={() => searchGame('steam')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#1b2838', color: 'white', fontSize: '13px' }}>Steam 검색</button>
-                        <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '1px', border: '1px solid #e4dceb', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
+                        <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '10px', border: '1px solid #e4dceb', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
                       </div>
                     </div>
                   )}
