@@ -165,6 +165,29 @@ export default function HomePage() {
     }
   };
 
+  // 💡 캘린더 일정 색상을 100% 추적하여 가져오는 스마트 함수
+  const getEventColor = (sch: any) => {
+    if (sch.backgroundColor) return sch.backgroundColor;
+    if (sch.color) return sch.color;
+    if (sch.bgColor) return sch.bgColor;
+    if (sch.eventColor) return sch.eventColor;
+    if (sch.extendedProps?.backgroundColor) return sch.extendedProps.backgroundColor;
+    if (sch.extendedProps?.color) return sch.extendedProps.color;
+
+    // 제목 키워드에 따른 자동 색상 맞춤 (캘린더와 동일한 색상 테마)
+    const title = (sch.title || '').toLowerCase();
+    if (title.includes('휴뱅') || title.includes('휴식')) {
+      return '#6b7280'; // 회색
+    }
+    if (title.includes('lck') || title.includes('lol') || title.includes('롤') || title.includes('결승')) {
+      return '#7c3aed'; // 보라색
+    }
+    if (title.includes('탐정') || title.includes('게임') || title.includes('특집') || title.includes('합방')) {
+      return '#d97706'; // 주황색
+    }
+    return '#fb819e'; // 기본 핑크색
+  };
+
   // 이번 주 일정 계산
   const todayObj = new Date();
   const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;
@@ -248,9 +271,8 @@ export default function HomePage() {
                       {dayObj.dateNum}
                     </div>
                     {daySchedules.map((sch: any, idx: number) => {
-                      // 💡 캘린더 색상 데이터를 완벽하게 추적하는 로직 (기본, 확장 속성 모두 탐색)
-                      let bgColor = sch.backgroundColor || sch.bgColor || sch.color || sch.eventColor || (sch.extendedProps && (sch.extendedProps.backgroundColor || sch.extendedProps.bgColor || sch.extendedProps.color)) || '#fb819e';
-                      let txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
+                      const bgColor = getEventColor(sch);
+                      const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
                       
                       return (
                         <div key={idx} style={{ borderRadius: '6px', padding: '6px', color: txtColor, fontSize: '12px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3' }}>
