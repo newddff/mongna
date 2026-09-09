@@ -373,7 +373,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 캘린더 페이지 상단바 (홈 링크를 /로 고정) */}
+      {/* 상단 네비게이션바 */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -734,7 +734,7 @@ export default function CalendarPage() {
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
-              <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none',, border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
             </div>
 
             {Object.keys(categoryColors).map((cat) => (
