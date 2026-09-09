@@ -37,6 +37,7 @@ export default function CalendarPage() {
   const [inputMembers, setInputMembers] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [inputVod, setInputVod] = useState('');
+  const [inputColor, setInputColor] = useState('#fb819e');
 
   // 뷰어 모달 상태
   const [viewModalData, setViewModalData] = useState<any>(null);
@@ -88,11 +89,9 @@ export default function CalendarPage() {
       } catch (e) { console.error("사이드바 로드 에러:", e); }
     });
 
-    // 일정 데이터 구독 (기존 원본 하드코딩 데이터 보존 병합)
+    // 일정 데이터 구독
     const initialSchedules = {
       "2024-3-5": [{ id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" }],
-      "2024-3-26": [{ id: 326, title: "퇴사! 전업 시작!!!!!", time: "시간 미정", type: "방송", members: [], content: "전업 방송인 시작", vodLink: "" }],
-      "2024-3-27": [{ id: 327, title: "휴뱅", time: "시간 미정", type: "휴방", members: [], content: "사유 : 건강검진 준비", vodLink: "" }],
     };
 
     const unsubSchedule = onSnapshot(scheduleRef, async (docSnap) => {
@@ -188,6 +187,7 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
+    setInputColor('#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -205,6 +205,7 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
+    setInputColor(target.backgroundColor || target.color || '#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -231,12 +232,12 @@ export default function CalendarPage() {
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
         if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
+          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
         }
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
+      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
       updatedSchedules[selectedDateKey].push(newSch);
     }
 
@@ -315,7 +316,7 @@ export default function CalendarPage() {
 
     if (query) {
       const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: ''
+        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: '#f59e0b', color: '#f59e0b'
       };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
@@ -374,16 +375,9 @@ export default function CalendarPage() {
     setIsColorModalOpen(false);
   };
 
-  // HTML 유틸
-  const escapeHtml = (str: string) => {
-    if (str == null) return '';
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
-  };
-
   return (
     <div style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       
-      {/* 💡 CSS 스타일 인젝션 (원본 CSS 완벽 보존) */}
       <style jsx global>{`
         :root {
           --color-합방: ${categoryColors.합방};
@@ -401,14 +395,13 @@ export default function CalendarPage() {
         .type-같이보기 { background-color: var(--color-같이보기) !important; color: white !important; } 
       `}</style>
 
-      {/* 로딩 */}
       {isLoading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '16px' }}>캘린더를 불러오는 중입니다... 🌙</div>
         </div>
       )}
 
-      {/* 💡 상단 네비게이션바 (홈만 '/' 경로로 완벽 연동) */}
+      {/* 상단 네비게이션바 (홈만 '/' 경로 연동) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -503,8 +496,11 @@ export default function CalendarPage() {
                             <div 
                               key={sch.id}
                               onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
-                              style={{ fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left' }}
-                              className={`type-${sch.type}`}
+                              style={{ 
+                                fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
+                                backgroundColor: sch.backgroundColor || undefined
+                              }}
+                              className={sch.backgroundColor ? undefined : `type-${sch.type}`}
                             >
                               {sch.time && sch.time !== '시간 미정' && (
                                 <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '4px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 6px', borderRadius: '4px' }}>[{sch.time}]</span>
@@ -603,7 +599,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가/수정 모달 */}
+      {/* 일정 추가/수정 모달 (색상 선택기 포함) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
@@ -652,6 +648,18 @@ export default function CalendarPage() {
               </div>
             )}
 
+            {/* 개별 색상 선택 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>🎨 일정 색상 직접 지정</label>
+              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <div onClick={() => setInputColor('#fb819e')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#fb819e', cursor: 'pointer', border: inputColor === '#fb819e' ? '3px solid #1e293b' : 'none' }} title="기본 핑크" />
+                <div onClick={() => setInputColor('#6b7280')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#6b7280', cursor: 'pointer', border: inputColor === '#6b7280' ? '3px solid #1e293b' : 'none' }} title="회색 (휴뱅)" />
+                <div onClick={() => setInputColor('#7c3aed')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#7c3aed', cursor: 'pointer', border: inputColor === '#7c3aed' ? '3px solid #1e293b' : 'none' }} title="보라색 (LCK)" />
+                <div onClick={() => setInputColor('#d97706')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#d97706', cursor: 'pointer', border: inputColor === '#d97706' ? '3px solid #1e293b' : 'none' }} title="주황색" />
+                <input type="color" value={inputColor} onChange={e => setInputColor(e.target.value)} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} />
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>상세 내용 (선택)</label>
               <textarea value={inputContent} onChange={(e) => setInputContent(e.target.value)} placeholder="내용" style={{ height: '80px', border: '1px solid #e0e0e0', borderRadius: '10px', padding: '12px 14px', fontSize: '14px', resize: 'none', outline: 'none' }} />
@@ -669,7 +677,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 💡 일정 뷰어 모달 (요청하신 참여자 숲 프사 & 방송국 링크 완벽 연동) */}
+      {/* 💡 일정 상세 뷰어 모달 (참여자 프사 및 방송국 링크 카드 연동) */}
       {viewModalData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
@@ -681,16 +689,15 @@ export default function CalendarPage() {
               {viewModalData.sch.time && viewModalData.sch.time !== '시간 미정' && (
                 <span style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fbc531', color: 'white' }}>{viewModalData.sch.time}</span>
               )}
-              <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px' }}>{viewModalData.sch.type}</span>
+              <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', backgroundColor: viewModalData.sch.backgroundColor || undefined }}>{viewModalData.sch.type}</span>
             </div>
 
-            {/* 💡 참여자 닉네임 입력 시 SOOP 프사 및 방송국 링크 자동 연동 렌더링 */}
+            {/* 💡 연솔이 캘린더 스타일의 참여자 프사 & 방송국 링크 카드 영역 */}
             {viewModalData.sch.type === '합방' && viewModalData.sch.members && viewModalData.sch.members.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginTop: '10px' }}>
                 {viewModalData.sch.members.map((name: string, idx: number) => {
                   const trimmedName = name.trim();
-                  // 숲 방송국 기본 ID 매핑 또는 이름 사용
-                  const stationId = trimmedName; 
+                  const stationId = trimmedName;
                   const stationUrl = `https://www.sooplive.com/station/${stationId}`;
                   const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
 
@@ -699,8 +706,8 @@ export default function CalendarPage() {
                       <img 
                         src={profileImg} 
                         alt={trimmedName} 
-                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                        onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
+                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+                        onError={(e: any) => { e.target.src = `https://via.placeholder.com/64/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
                       />
                       <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{trimmedName}</span>
                     </a>
