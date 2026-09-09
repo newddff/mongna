@@ -37,7 +37,6 @@ export default function CalendarPage() {
   const [inputMembers, setInputMembers] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [inputVod, setInputVod] = useState('');
-  const [inputColor, setInputColor] = useState('#fb819e');
 
   // 뷰어 모달 상태
   const [viewModalData, setViewModalData] = useState<any>(null);
@@ -89,7 +88,7 @@ export default function CalendarPage() {
       } catch (e) { console.error("사이드바 로드 에러:", e); }
     });
 
-    // 일정 데이터 구독
+    // 일정 데이터 구독 (기존 원본 하드코딩 데이터 보존 병합)
     const initialSchedules = {
       "2024-3-5": [{ id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" }],
     };
@@ -187,7 +186,6 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
-    setInputColor('#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -205,7 +203,6 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
-    setInputColor(target.backgroundColor || target.color || '#fb819e');
     setIsAddModalOpen(true);
   };
 
@@ -232,12 +229,12 @@ export default function CalendarPage() {
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
         if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
         }
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: inputColor, color: inputColor };
+      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod };
       updatedSchedules[selectedDateKey].push(newSch);
     }
 
@@ -316,7 +313,7 @@ export default function CalendarPage() {
 
     if (query) {
       const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: '#f59e0b', color: '#f59e0b'
+        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: ''
       };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
@@ -328,6 +325,7 @@ export default function CalendarPage() {
       const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
+      await setDoc(doc(scheduleRef, 'schedule_data'), { data: updatedSchedules }, { merge: true });
       await setDoc(doc(db, 'mongna_calendar_data', 'schedule_data'), { data: updatedSchedules }, { merge: true });
       await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
 
@@ -496,11 +494,8 @@ export default function CalendarPage() {
                             <div 
                               key={sch.id}
                               onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
-                              style={{ 
-                                fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
-                                backgroundColor: sch.backgroundColor || undefined
-                              }}
-                              className={sch.backgroundColor ? undefined : `type-${sch.type}`}
+                              style={{ fontSize: '11px', padding: '6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left' }}
+                              className={`type-${sch.type}`}
                             >
                               {sch.time && sch.time !== '시간 미정' && (
                                 <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '4px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 6px', borderRadius: '4px' }}>[{sch.time}]</span>
@@ -599,10 +594,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가/수정 모달 (색상 선택기 포함) */}
+      {/* 일정 추가/수정 모달 (💡 방송 분류 6개가 동일 사이즈로 한 줄에 꽉 차게 정렬되도록 수정됨) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>{selectedDateKey} 일정 등록</span>
               <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
@@ -630,11 +625,22 @@ export default function CalendarPage() {
               </select>
             </div>
 
+            {/* 💡 방송 분류 버튼 6개 동일 사이즈 한 줄 정렬 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>방송 분류</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
                 {['합방', '방송', '휴방', '겜방', 'LCK', '같이보기'].map((type) => (
-                  <button key={type} type="button" onClick={() => setCurrentSchType(type)} className={`tag-btn type-${type} ${currentSchType === type ? 'active' : ''}`} style={{ flex: 1, minWidth: '60px', border: 'none', padding: '10px 0', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: currentSchType === type ? undefined : '#f2f2f2', color: currentSchType === type ? '#fff' : '#777' }}>
+                  <button 
+                    key={type} 
+                    type="button" 
+                    onClick={() => setCurrentSchType(type)} 
+                    style={{ 
+                      border: 'none', padding: '10px 0', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px',
+                      backgroundColor: currentSchType === type ? (categoryColors as any)[type] || '#8b5cf6' : '#f2f2f2', 
+                      color: currentSchType === type ? '#fff' : '#777',
+                      boxShadow: currentSchType === type ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                  >
                     {type}
                   </button>
                 ))}
@@ -647,18 +653,6 @@ export default function CalendarPage() {
                 <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 닉네임 입력 (예: 츄르, 카푸)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
               </div>
             )}
-
-            {/* 개별 색상 선택 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>🎨 일정 색상 직접 지정</label>
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div onClick={() => setInputColor('#fb819e')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#fb819e', cursor: 'pointer', border: inputColor === '#fb819e' ? '3px solid #1e293b' : 'none' }} title="기본 핑크" />
-                <div onClick={() => setInputColor('#6b7280')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#6b7280', cursor: 'pointer', border: inputColor === '#6b7280' ? '3px solid #1e293b' : 'none' }} title="회색 (휴뱅)" />
-                <div onClick={() => setInputColor('#7c3aed')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#7c3aed', cursor: 'pointer', border: inputColor === '#7c3aed' ? '3px solid #1e293b' : 'none' }} title="보라색 (LCK)" />
-                <div onClick={() => setInputColor('#d97706')} style={{ width: '35px', height: '35px', borderRadius: '50%', background: '#d97706', cursor: 'pointer', border: inputColor === '#d97706' ? '3px solid #1e293b' : 'none' }} title="주황색" />
-                <input type="color" value={inputColor} onChange={e => setInputColor(e.target.value)} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} />
-              </div>
-            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>상세 내용 (선택)</label>
@@ -677,7 +671,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 💡 일정 상세 뷰어 모달 (참여자 프사 및 방송국 링크 카드 연동) */}
+      {/* 💡 일정 뷰어 모달 (참여자 프사 & 방송국 링크 완벽 연동) */}
       {viewModalData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
@@ -689,15 +683,15 @@ export default function CalendarPage() {
               {viewModalData.sch.time && viewModalData.sch.time !== '시간 미정' && (
                 <span style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fbc531', color: 'white' }}>{viewModalData.sch.time}</span>
               )}
-              <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', backgroundColor: viewModalData.sch.backgroundColor || undefined }}>{viewModalData.sch.type}</span>
+              <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px' }}>{viewModalData.sch.type}</span>
             </div>
 
-            {/* 💡 연솔이 캘린더 스타일의 참여자 프사 & 방송국 링크 카드 영역 */}
+            {/* 참여자 프사 & 방송국 링크 자동 연동 카드 */}
             {viewModalData.sch.type === '합방' && viewModalData.sch.members && viewModalData.sch.members.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                 {viewModalData.sch.members.map((name: string, idx: number) => {
                   const trimmedName = name.trim();
-                  const stationId = trimmedName;
+                  const stationId = trimmedName; 
                   const stationUrl = `https://www.sooplive.com/station/${stationId}`;
                   const profileImg = `https://profile.img.sooplive.co.kr/LOGO/${stationId.charAt(0)}/${stationId}/${stationId}.jpg`;
 
@@ -706,8 +700,8 @@ export default function CalendarPage() {
                       <img 
                         src={profileImg} 
                         alt={trimmedName} 
-                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                        onError={(e: any) => { e.target.src = `https://via.placeholder.com/64/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
+                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+                        onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
                       />
                       <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{trimmedName}</span>
                     </a>
