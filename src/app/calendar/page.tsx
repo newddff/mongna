@@ -352,7 +352,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -588,8 +588,8 @@ export default function CalendarPage() {
                   const hour = i % 12 === 0 ? 12 : i % 12;
                   return (
                     <React.Fragment key={i}>
-                      <option value={`${ampm} ${hour}:00`}>{ampm} {hour}:00</option>
-                      <option value={`${ampm} ${hour}:30`}>{ampm} {hour}:30</option>
+                      <option value={`${ampm} ${hour}:00`}>{ampm} ${hour}:00</option>
+                      <option value={`${ampm} ${hour}:30`}>{ampm} ${hour}:30</option>
                     </React.Fragment>
                   );
                 })}
