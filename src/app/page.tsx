@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+// 🚨 바로 이 부분이 에러의 원인이어서, Next.js 전용 정식 수입 방식으로 수정했습니다!
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
