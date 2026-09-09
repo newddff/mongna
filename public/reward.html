@@ -244,15 +244,15 @@
 <body>
 
 <nav class="top-bar">
-  <a href="index.html" class="logo-wrap">
+  <a href="/" class="logo-wrap">
     <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
   </a>
   <div class="nav-menu">
-    <a href="index.html">홈</a>
-    <a href="calender.html">캘린더</a>
-    <a href="song.html">노래책</a>
-    <a href="reward.html" class="active">업보(보상)</a>
-    <a href="vod.html">VOD</a>
+    <a href="/">홈</a>
+    <a href="/calendar">캘린더</a>
+    <a href="/song.html">노래책</a>
+    <a href="/reward.html" class="active">업보(보상)</a>
+    <a href="/vod.html">VOD</a>
   </div>
   <div class="right-menu">
     <button id="adminToggleBtn" class="admin-btn" onclick="window.toggleAdmin()">🔒 로그인</button>
@@ -309,7 +309,7 @@
   </div>
 </div>
 
-<!-- 💡 엑셀 업로드 방식 선택 모달 (새로 추가됨!) -->
+<!-- 💡 엑셀 업로드 방식 선택 모달 -->
 <div class="modal-overlay" id="excelConfirmModal">
   <div class="modal-content" style="width: 450px; text-align: center;">
     <h2 style="margin-top:0; color:var(--primary); font-weight:900; font-size: 22px;">엑셀 등록 방식 선택</h2>
@@ -993,7 +993,6 @@
         });
 
         if(newItems.length > 0) {
-          // 모달창에 임시 데이터 저장 후 띄우기
           window.tempNewItems = newItems;
           window.tempTargetCat = targetCat;
           document.getElementById('excelConfirmMsg').innerHTML = `엑셀 표에서 <b>총 ${newItems.length}개의 업보</b>를 발견했습니다!<br><br>현재 <b>[${targetCat}]</b> 카테고리에<br>어떤 방식으로 저장할까요?`;
@@ -1007,24 +1006,19 @@
     reader.readAsArrayBuffer(file);
   };
 
-  // 💡 선택된 방식으로 저장하는 함수
   window.submitExcel = async function(mode) {
     if(!window.tempNewItems) return;
     
     try {
       if(mode === 'append') {
-        // 기존 데이터에 누적 추가
         await setDoc(rewardRef, { items: [...rewards, ...window.tempNewItems] }, { merge: true });
         alert("기존 데이터에 누적 추가되었습니다!");
       } 
       else if(mode === 'overwrite') {
-        // 현재 카테고리 데이터만 싹 지우고 새로 덮어쓰기
         if(!confirm(`정말로 기존 [${window.tempTargetCat}] 카테고리의 모든 데이터를 삭제하고 덮어쓰시겠습니까?\n(이 작업은 되돌릴 수 없습니다!)`)) return;
         
-        // 현재 타겟 카테고리가 아닌 다른 카테고리의 데이터들만 남겨둠
         const retainedRewards = rewards.filter(r => (r.category || '미분류') !== window.tempTargetCat);
         
-        // 남겨둔 데이터 + 새로 올린 데이터 합체
         await setDoc(rewardRef, { items: [...retainedRewards, ...window.tempNewItems] }, { merge: true });
         alert(`[${window.tempTargetCat}] 카테고리가 성공적으로 덮어쓰기 되었습니다!`);
       }
