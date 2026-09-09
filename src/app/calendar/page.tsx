@@ -185,11 +185,14 @@ export default function CalendarPage() {
     setIsAddModalOpen(true);
   };
 
-  const openEditModal = () => {
+  const openEditModal = (dateKeyArg: string, schIdArg: number) => {
     setViewModalData(null);
     setIsEditMode(true);
-    const daySchedules = schedules[selectedDateKey] || [];
-    const target = daySchedules.find((s: any) => s.id === viewTargetSchId);
+    setSelectedDateKey(dateKeyArg);
+    setViewTargetSchId(schIdArg);
+
+    const daySchedules = schedules[dateKeyArg] || [];
+    const target = daySchedules.find((s: any) => s.id === schIdArg);
     if (!target) return;
 
     setInputTitle(target.title || '');
@@ -240,7 +243,7 @@ export default function CalendarPage() {
     }
   };
 
-  const deleteSchedule = async () => {
+  const deleteSchedule = async (dateKeyArg: string, schIdArg: number) => {
     if (confirm("정말로 이 일정을 삭제하시겠습니까?")) {
       const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
       const app = initializeApp(firebaseConfig);
@@ -248,8 +251,8 @@ export default function CalendarPage() {
       const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
 
       const updatedSchedules = { ...schedules };
-      if (updatedSchedules[selectedDateKey]) {
-        updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].filter((s: any) => s.id !== viewTargetSchId);
+      if (updatedSchedules[dateKeyArg]) {
+        updatedSchedules[dateKeyArg] = updatedSchedules[dateKeyArg].filter((s: any) => s.id !== schIdArg);
       }
 
       try {
@@ -429,7 +432,7 @@ export default function CalendarPage() {
                     ))}
                   </div>
 
-                  {/* 1번 사진 스타일: 개별 카드형 둥근 날짜 칸 그리드 */}
+                  {/* 카드형 둥근 날짜 칸 그리드 */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', minWidth: '700px' }}>
                     {calendarDays.map((dateObj, idx) => {
                       if (!dateObj) {
@@ -715,8 +718,8 @@ export default function CalendarPage() {
 
               {isAdmin && (
                 <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '10px' }}>
-                  <button onClick={() => { setSelectedDateKey(viewModalData.dateKey); setViewTargetSchId(viewModalData.sch.id); openEditModal(); }} style={{ flex: 1, background: 'none', border: '1px solid #3b82f6', color: '#3b82f6', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 수정하기</button>
-                  <button onClick={() => { setSelectedDateKey(viewModalData.dateKey); setViewTargetSchId(viewModalData.sch.id); deleteSchedule(); }} style={{ flex: 1, background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 삭제하기</button>
+                  <button onClick={() => openEditModal(viewModalData.dateKey, viewModalData.sch.id)} style={{ flex: 1, background: 'none', border: '1px solid #3b82f6', color: '#3b82f6', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 수정하기</button>
+                  <button onClick={() => deleteSchedule(viewModalData.dateKey, viewModalData.sch.id)} style={{ flex: 1, background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 삭제하기</button>
                 </div>
               )}
             </div>
