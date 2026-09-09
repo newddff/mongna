@@ -352,7 +352,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -367,30 +367,13 @@ export default function CalendarPage() {
   return (
     <div style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       
-      <style jsx global>{`
-        :root {
-          --color-합방: ${categoryColors.합방};
-          --color-방송: ${categoryColors.방송};
-          --color-휴방: ${categoryColors.휴방};
-          --color-겜방: ${categoryColors.겜방};
-          --color-LCK: ${categoryColors.LCK};
-          --color-같이보기: ${categoryColors.같이보기};
-        }
-        .type-합방 { background-color: var(--color-합방) !important; color: white !important; } 
-        .type-방송 { background-color: var(--color-방송) !important; color: white !important; } 
-        .type-휴방 { background-color: var(--color-휴방) !important; color: white !important; } 
-        .type-겜방 { background-color: var(--color-겜방) !important; color: white !important; } 
-        .type-LCK { background-color: var(--color-LCK) !important; color: white !important; } 
-        .type-같이보기 { background-color: var(--color-같이보기) !important; color: white !important; } 
-      `}</style>
-
       {isLoading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '16px' }}>캘린더를 불러오는 중입니다... 🌙</div>
         </div>
       )}
 
-      {/* 상단 네비게이션바 (홈 링크 '/' 완벽 고정) */}
+      {/* 캘린더 페이지 상단바 (홈 링크를 /로 고정) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -399,7 +382,7 @@ export default function CalendarPage() {
 
           <div style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#333', fontSize: '15px' }}>
             <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
-            <a href="/calender" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
+            <a href="/calendar" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
             <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
             <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
             <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
@@ -420,7 +403,7 @@ export default function CalendarPage() {
         <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', padding: '40px', boxSizing: 'border-box', marginBottom: '40px' }}>
           <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
             
-            {/* 왼쪽: 캘린더 영역 (원본 점선 요일 & 둥근 테두리 템플릿 적용) */}
+            {/* 왼쪽: 캘린더 영역 */}
             <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
               
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '30px' }}>
@@ -580,9 +563,9 @@ export default function CalendarPage() {
 
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 💡 일정 추가/수정 모달 (방송 분류 6개 버튼 한 줄 동일 사이즈 정렬) */}
+      {/* 일정 추가/수정 모달 (방송 분류 6개 한 줄 정렬) */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
@@ -613,7 +596,7 @@ export default function CalendarPage() {
               </select>
             </div>
 
-            {/* 방송 분류 버튼 6개 동일 사이즈 한 줄 정렬 */}
+            {/* 방송 분류 버튼 6개 한 줄 정렬 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>방송 분류</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
@@ -670,7 +653,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 일정 상세 보기 모달 (참여자 프사 & 방송국 링크 완벽 연동) */}
+      {/* 일정 상세 보기 모달 */}
       {viewModalData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
@@ -751,7 +734,7 @@ export default function CalendarPage() {
           <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
-              <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none',, border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
             </div>
 
             {Object.keys(categoryColors).map((cat) => (
