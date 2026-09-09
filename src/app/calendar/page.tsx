@@ -588,8 +588,8 @@ export default function CalendarPage() {
                   const hour = i % 12 === 0 ? 12 : i % 12;
                   return (
                     <React.Fragment key={i}>
-                      <option value={`${ampm} ${hour}:00`}>{ampm} ${hour}:00</option>
-                      <option value={`${ampm} ${hour}:30`}>{ampm} ${hour}:30</option>
+                      <option value={`${ampm} ${hour}:00`}>{ampm} {hour}:00</option>
+                      <option value={`${ampm} ${hour}:30`}>{ampm} {hour}:30</option>
                     </React.Fragment>
                   );
                 })}
@@ -721,7 +721,7 @@ export default function CalendarPage() {
             {isAdmin && (
               <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '10px' }}>
                 <button onClick={() => { setSelectedDateKey(viewModalData.dateKey); setViewTargetSchId(viewModalData.sch.id); openEditModal(); }} style={{ flex: 1, background: 'none', border: '1px solid #3b82f6', color: '#3b82f6', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 수정하기</button>
-                <button onClick={() => { setSelectedDateKey(viewModalData.dateKey); setViewTargetSchId(viewModalData.sch.id); deleteSchedule(); }} style={{ flex: 1, background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 삭제하기</button>
+                <button onClick={() => { setSelectedDateKey(viewModalData.dateKey); setViewTargetSchId(viewModalData.sch.id); deleteSchedule(); }} style-={{ flex: 1, background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', padding: '10px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>이 일정 삭제하기</button>
               </div>
             )}
           </div>
@@ -731,7 +731,7 @@ export default function CalendarPage() {
       {/* 톱니바퀴: 카테고리 색상 설정 모달 */}
       {isColorModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ backgroundColor: 'white', draggable: false, borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
               <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
