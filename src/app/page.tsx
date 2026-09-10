@@ -18,7 +18,6 @@ export default function HomePage() {
   
   const [scheduleData, setScheduleData] = useState<any>({});
   
-  // 🟢 추가됨: 캘린더 색상 데이터를 실시간으로 담을 상태 변수
   const [categoryColors, setCategoryColors] = useState<any>({
     합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
   });
@@ -53,7 +52,7 @@ export default function HomePage() {
 
     const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2');
     const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
-    const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors'); // 🟢 추가됨
+    const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors'); 
 
     const unsubHome = onSnapshot(homeRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -71,7 +70,6 @@ export default function HomePage() {
       }
     });
 
-    // 🟢 추가됨: 실시간 색상 연동
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
       if (docSnap.exists()) {
         setCategoryColors((prev: any) => ({ ...prev, ...(docSnap.data() as any) }));
@@ -81,7 +79,7 @@ export default function HomePage() {
     return () => {
       unsubHome();
       unsubSchedule();
-      unsubColors(); // 🟢 추가됨
+      unsubColors(); 
     };
   }, []);
 
@@ -181,19 +179,16 @@ export default function HomePage() {
     }
   };
 
-  // 🟢 수정됨: 캘린더와 동일한 색상 로직 적용
   const getEventColor = (sch: any) => {
     if (sch.backgroundColor) return sch.backgroundColor;
-    if (categoryColors[sch.type]) return categoryColors[sch.type]; // 카테고리 색상 우선 적용
+    if (categoryColors[sch.type]) return categoryColors[sch.type]; 
     
-    // 이전 버전 호환성
     if (sch.color) return sch.color;
     if (sch.bgColor) return sch.bgColor;
     if (sch.eventColor) return sch.eventColor;
     if (sch.extendedProps?.backgroundColor) return sch.extendedProps.backgroundColor;
     if (sch.extendedProps?.color) return sch.extendedProps.color;
 
-    // 카테고리 타입이 없을 경우 제목으로 유추 (기본값 파스텔 톤으로 변경)
     const title = (sch.title || '').toLowerCase();
     if (title.includes('휴뱅') || title.includes('휴식')) return categoryColors['휴방'] || '#9ca3af';
     if (title.includes('lck') || title.includes('lol') || title.includes('롤') || title.includes('결승')) return categoryColors['LCK'] || '#8b5cf6';
@@ -221,12 +216,12 @@ export default function HomePage() {
 
   return (
     <>
-      {/* 🟢 추가됨: 모바일 대응 및 그리드 레이아웃 스타일 */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
           .main-container { flex-direction: column !important; }
-          .left-profile { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; }
+          /* 모바일에서는 높이를 자동으로 조절 */
+          .left-profile { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; height: auto !important; min-height: 300px !important; }
           .schedule-grid { display: flex !important; overflow-x: auto !important; padding-bottom: 10px; }
           .schedule-grid > div { min-width: 100px; }
           .schedule-grid::-webkit-scrollbar { display: none; }
@@ -271,12 +266,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 🟢 수정됨: 메인 레이아웃 (alignItems: 'flex-start' 추가하여 세로 늘어남 방지) */}
+        {/* 메인 레이아웃 */}
         <div className="main-container" style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
           
-          {/* 좌측 메인 사진 */}
-          <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', height: 'auto', display: 'flex' }}>
-            <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
+          {/* 🟢 수정됨: 좌측 메인 사진 (원래 만드셨던 height와 minHeight 복구!) */}
+          <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', height: 'calc(100vh - 150px)', minHeight: '500px', display: 'flex' }}>
+            <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', height: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
           </div>
 
           <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
@@ -288,7 +283,6 @@ export default function HomePage() {
                 <a href="/calendar" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
               </div>
               
-              {/* 🟢 수정됨: grid-template-columns 변경 */}
               <div className="schedule-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', width: '100%' }}>
                 {thisWeekKeys.map(dayObj => {
                   const daySchedules = scheduleData[dayObj.key] || [];
@@ -303,7 +297,7 @@ export default function HomePage() {
                         {dayObj.dateNum}
                       </div>
                       {daySchedules.map((sch: any, idx: number) => {
-                        const bgColor = getEventColor(sch); // 🟢 캘린더 색상 적용
+                        const bgColor = getEventColor(sch); 
                         const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
                         
                         return (
