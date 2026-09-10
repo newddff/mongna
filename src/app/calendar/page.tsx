@@ -48,7 +48,7 @@ export default function CalendarPage() {
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 언더바 보정이 적용된 실시간 검색 함수
+  // 🟢 군더더기 없이 깔끔하게 작동하는 검색 함수
   const handleStreamerSearch = async (val: string) => {
     setInputMembers(val);
     const terms = val.split(',');
@@ -59,7 +59,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 1단계: 파이어베이스 명부(캐시)에서 먼저 정밀 검색
+    // 1단계: 파이어베이스 명부(캐시)에서 먼저 검색
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
       s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
       s.userId.toLowerCase().includes(currentTerm.toLowerCase())
@@ -76,25 +76,10 @@ export default function CalendarPage() {
       const data = await res.json();
       const fetchedResults = data.streamers || [];
 
-      // 💡 언더바 및 아이디 깨짐 방지 보정 로직
-      const refinedResults = fetchedResults.map((s: any) => {
-        if (!s.userId || s.userId === '_' || s.userId.length === 0) {
-          const safeId = currentTerm.toLowerCase().replace(/[^a-z0-9_]/g, '');
-          const prefix = safeId.substring(0, 2);
-          return {
-            ...s,
-            userId: safeId,
-            profileImg: `https://profile.img.afreecatv.com/LOGO/${prefix}/${safeId}/${safeId}.jpg`,
-            broadcastUrl: `https://www.sooplive.com/station/${safeId}`
-          };
-        }
-        return s;
-      }).filter((s: any) => s.userId.toLowerCase() !== 'mongna' || currentTerm.toLowerCase().includes('mongna'));
+      setStreamerResults(fetchedResults);
 
-      setStreamerResults(refinedResults);
-
-      if (refinedResults.length > 0) {
-        const bestMatch = refinedResults[0];
+      if (fetchedResults.length > 0) {
+        const bestMatch = fetchedResults[0];
         const updatedDir = { ...streamerDirectory, [bestMatch.name]: bestMatch };
         setStreamerDirectory(updatedDir);
 
