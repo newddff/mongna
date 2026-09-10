@@ -45,6 +45,7 @@ export default function CalendarPage() {
 
   // 🟢 실시간 검색 및 자동완성 결과 상태
   const [streamerResults, setStreamerResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false); // 💡 스크래핑 로딩 상태 추가
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
@@ -75,17 +76,21 @@ export default function CalendarPage() {
         return;
       }
 
-      // 명부에 없으면 쉼표가 찍힌 이 순간 ScraperAPI 크롤링 실행!
+      // 💡 명부에 없으면 로딩 표시를 켜고 ScraperAPI 크롤링 실행!
+      setIsSearching(true);
+      setStreamerResults([]); 
+      
       try {
         const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(targetKeyword)}`);
         const data = await res.json();
-        const fetchedResults = data.streamers || [];
-
-        // 드롭다운에 결과 띄우기
-        setStreamerResults(fetchedResults);
+        
+        // 크롤링 완료 후 드롭다운에 띄우기 (여기서 맘대로 DB 저장 안 함)
+        setStreamerResults(data.streamers || []);
       } catch (err) {
         console.error("쉼표 입력 후 크롤링 에러:", err);
         setStreamerResults([]);
+      } finally {
+        setIsSearching(false); // 로딩 끝
       }
       return;
     }
@@ -104,7 +109,7 @@ export default function CalendarPage() {
     setStreamerResults(localMatches);
   };
 
-  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (파이어베이스 자동 캐싱 포함)
+  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (여기서 비로소 캐싱됨)
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     
@@ -117,7 +122,7 @@ export default function CalendarPage() {
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]); // 드롭다운 닫기
 
-    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱)
+    // 💡 사용자가 직접 선택한 올바른 데이터만 파이어베이스 명부에 영구 저장(캐싱)
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
@@ -209,18 +214,13 @@ export default function CalendarPage() {
       } catch (e) { console.error("사이드바 로드 에러:", e); }
     });
 
-    const initialSchedules = {
-      "2024-3-5": [{ id: 305, title: "몽나 생일", time: "시간 미정", type: "방송", members: [], content: "💜 몽나 생일 🤍", vodLink: "" }],
-    };
-
     const unsubSchedule = onSnapshot(scheduleRef, async (docSnap) => {
       try {
         let serverData = {};
         if (docSnap.exists() && Object.keys(docSnap.data().data || {}).length > 0) {
           serverData = docSnap.data().data;
         }
-        let merged = { ...initialSchedules, ...serverData };
-        setSchedules(merged);
+        setSchedules(serverData);
         setIsLoading(false);
       } catch (e) { console.error("일정 데이터 로드 중 에러 발생:", e); }
     });
@@ -325,7 +325,11 @@ export default function CalendarPage() {
     setInputTitle(target.title || '');
     setInputTime(target.time || '시간 미정');
     setCurrentSchType(target.type || '방송');
-    setInputMembers(target.members ? target.members.join(', ') : '');
+    
+    // members가 배열인지 확인 후 안전하게 조인
+    const memArr = Array.isArray(target.members) ? target.members : Object.values(target.members || {});
+    setInputMembers(memArr.join(', '));
+    
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
     setStreamerResults([]);
@@ -338,9 +342,13 @@ export default function CalendarPage() {
       alert("일정 제목을 입력해주세요!");
       return;
     }
+
     let members: string[] = [];
     if (currentSchType === '합방' && inputMembers.trim()) {
-      members = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
+      members = inputMembers
+        .split(',')
+        .map(m => m.trim())
+        .filter(m => m !== '' && !m.startsWith('@') && m !== '_');
     }
 
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
@@ -638,7 +646,7 @@ export default function CalendarPage() {
                         type="text" 
                         value={gameSearchQuery} 
                         onChange={(e) => setGameSearchQuery(e.target.value)} 
-                        placeholder="게임 이름 입력 (예: 팰월드)" 
+                        placeholder="" 
                         onKeyPress={(e) => { if(e.key==='Enter') searchGame('steam'); }} 
                         style={{ padding: '12px 14px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box', backgroundColor: '#fff' }}
                       />
@@ -681,7 +689,7 @@ export default function CalendarPage() {
                   </div>
                   {isAdmin && (
                     <div>
-                      <textarea value={memoInputText} onChange={(e) => setMemoInputText(e.target.value)} placeholder="아이디어나 메모를 적어보세요!" style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', resize: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}></textarea>
+                      <textarea value={memoInputText} onChange={(e) => setMemoInputText(e.target.value)} placeholder="" style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', resize: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}></textarea>
                       <button onClick={saveMemo} style={{ marginTop: '10px', width: '100%', padding: '12px', backgroundColor: '#C1ACD7', color: '#fff', fontWeight: 900, border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 10px rgba(193, 172, 215, 0.4)' }}>메모 저장하기</button>
                     </div>
                   )}
@@ -717,7 +725,7 @@ export default function CalendarPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>일정 제목</label>
-                <input type="text" value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} placeholder="제목" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} placeholder="" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -761,40 +769,46 @@ export default function CalendarPage() {
 
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (입력 후 쉼표 입력 시 크롤링 및 목록 표시)</label>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임</label>
                   <input 
                     type="text" 
                     value={inputMembers} 
                     onChange={handleStreamerSearch} 
-                    placeholder="예: 달묘_ (입력 후 쉼표 , 를 치면 검색 결과 목록이 뜸)" 
+                    placeholder="" 
                     style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
                   />
 
-                  {/* 🟢 크롤링 결과 드롭다운 UI */}
-                  {streamerResults.length > 0 && (
+                  {/* 🟢 크롤링 로딩 스피너 및 결과 드롭다운 UI */}
+                  {(isSearching || streamerResults.length > 0) && (
                     <div style={{ 
                       position: 'absolute', top: '100%', left: 0, width: '100%', 
                       background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', 
                       marginTop: '4px', zIndex: 1100, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0' 
                     }}>
-                      {streamerResults.map((s, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => handleSelectStreamer(s)}
-                          style={{ 
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
-                            cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                        >
-                          <img src={s.profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} onError={(e: any)=>{e.target.style.display='none'}} />
-                          <div>
-                            <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>@{s.userId}</div>
-                          </div>
+                      {isSearching ? (
+                        <div style={{ padding: '15px', textAlign: 'center', color: '#8b5cf6', fontSize: '13px', fontWeight: 'bold' }}>
+                          🔍 숲(SOOP)에서 정보를 찾는 중입니다...
                         </div>
-                      ))}
+                      ) : (
+                        streamerResults.map((s, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => handleSelectStreamer(s)}
+                            style={{ 
+                              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
+                              cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                          >
+                            <img src={s.profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} onError={(e: any)=>{e.target.style.display='none'}} />
+                            <div>
+                              <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>@{s.userId}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
@@ -802,12 +816,12 @@ export default function CalendarPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>상세 내용 (선택)</label>
-                <textarea value={inputContent} onChange={(e) => setInputContent(e.target.value)} placeholder="내용" style={{ height: '80px', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', fontSize: '14px', resize: 'none', outline: 'none' }} />
+                <textarea value={inputContent} onChange={(e) => setInputContent(e.target.value)} placeholder="" style={{ height: '80px', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', fontSize: '14px', resize: 'none', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>📺 VOD (다시보기) 링크</label>
-                <input type="text" value={inputVod} onChange={(e) => setInputVod(e.target.value)} placeholder="VOD 주소" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={inputVod} onChange={(e) => setInputVod(e.target.value)} placeholder="" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <button onClick={saveSchedule} style={{ backgroundColor: '#ff7676', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', boxShadow: '0 4px 15px rgba(255, 118, 118, 0.4)' }}>
@@ -828,12 +842,12 @@ export default function CalendarPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>스트리머 한글 닉네임</label>
-                <input type="text" value={newStreamerNick} onChange={(e) => setNewStreamerNick(e.target.value)} placeholder="예: 최또" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={newStreamerNick} onChange={(e) => setNewStreamerNick(e.target.value)} placeholder="" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>숲(SOOP) 영문 아이디</label>
-                <input type="text" value={newStreamerId} onChange={(e) => setNewStreamerId(e.target.value)} placeholder="예: choiagain" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={newStreamerId} onChange={(e) => setNewStreamerId(e.target.value)} placeholder="" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <button onClick={saveManualStreamer} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)' }}>
@@ -858,29 +872,36 @@ export default function CalendarPage() {
                 <span className={`type-${viewModalData.sch.type}`} style={{ padding: '8px 20px', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px' }}>{viewModalData.sch.type}</span>
               </div>
 
-              {viewModalData.sch.type === '합방' && viewModalData.sch.members && viewModalData.sch.members.length > 0 && (
+              {viewModalData.sch.type === '합방' && viewModalData.sch.members && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
-                  {viewModalData.sch.members.map((name: string, idx: number) => {
-                    const trimmedName = name.trim();
-                    const matched = streamerDirectory[trimmedName] || { 
-                      name: trimmedName, 
-                      userId: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''),
-                      profileImg: `https://profile.img.afreecatv.com/LOGO/${trimmedName.substring(0,2).toLowerCase()}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}.jpg`,
-                      broadcastUrl: `https://www.sooplive.com/station/${trimmedName}`
-                    };
+                  {(() => {
+                    const rawMembers = viewModalData.sch.members;
+                    const memberList = Array.isArray(rawMembers) ? rawMembers : Object.values(rawMembers);
 
-                    return (
-                      <a key={idx} href={matched.broadcastUrl} target="_blank" rel="noreferrer" title={`${matched.name} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
-                        <img 
-                          src={matched.profileImg} 
-                          alt={matched.name} 
-                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                          onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(matched.name.charAt(0))}`; }}
-                        />
-                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{matched.name}</span>
-                      </a>
-                    );
-                  })}
+                    return memberList.map((name: any, idx: number) => {
+                      const trimmedName = String(name || '').trim();
+                      if (!trimmedName || trimmedName === '_') return null;
+
+                      const matched = streamerDirectory[trimmedName] || { 
+                        name: trimmedName, 
+                        userId: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+                        profileImg: `https://profile.img.afreecatv.com/LOGO/${trimmedName.substring(0,2).toLowerCase()}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}.jpg`,
+                        broadcastUrl: `https://www.sooplive.com/station/${trimmedName}`
+                      };
+
+                      return (
+                        <a key={idx} href={matched.broadcastUrl} target="_blank" rel="noreferrer" title={`${matched.name} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
+                          <img 
+                            src={matched.profileImg} 
+                            alt={matched.name} 
+                            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+                            onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(matched.name.charAt(0))}`; }}
+                          />
+                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{matched.name}</span>
+                        </a>
+                      );
+                    });
+                  })()}
                 </div>
               )}
 
