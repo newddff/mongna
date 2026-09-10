@@ -234,6 +234,9 @@ export default function CalendarPage() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  // 💡 오늘 날짜 변수 복구 완료!
+  const today = new Date();
 
   const calendarDays = [];
   for (let i = 0; i < firstDay; i++) calendarDays.push(null);
@@ -277,7 +280,6 @@ export default function CalendarPage() {
     setSelectedDateKey(dateKeyArg);
     setViewTargetSchId(schIdArg);
 
-    // 💡 안전하게 데이터 가져오기
     const rawSchedules = schedules[dateKeyArg] || [];
     const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules)).filter(Boolean);
 
@@ -307,7 +309,6 @@ export default function CalendarPage() {
 
     const updatedSchedules = { ...schedules };
     
-    // 💡 배열화 보장 (찌꺼기 방지)
     if (!updatedSchedules[selectedDateKey] || !Array.isArray(updatedSchedules[selectedDateKey])) {
       updatedSchedules[selectedDateKey] = Array.isArray(schedules[selectedDateKey]) ? [...schedules[selectedDateKey]] : Object.values(schedules[selectedDateKey] || {});
     }
@@ -427,12 +428,10 @@ export default function CalendarPage() {
     setIsColorModalOpen(false);
   };
 
-  // 💡 Hydration 및 루트 충돌 방지: null 반환으로 완벽 차단
   if (!isMounted) return null;
 
   return (
     <>
-      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -515,7 +514,6 @@ export default function CalendarPage() {
                           if (!dateObj) return <div key={idx} />;
                           const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
                           
-                          // 💡 100% 에러 방지 (null 객체 완벽 필터링)
                           const rawSchedules = schedules[dateKey] || [];
                           const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules))
                             .filter((sch: any) => sch && typeof sch === 'object');
@@ -571,7 +569,6 @@ export default function CalendarPage() {
                        
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {(() => {
-                            // 💡 100% 에러 방지 필터링
                             const rawSelectedSchedules = schedules[mobileSelectedDate] || [];
                             const selectedSchedules = (Array.isArray(rawSelectedSchedules) ? rawSelectedSchedules : Object.values(rawSelectedSchedules))
                               .filter((sch: any) => sch && typeof sch === 'object');
@@ -611,7 +608,6 @@ export default function CalendarPage() {
 
                         const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
                         
-                        // 💡 100% 에러 방지 (null 객체 완벽 필터링)
                         const rawSchedules = schedules[dateKey] || [];
                         const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules))
                           .filter((sch: any) => sch && typeof sch === 'object');
@@ -672,7 +668,6 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              {/* 오른쪽 사이드바 영역 */}
               <div className="sidebar-area" style={{ flex: 1, backgroundColor: '#fcfbfe', borderRadius: '24px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '12px' }}>
@@ -733,7 +728,6 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* ---------------- 모달 창들은 기존과 100% 동일하게 유지 ---------------- */}
         {isAddModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
             <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
