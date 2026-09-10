@@ -48,7 +48,7 @@ export default function CalendarPage() {
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 2번 스마트 캐싱 로직이 적용된 검색 함수
+  // 🟢 언더바 보정이 적용된 실시간 검색 함수
   const handleStreamerSearch = async (val: string) => {
     setInputMembers(val);
     const terms = val.split(',');
@@ -59,7 +59,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 1단계: 파이어베이스 명부(캐시)에서 먼저 초고속 검색 (0.1초 컷)
+    // 1단계: 파이어베이스 명부(캐시)에서 먼저 정밀 검색
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
       s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
       s.userId.toLowerCase().includes(currentTerm.toLowerCase())
@@ -67,7 +67,7 @@ export default function CalendarPage() {
 
     if (localMatches.length > 0) {
       setStreamerResults(localMatches);
-      return; // 명부에 있으면 API 안 찌르고 바로 출력!
+      return;
     }
 
     // 2단계: 명부에 없을 때만 ScraperAPI 구글 크롤링 실행
@@ -76,11 +76,25 @@ export default function CalendarPage() {
       const data = await res.json();
       const fetchedResults = data.streamers || [];
 
-      setStreamerResults(fetchedResults);
+      // 💡 언더바 및 아이디 깨짐 방지 보정 로직
+      const refinedResults = fetchedResults.map((s: any) => {
+        if (!s.userId || s.userId === '_' || s.userId.length === 0) {
+          const safeId = currentTerm.toLowerCase().replace(/[^a-z0-9_]/g, '');
+          const prefix = safeId.substring(0, 2);
+          return {
+            ...s,
+            userId: safeId,
+            profileImg: `https://profile.img.afreecatv.com/LOGO/${prefix}/${safeId}/${safeId}.jpg`,
+            broadcastUrl: `https://www.sooplive.com/station/${safeId}`
+          };
+        }
+        return s;
+      }).filter((s: any) => s.userId.toLowerCase() !== 'mongna' || currentTerm.toLowerCase().includes('mongna'));
 
-      // 만약 크롤링 결과가 존재한다면 첫 번째 결과를 자동으로 파이어베이스 명부에 영구 저장(캐싱)!
-      if (fetchedResults.length > 0) {
-        const bestMatch = fetchedResults[0];
+      setStreamerResults(refinedResults);
+
+      if (refinedResults.length > 0) {
+        const bestMatch = refinedResults[0];
         const updatedDir = { ...streamerDirectory, [bestMatch.name]: bestMatch };
         setStreamerDirectory(updatedDir);
 
@@ -108,7 +122,6 @@ export default function CalendarPage() {
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]); // 드롭다운 닫기
 
-    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱) 재확인
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
@@ -471,7 +484,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
