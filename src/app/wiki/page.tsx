@@ -11,9 +11,9 @@ export default function WikiPage() {
       name: '몽나_',
       image: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg',
       sections: [
-        { title: '📝 몽나 소개', content: '우주 최고 귀요미 스트리머 몽나입니다! 💜' },
-        { title: '📜 방송 규칙', content: '1. 타 스트리머 언급 자제\n2. 시청자 간 친목 금지\n3. 예쁜 말 고운 말 쓰기!' },
-        { title: '🗣️ 유행어 & 밈', content: '몽구다 몽구~\n진짜루~' }
+        { title: '📝 몽나 소개', content: '' },
+        { title: '📜 방송 규칙', content: '' },
+        { title: '🗣️ 유행어 & 밈', content: '' }
       ]
     },
     history: []
