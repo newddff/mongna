@@ -48,7 +48,7 @@ export default function CalendarPage() {
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 입력할 때마다 API를 찔러서 검색 결과를 가져오는 핵심 함수
+  // 🟢 2번 스마트 캐싱 로직이 적용된 검색 함수
   const handleStreamerSearch = async (val: string) => {
     setInputMembers(val);
     const terms = val.split(',');
@@ -59,7 +59,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 1. 파이어베이스 명부에 이미 있는지 먼저 확인
+    // 1단계: 파이어베이스 명부(캐시)에서 먼저 초고속 검색 (0.1초 컷)
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
       s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
       s.userId.toLowerCase().includes(currentTerm.toLowerCase())
@@ -67,25 +67,38 @@ export default function CalendarPage() {
 
     if (localMatches.length > 0) {
       setStreamerResults(localMatches);
-      return;
+      return; // 명부에 있으면 API 안 찌르고 바로 출력!
     }
 
-    // 2. 없으면 구글 크롤링 API(`/api/search-streamer`) 호출
+    // 2단계: 명부에 없을 때만 ScraperAPI 구글 크롤링 실행
     try {
       const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
       const data = await res.json();
-      setStreamerResults(data.streamers || []);
+      const fetchedResults = data.streamers || [];
+
+      setStreamerResults(fetchedResults);
+
+      // 만약 크롤링 결과가 존재한다면 첫 번째 결과를 자동으로 파이어베이스 명부에 영구 저장(캐싱)!
+      if (fetchedResults.length > 0) {
+        const bestMatch = fetchedResults[0];
+        const updatedDir = { ...streamerDirectory, [bestMatch.name]: bestMatch };
+        setStreamerDirectory(updatedDir);
+
+        const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
+      }
     } catch (err) {
       console.error("스트리머 검색 오류:", err);
       setStreamerResults([]);
     }
   };
 
-  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (파이어베이스에 자동 캐싱)
+  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     
-    // 마지막에 타이핑 중이던 파편 대신, 완벽하게 선택된 스트리머의 공식 닉네임(selected.name)을 장착
     if (terms.length > 0) {
       terms[terms.length - 1] = selected.name;
     } else {
@@ -95,7 +108,7 @@ export default function CalendarPage() {
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]); // 드롭다운 닫기
 
-    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱)
+    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱) 재확인
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
