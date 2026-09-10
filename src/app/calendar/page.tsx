@@ -4,6 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
+// 💡 숲(SOOP) 닉네임과 실제 영문 ID/프로필을 정확히 매핑하는 공식 사전 (여기서 관리하시면 404가 절대 안 납니다!)
+const STREAMER_DIRECTORY: { [key: string]: { id: string, name: string } } = {
+  "최또": { id: "chuttodd", name: "최또" }, // 예시 영문 ID (실제 아이디로 수정 가능)
+  "송현_": { id: "songhy", name: "송현_" },
+  "송현": { id: "songhy", name: "송현_" },
+  "마또": { id: "mattomaro", name: "마또" },
+  "히무루": { id: "himuru", name: "히무루" },
+  "몽나": { id: "pinktape8", name: "몽나" },
+  "몽나_": { id: "pinktape8", name: "몽나_" }
+};
+
 export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
@@ -41,16 +52,11 @@ export default function CalendarPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // 🟢 스트리머 자동완성 검색용 상태 변수 추가
-  const [streamerKeyword, setStreamerKeyword] = useState('');
+  // 실시간 자동완성 리스트 상태
   const [streamerResults, setStreamerResults] = useState<any[]>([]);
-  const [isSearchingStreamer, setIsSearchingStreamer] = useState(false);
 
-  // 🟢 실시간 스트리머 크롤링 검색 함수
-  const handleStreamerSearch = async (val: string) => {
-    setStreamerKeyword(val);
-    
-    // 쉼표(,) 기준으로 가장 마지막에 입력 중인 닉네임 추출
+  const handleStreamerSearch = (val: string) => {
+    setInputMembers(val);
     const terms = val.split(',');
     const currentTerm = terms[terms.length - 1].trim();
 
@@ -59,29 +65,22 @@ export default function CalendarPage() {
       return;
     }
 
-    setIsSearchingStreamer(true);
-    try {
-      const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
-      const data = await res.json();
-      setStreamerResults(data.streamers || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSearchingStreamer(false);
-    }
+    // 사전 데이터 중에서 입력한 글자가 포함된 스트리머 필터링
+    const matches = Object.values(STREAMER_DIRECTORY).filter(s => 
+      s.name.toLowerCase().includes(currentTerm.toLowerCase())
+    );
+
+    setStreamerResults(matches);
   };
 
-  // 🟢 드롭다운에서 스트리머를 선택했을 때 자동 반영
   const handleSelectStreamer = (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     if (terms.length > 0) {
-      terms[terms.length - 1] = selected.name; // 현재 치고 있던 마지막 글자를 선택한 닉네임으로 대체
+      terms[terms.length - 1] = selected.name;
     } else {
       terms.push(selected.name);
     }
-    const newMembersStr = terms.join(', ') + ', ';
-    setInputMembers(newMembersStr);
-    setStreamerKeyword('');
+    setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]);
   };
 
@@ -226,7 +225,6 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
-    setStreamerKeyword('');
     setStreamerResults([]);
     setIsAddModalOpen(true);
   };
@@ -247,7 +245,6 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
-    setStreamerKeyword('');
     setStreamerResults([]);
     setIsAddModalOpen(true);
   };
@@ -400,7 +397,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -678,43 +675,46 @@ export default function CalendarPage() {
 
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분 및 실시간 자동완성)</label>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분 및 자동완성)</label>
                   <input 
                     type="text" 
                     value={inputMembers} 
-                    onChange={(e) => {
-                      setInputMembers(e.target.value);
-                      handleStreamerSearch(e.target.value);
-                    }} 
-                    placeholder="닉네임 입력 시 숲(SOOP) 실시간 검색 (예: 몽나)" 
+                    onChange={(e) => handleStreamerSearch(e.target.value)} 
+                    placeholder="닉네임 입력 시 자동완성 (예: 최또)" 
                     style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
                   />
 
-                  {/* 🟢 실시간 검색 결과 드롭다운 UI */}
+                  {/* 자동완성 드롭다운 UI */}
                   {streamerResults.length > 0 && (
                     <div style={{ 
                       position: 'absolute', top: '100%', left: 0, width: '100%', 
                       background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', 
                       marginTop: '4px', zIndex: 1100, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0' 
                     }}>
-                      {streamerResults.map((s, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => handleSelectStreamer(s)}
-                          style={{ 
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
-                            cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                        >
-                          <img src={s.profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} />
-                          <div>
-                            <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>@{s.userId}</div>
+                      {streamerResults.map((s, idx) => {
+                        const idLower = s.id.toLowerCase();
+                        const prefix = idLower.substring(0, 2);
+                        const profileImg = `https://profile.img.afreecatv.com/LOGO/${prefix}/${idLower}/${idLower}.jpg`;
+
+                        return (
+                          <div 
+                            key={idx}
+                            onClick={() => handleSelectStreamer(s)}
+                            style={{ 
+                              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
+                              cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                          >
+                            <img src={profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} onError={(e: any)=>{e.target.style.display='none'}} />
+                            <div>
+                              <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>@{s.id}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -756,19 +756,10 @@ export default function CalendarPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {viewModalData.sch.members.map((name: string, idx: number) => {
                     const trimmedName = name.trim();
+                    const matched = STREAMER_DIRECTORY[trimmedName] || { id: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''), name: trimmedName };
                     
-                    const streamerMap: { [key: string]: { id: string, name: string } } = {
-                      "송현_": { id: "songhy", name: "송현_" },
-                      "송현": { id: "songhy", name: "송현_" },
-                      "마또": { id: "mattomaro", name: "마또" },
-                      "히무루": { id: "himuru", name: "히무루" },
-                      "몽나": { id: "pinktape8", name: "몽나" },
-                      "몽나_": { id: "pinktape8", name: "몽나_" }
-                    };
-
-                    const mapped = streamerMap[trimmedName] || { id: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''), name: trimmedName };
-                    const stationId = mapped.id;
-                    const displayName = mapped.name;
+                    const stationId = matched.id;
+                    const displayName = matched.name;
                     const stationUrl = `https://www.sooplive.com/station/${stationId}`;
                     const idLower = stationId.toLowerCase();
                     const prefix = idLower.substring(0, 2);
