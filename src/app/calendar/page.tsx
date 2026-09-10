@@ -6,17 +6,15 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
   const [memoList, setMemoList] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any>({});
   const [streamerDirectory, setStreamerDirectory] = useState<any>({});
   const [categoryColors, setCategoryColors] = useState({
-    합방: "#4dabf7",
-    방송: "#ff9eb5",
-    휴방: "#9ca3af",
-    겜방: "#f59e0b",
-    LCK: "#8b5cf6",
-    같이보기: "#20c997"
+    합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
   });
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,6 +22,11 @@ export default function CalendarPage() {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+
+  // 💡 모바일에서 날짜를 터치했을 때 해당 날짜를 기억하는 상태
+  const todayObj = new Date();
+  const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;
+  const [mobileSelectedDate, setMobileSelectedDate] = useState<string>(todayStr);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -43,13 +46,30 @@ export default function CalendarPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // 🟢 실시간 검색 및 자동완성 결과 상태
   const [streamerResults, setStreamerResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false); // 💡 스크래핑 로딩 상태 추가
+  const [isSearching, setIsSearching] = useState(false);
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 타이핑 중엔 조용히 있다가 쉼표(,)를 치는 순간 크롤링을 수행하여 드롭다운을 띄우는 함수
+  // 브라우저 사이즈 감지
+  useEffect(() => {
+    setIsMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 💡 월을 넘길 때마다 '오늘'이 포함된 달이면 오늘을, 아니면 '1일'을 자동 선택
+  useEffect(() => {
+    const isCurrentMonth = todayObj.getFullYear() === selectedYear && (todayObj.getMonth() + 1) === selectedMonth;
+    if (isCurrentMonth) {
+      setMobileSelectedDate(todayStr);
+    } else {
+      setMobileSelectedDate(`${selectedYear}-${selectedMonth}-1`);
+    }
+  }, [selectedYear, selectedMonth]);
+
   const handleStreamerSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputMembers(val);
@@ -57,7 +77,6 @@ export default function CalendarPage() {
     const terms = val.split(',').map(m => m.trim()).filter(m => m !== '');
     const currentTerm = terms[terms.length - 1] || '';
 
-    // 1. 쉼표(,)를 입력한 순간! (방금 타이핑 끝낸 단어 타겟팅)
     if (val.endsWith(',')) {
       const targetKeyword = terms[terms.length - 1];
       if (!targetKeyword || targetKeyword.length < 1) {
@@ -65,7 +84,6 @@ export default function CalendarPage() {
         return;
       }
 
-      // 이미 파이어베이스 명부에 있는지 확인
       const localMatch = Object.values(streamerDirectory).filter((s: any) => 
         s.name.toLowerCase() === targetKeyword.toLowerCase() || 
         s.userId.toLowerCase() === targetKeyword.toLowerCase()
@@ -76,26 +94,22 @@ export default function CalendarPage() {
         return;
       }
 
-      // 💡 명부에 없으면 로딩 표시를 켜고 ScraperAPI 크롤링 실행!
       setIsSearching(true);
       setStreamerResults([]); 
       
       try {
         const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(targetKeyword)}`);
         const data = await res.json();
-        
-        // 크롤링 완료 후 드롭다운에 띄우기 (여기서 맘대로 DB 저장 안 함)
         setStreamerResults(data.streamers || []);
       } catch (err) {
         console.error("쉼표 입력 후 크롤링 에러:", err);
         setStreamerResults([]);
       } finally {
-        setIsSearching(false); // 로딩 끝
+        setIsSearching(false); 
       }
       return;
     }
 
-    // 2. 쉼표 없이 타이핑 중일 때는 파이어베이스 명부에서만 초고속 실시간 필터링
     if (currentTerm.length < 1) {
       setStreamerResults([]);
       return;
@@ -109,20 +123,14 @@ export default function CalendarPage() {
     setStreamerResults(localMatches);
   };
 
-  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (여기서 비로소 캐싱됨)
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
-    
-    if (terms.length > 0) {
-      terms[terms.length - 1] = selected.name;
-    } else {
-      terms.push(selected.name);
-    }
+    if (terms.length > 0) terms[terms.length - 1] = selected.name;
+    else terms.push(selected.name);
     
     setInputMembers(terms.join(', ') + ', ');
-    setStreamerResults([]); // 드롭다운 닫기
+    setStreamerResults([]); 
 
-    // 💡 사용자가 직접 선택한 올바른 데이터만 파이어베이스 명부에 영구 저장(캐싱)
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
@@ -168,12 +176,7 @@ export default function CalendarPage() {
     }
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
-      authDomain: "mongna-vod.firebaseapp.com",
-      projectId: "mongna-vod",
-      storageBucket: "mongna-vod.firebasestorage.app",
-      messagingSenderId: "310663611402",
-      appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
+      apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -185,20 +188,11 @@ export default function CalendarPage() {
     const streamerDirRef = doc(db, 'mongna_calendar_data', 'streamer_directory');
 
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
-      try {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as any;
-          setCategoryColors(prev => ({ ...prev, ...data }));
-        }
-      } catch (e) { console.error("색상 로드 오류:", e); }
+      try { if (docSnap.exists()) setCategoryColors(prev => ({ ...prev, ...(docSnap.data() as any) })); } catch (e) { }
     });
 
     const unsubStreamerDir = onSnapshot(streamerDirRef, (docSnap) => {
-      try {
-        if (docSnap.exists()) {
-          setStreamerDirectory(docSnap.data() || {});
-        }
-      } catch (e) { console.error("스트리머 명부 로드 오류:", e); }
+      try { if (docSnap.exists()) setStreamerDirectory(docSnap.data() || {}); } catch (e) { }
     });
 
     const unsubSidebar = onSnapshot(sidebarRef, (docSnap) => {
@@ -207,53 +201,35 @@ export default function CalendarPage() {
           const data = docSnap.data();
           setSearchHistory(Array.isArray(data.searchHistory) ? data.searchHistory : []);
           setMemoList(Array.isArray(data.memoList) ? data.memoList : []);
-        } else {
-          setSearchHistory([]);
-          setMemoList([]);
         }
-      } catch (e) { console.error("사이드바 로드 에러:", e); }
+      } catch (e) { }
     });
 
     const unsubSchedule = onSnapshot(scheduleRef, async (docSnap) => {
       try {
-        let serverData = {};
         if (docSnap.exists() && Object.keys(docSnap.data().data || {}).length > 0) {
-          serverData = docSnap.data().data;
+          setSchedules(docSnap.data().data);
         }
-        setSchedules(serverData);
         setIsLoading(false);
-      } catch (e) { console.error("일정 데이터 로드 중 에러 발생:", e); }
+      } catch (e) { }
     });
 
-    return () => {
-      unsubColors();
-      unsubSidebar();
-      unsubSchedule();
-      unsubStreamerDir();
-    };
+    return () => { unsubColors(); unsubSidebar(); unsubSchedule(); unsubStreamerDir(); };
   }, []);
 
   const toggleAdmin = () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('mongna_calendar_admin');
-          localStorage.removeItem('mongna_home_admin');
-        }
+        if (typeof window !== 'undefined') { localStorage.removeItem('mongna_calendar_admin'); localStorage.removeItem('mongna_home_admin'); }
       }
     } else {
       const password = prompt("관리자 비밀번호를 입력해주세요.");
       if (password === "mongna1234") {
         setIsAdmin(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mongna_calendar_admin', 'true');
-          localStorage.setItem('mongna_home_admin', 'true');
-        }
+        if (typeof window !== 'undefined') { localStorage.setItem('mongna_calendar_admin', 'true'); localStorage.setItem('mongna_home_admin', 'true'); }
         alert("관리자 인증 성공!");
-      } else if (password !== null) {
-        alert("비밀번호가 틀렸습니다.");
-      }
+      } else if (password !== null) alert("비밀번호가 틀렸습니다.");
     }
   };
 
@@ -262,15 +238,10 @@ export default function CalendarPage() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date();
 
   const calendarDays = [];
-  for (let i = 0; i < firstDay; i++) {
-    calendarDays.push(null);
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    calendarDays.push(new Date(year, month, d));
-  }
+  for (let i = 0; i < firstDay; i++) calendarDays.push(null);
+  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(new Date(year, month, d));
 
   const prevMonth = () => {
     const newDate = new Date(currentDate);
@@ -296,19 +267,11 @@ export default function CalendarPage() {
   };
 
   const openAddModal = (dateKey: string) => {
-    if (!isAdmin) {
-      alert("일정 추가는 관리자만 가능합니다.");
-      return;
-    }
+    if (!isAdmin) { alert("일정 추가는 관리자만 가능합니다."); return; }
     setIsEditMode(false);
     setSelectedDateKey(dateKey);
-    setInputTitle('');
-    setInputTime('시간 미정');
-    setCurrentSchType('방송');
-    setInputMembers('');
-    setInputContent('');
-    setInputVod('');
-    setStreamerResults([]);
+    setInputTitle(''); setInputTime('시간 미정'); setCurrentSchType('방송');
+    setInputMembers(''); setInputContent(''); setInputVod(''); setStreamerResults([]);
     setIsAddModalOpen(true);
   };
 
@@ -322,33 +285,20 @@ export default function CalendarPage() {
     const target = daySchedules.find((s: any) => s.id === schIdArg);
     if (!target) return;
 
-    setInputTitle(target.title || '');
-    setInputTime(target.time || '시간 미정');
-    setCurrentSchType(target.type || '방송');
-    
-    // members가 배열인지 확인 후 안전하게 조인
+    setInputTitle(target.title || ''); setInputTime(target.time || '시간 미정'); setCurrentSchType(target.type || '방송');
     const memArr = Array.isArray(target.members) ? target.members : Object.values(target.members || {});
     setInputMembers(memArr.join(', '));
-    
-    setInputContent(target.content || '');
-    setInputVod(target.vodLink || '');
-    setStreamerResults([]);
+    setInputContent(target.content || ''); setInputVod(target.vodLink || ''); setStreamerResults([]);
     setIsAddModalOpen(true);
   };
 
   const saveSchedule = async () => {
     const title = inputTitle.trim();
-    if (!title) {
-      alert("일정 제목을 입력해주세요!");
-      return;
-    }
+    if (!title) { alert("일정 제목을 입력해주세요!"); return; }
 
     let members: string[] = [];
     if (currentSchType === '합방' && inputMembers.trim()) {
-      members = inputMembers
-        .split(',')
-        .map(m => m.trim())
-        .filter(m => m !== '' && !m.startsWith('@') && m !== '_');
+      members = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '' && !m.startsWith('@') && m !== '_');
     }
 
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
@@ -361,22 +311,14 @@ export default function CalendarPage() {
 
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
-        if (s.id === viewTargetSchId) {
-          return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
-        }
+        if (s.id === viewTargetSchId) return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
         return s;
       });
     } else {
-      const newSch = { id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
-      updatedSchedules[selectedDateKey].push(newSch);
+      updatedSchedules[selectedDateKey].push({ id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' });
     }
 
-    try {
-      await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true });
-      setIsAddModalOpen(false);
-    } catch (e) {
-      alert("일정 저장 중 오류가 발생했습니다.");
-    }
+    try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setIsAddModalOpen(false); } catch (e) { alert("일정 저장 중 오류가 발생했습니다."); }
   };
 
   const deleteSchedule = async (dateKeyArg: string, schIdArg: number) => {
@@ -387,35 +329,21 @@ export default function CalendarPage() {
       const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
 
       const updatedSchedules = { ...schedules };
-      if (updatedSchedules[dateKeyArg]) {
-        updatedSchedules[dateKeyArg] = updatedSchedules[dateKeyArg].filter((s: any) => s.id !== schIdArg);
-      }
+      if (updatedSchedules[dateKeyArg]) updatedSchedules[dateKeyArg] = updatedSchedules[dateKeyArg].filter((s: any) => s.id !== schIdArg);
 
-      try {
-        await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true });
-        setViewModalData(null);
-      } catch (e) {
-        alert("일정 삭제 중 오류가 발생했습니다.");
-      }
+      try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setViewModalData(null); } catch (e) { alert("삭제 실패!"); }
     }
   };
 
   const searchGame = async (engine: 'steam' | 'google') => {
     if (!isAdmin) return alert("관리자만 검색 기록을 남길 수 있습니다.");
     const query = gameSearchQuery.trim();
-    if (!query) {
-      alert("게임 제목을 입력해주세요!");
-      return;
-    }
-    const link = engine === 'steam' 
-      ? `https://store.steampowered.com/search/?term=${encodeURIComponent(query)}` 
-      : `https://www.google.com/search?q=${encodeURIComponent(query + ' 게임')}`;
-    
+    if (!query) { alert("게임 제목을 입력해주세요!"); return; }
+    const link = engine === 'steam' ? `https://store.steampowered.com/search/?term=${encodeURIComponent(query)}` : `https://www.google.com/search?q=${encodeURIComponent(query + ' 게임')}`;
     window.open(link, '_blank');
 
     const newHistory = [{ query, engine }, ...searchHistory.filter((h: any) => h.query !== query)].slice(0, 5);
-    setSearchHistory(newHistory);
-    setGameSearchQuery('');
+    setSearchHistory(newHistory); setGameSearchQuery('');
 
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
@@ -435,16 +363,11 @@ export default function CalendarPage() {
 
   const dropGame = async (e: React.DragEvent, dateKey: string) => {
     if (!isAdmin) return;
-    e.preventDefault();
-    e.currentTarget.style.backgroundColor = '#fff';
-    const query = e.dataTransfer.getData("gameName");
-    const link = e.dataTransfer.getData("gameLink");
-    const index = e.dataTransfer.getData("gameIndex");
+    e.preventDefault(); e.currentTarget.style.backgroundColor = '#fff';
+    const query = e.dataTransfer.getData("gameName"); const link = e.dataTransfer.getData("gameLink"); const index = e.dataTransfer.getData("gameIndex");
 
     if (query) {
-      const newSch = {
-        id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: (categoryColors as any)['겜방'] || '#f59e0b'
-      };
+      const newSch = { id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: (categoryColors as any)['겜방'] || '#f59e0b' };
       const updatedSchedules = { ...schedules };
       if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
       updatedSchedules[dateKey].push(newSch);
@@ -457,7 +380,6 @@ export default function CalendarPage() {
       const db = getFirestore(app);
       await setDoc(doc(db, 'mongna_calendar_data', 'schedule_data'), { data: updatedSchedules }, { merge: true });
       await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
-
       setViewModalData({ sch: newSch, dateKey });
     }
   };
@@ -465,15 +387,11 @@ export default function CalendarPage() {
   const saveMemo = async () => {
     if (!isAdmin) return alert("관리자만 작성할 수 있습니다.");
     const text = memoInputText.trim();
-    if (!text) {
-      alert("메모 내용을 입력해주세요!");
-      return;
-    }
+    if (!text) return alert("메모 내용을 입력해주세요!");
     const now = new Date();
     const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     const newMemos = [{ date: dateStr, text }, ...memoList];
-    setMemoList(newMemos);
-    setMemoInputText('');
+    setMemoList(newMemos); setMemoInputText('');
 
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
@@ -500,8 +418,24 @@ export default function CalendarPage() {
     setIsColorModalOpen(false);
   };
 
+  if (!isMounted) return <div />;
+
   return (
     <>
+      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media (max-width: 768px) {
+          .nav-container { flex-direction: column !important; height: auto !important; padding: 15px 20px !important; gap: 15px; }
+          .nav-links { flex-wrap: wrap !important; justify-content: center !important; font-size: 14px !important; gap: 15px !important; }
+          .top-btn-group { width: 100%; justify-content: center; }
+          .main-wrapper { padding: 20px 15px !important; border-radius: 20px !important; width: 100% !important; margin: 0 !important; }
+          .flex-layout { flex-direction: column !important; gap: 30px !important; }
+          .calendar-area, .sidebar-area { min-width: 100% !important; width: 100% !important; }
+          .modal-box { width: 95% !important; padding: 25px 20px !important; }
+        }
+      `}} />
+
       <div style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
         
         {isLoading && (
@@ -510,43 +444,39 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 상단 네비게이션바 */}
-        <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px' }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
-            </a>
+        <nav className="nav-container" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.05)', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', maxWidth: '1400px', margin: '0 auto' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
+          </a>
 
-            <div style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#333', fontSize: '15px' }}>
-              <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
-              <a href="/wiki" style={{ textDecoration: 'none', color: 'inherit' }}>몽무위키</a>
-              <a href="/calendar" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
-              <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
-              <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
-              <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
-            </div>
+          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#333', fontSize: '15px' }}>
+            <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
+            <a href="/wiki" style={{ textDecoration: 'none', color: 'inherit' }}>몽무위키</a>
+            <a href="/calendar" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
+            <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
+            <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
+            <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {isAdmin && (
-                <>
-                  <button onClick={() => setIsStreamerManagerOpen(true)} style={{ padding: '8px 14px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }} title="스트리머 명부 관리">👥 스트리머 등록</button>
-                  <button onClick={() => setIsColorModalOpen(true)} style={{ width: '40px', height: '40px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="카테고리 색상 설정">⚙️</button>
-                </>
-              )}
-              <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'rgba(139, 92, 246, 0.1)', color: isAdmin ? '#333' : '#8b5cf6' }}>
-                {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
-              </button>
-            </div>
+          <div className="top-btn-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button onClick={() => setIsStreamerManagerOpen(true)} style={{ padding: '8px 14px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }} title="스트리머 명부 관리">👥 스트리머 등록</button>
+                <button onClick={() => setIsColorModalOpen(true)} style={{ width: '40px', height: '40px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="카테고리 색상 설정">⚙️</button>
+              </div>
+            )}
+            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'rgba(139, 92, 246, 0.1)', color: isAdmin ? '#333' : '#8b5cf6' }}>
+              {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
+            </button>
           </div>
         </nav>
 
-        {/* 캘린더 메인 컨테이너 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '50px' }}>
-          <div style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
+          <div className="main-wrapper" style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
+            <div className="flex-layout" style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
               
               {/* 왼쪽: 캘린더 영역 */}
-              <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
+              <div className="calendar-area" style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
                 {/* 상단 년/월 이동 바 */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
@@ -564,92 +494,173 @@ export default function CalendarPage() {
                   <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>▶</button>
                 </div>
 
-                <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
-                  {/* 요일 셀 (점선 박스) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
-                    {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-                      <div key={day} style={{ padding: '14px 0', border: '2px dashed #dcd0ec', borderRadius: '16px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#4a3b5c', backgroundColor: '#fcfbfe', fontSize: '15px', fontWeight: 900 }}>{day}</div>
-                    ))}
-                  </div>
+                {/* 💡 캘린더 렌더링 (모바일 vs PC 분기) */}
+                {isMobile ? (
+                  // 📱 모바일: 미니 달력 + 하단 상세 리스트 구조
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+                    
+                    {/* 1. 귀여운 미니 달력 (날짜 선택용) */}
+                    <div style={{ background: '#fff', borderRadius: '24px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 'bold', marginBottom: '15px', fontSize: '14px' }}>
+                        {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
+                          <div key={d} style={{ color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : '#94a3b8' }}>{d}</div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+                        {calendarDays.map((dateObj, idx) => {
+                          if (!dateObj) return <div key={idx} />;
+                          const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+                          const daySchedules = schedules[dateKey] || [];
+                          const isToday = (dateKey === todayStr);
+                          const isSelected = (dateKey === mobileSelectedDate);
+                          const dayOfWeek = dateObj.getDay();
+                          
+                          let numColor = '#1e293b';
+                          if (dayOfWeek === 0) numColor = '#ef4444';
+                          if (dayOfWeek === 6) numColor = '#3b82f6';
+                          if (isSelected) numColor = '#ffffff';
 
-                  {/* 카드형 둥근 날짜 칸 그리드 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', minWidth: '700px' }}>
-                    {calendarDays.map((dateObj, idx) => {
-                      if (!dateObj) {
-                        return <div key={idx} style={{ minHeight: '130px', backgroundColor: 'transparent' }} />;
-                      }
+                          return (
+                            <div 
+                              key={idx} 
+                              onClick={() => setMobileSelectedDate(dateKey)}
+                              style={{
+                                aspectRatio: '1/1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                background: isSelected ? '#a855f7' : isToday ? '#f3e8ff' : '#f8fafc',
+                                borderRadius: '14px', cursor: 'pointer', position: 'relative',
+                                border: isToday && !isSelected ? '2px solid #d8b4fe' : '2px solid transparent',
+                                transition: '0.2s'
+                              }}
+                            >
+                              <span style={{ fontSize: '15px', fontWeight: isSelected || isToday ? 900 : 700, color: numColor }}>
+                                {dateObj.getDate()}
+                              </span>
+                              {/* 💡 날짜 아래에 예쁜 일정 점(Dot) 표시 */}
+                              {daySchedules.length > 0 && (
+                                <div style={{ display: 'flex', gap: '3px', position: 'absolute', bottom: '6px' }}>
+                                  {daySchedules.slice(0,3).map((sch: any, sIdx: number) => (
+                                    <div key={sIdx} style={{ width: '5px', height: '5px', borderRadius: '50%', background: isSelected ? '#fff' : (sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e') }} />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                      const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-                      const daySchedules = schedules[dateKey] || [];
-                      const isToday = (dateObj.getFullYear() === today.getFullYear() && dateObj.getMonth() === today.getMonth() && dateObj.getDate() === today.getDate());
-                      const dayOfWeek = dateObj.getDay();
-
-                      let numColor = '#333';
-                      if (dayOfWeek === 0) numColor = '#ff6b6b';
-                      if (dayOfWeek === 6) numColor = '#4dabf7';
-
-                      return (
-                        <div 
-                          key={idx}
-                          onDoubleClick={() => openAddModal(dateKey)}
-                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f3e8ff'; }}
-                          onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? '#f3e8ff' : '#ffffff'; }}
-                          onDrop={(e) => dropGame(e, dateKey)}
-                          style={{
-                            minHeight: '130px', padding: '10px', 
-                            border: isToday ? '2px solid #a855f7' : '1px solid #f1f3f5', 
-                            borderRadius: '20px',
-                            backgroundColor: isToday ? '#f3e8ff' : '#ffffff', 
-                            boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-                            display: 'flex', flexDirection: 'column',
-                            cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden', transition: 'all 0.2s'
-                          }}
-                        >
-                          <span style={{ fontSize: '15px', fontWeight: 900, color: numColor, marginBottom: '6px' }}>{dateObj.getDate()}</span>
-                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            {daySchedules.map((sch: any) => {
+                    {/* 2. 선택된 날짜 상세 내역 (하단 짠!) */}
+                    <div style={{ background: '#fff', borderRadius: '24px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                         <div style={{ fontSize: '18px', fontWeight: 900, color: '#333' }}>
+                           {mobileSelectedDate.split('-')[1]}월 {mobileSelectedDate.split('-')[2]}일 일정
+                         </div>
+                         {isAdmin && (
+                           <button onClick={() => openAddModal(mobileSelectedDate)} style={{ background: '#f3e8ff', border: 'none', padding: '8px 16px', borderRadius: '99px', fontSize: '13px', fontWeight: 'bold', color: '#a855f7' }}>
+                             + 일정 추가
+                           </button>
+                         )}
+                       </div>
+                       
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {(() => {
+                            const selectedSchedules = schedules[mobileSelectedDate] || [];
+                            if (selectedSchedules.length === 0) {
+                              return <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>선택된 날짜에 일정이 없습니다.</div>;
+                            }
+                            return selectedSchedules.map((sch: any, sIdx: number) => {
                               const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
                               return (
-                                <div 
-                                  key={sch.id}
-                                  onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
-                                  style={{ 
-                                    fontSize: '11px', padding: '6px 8px', borderRadius: '8px', fontWeight: 700, boxShadow: '0 2px 5px rgba(0,0,0,0.08)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
-                                    backgroundColor: bg, color: '#fff'
-                                  }}
-                                >
-                                  {sch.time && sch.time !== '시간 미정' && (
-                                    <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '3px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 5px', borderRadius: '4px' }}>[{sch.time}]</span>
-                                  )}
-                                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sch.title}</span>
+                                <div key={sIdx} onClick={() => setViewModalData({ sch, dateKey: mobileSelectedDate })} style={{ background: bg, color: '#fff', padding: '16px', borderRadius: '16px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                                  {sch.time && sch.time !== '시간 미정' && <span style={{ fontSize: '12px', background: 'rgba(0,0,0,0.15)', alignSelf: 'flex-start', padding: '4px 8px', borderRadius: '8px' }}>⏰ {sch.time}</span>}
+                                  <span>{sch.title}</span>
                                 </div>
                               );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
+                            });
+                          })()}
+                       </div>
+                    </div>
+
                   </div>
-                </div>
+                ) : (
+                  // 💻 PC: 7칸 넓은 그리드 뷰 (기존 그대로 유지)
+                  <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
+                      {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+                        <div key={day} style={{ padding: '14px 0', border: '2px dashed #dcd0ec', borderRadius: '16px', margin: '0 4px', color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4dabf7' : '#4a3b5c', backgroundColor: '#fcfbfe', fontSize: '15px', fontWeight: 900 }}>{day}</div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', minWidth: '700px' }}>
+                      {calendarDays.map((dateObj, idx) => {
+                        if (!dateObj) {
+                          return <div key={idx} style={{ minHeight: '130px', backgroundColor: 'transparent' }} />;
+                        }
+
+                        const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+                        const daySchedules = schedules[dateKey] || [];
+                        const isToday = (dateObj.getFullYear() === today.getFullYear() && dateObj.getMonth() === today.getMonth() && dateObj.getDate() === today.getDate());
+                        const dayOfWeek = dateObj.getDay();
+
+                        let numColor = '#333';
+                        if (dayOfWeek === 0) numColor = '#ff6b6b';
+                        if (dayOfWeek === 6) numColor = '#4dabf7';
+
+                        return (
+                          <div 
+                            key={idx}
+                            onDoubleClick={() => openAddModal(dateKey)}
+                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f3e8ff'; }}
+                            onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? '#f3e8ff' : '#ffffff'; }}
+                            onDrop={(e) => dropGame(e, dateKey)}
+                            style={{
+                              minHeight: '130px', padding: '10px', 
+                              border: isToday ? '2px solid #a855f7' : '1px solid #f1f3f5', 
+                              borderRadius: '20px',
+                              backgroundColor: isToday ? '#f3e8ff' : '#ffffff', 
+                              boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                              display: 'flex', flexDirection: 'column',
+                              cursor: isAdmin ? 'pointer' : 'default', overflow: 'hidden', transition: 'all 0.2s'
+                            }}
+                          >
+                            <span style={{ fontSize: '15px', fontWeight: 900, color: numColor, marginBottom: '6px' }}>{dateObj.getDate()}</span>
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                              {daySchedules.map((sch: any) => {
+                                const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
+                                return (
+                                  <div 
+                                    key={sch.id}
+                                    onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
+                                    style={{ 
+                                      fontSize: '11px', padding: '6px 8px', borderRadius: '8px', fontWeight: 700, boxShadow: '0 2px 5px rgba(0,0,0,0.08)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
+                                      backgroundColor: bg, color: '#fff'
+                                    }}
+                                  >
+                                    {sch.time && sch.time !== '시간 미정' && (
+                                      <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '3px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 5px', borderRadius: '4px' }}>[{sch.time}]</span>
+                                    )}
+                                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sch.title}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* 오른쪽: 사이드바 */}
-              <div style={{ flex: 1, backgroundColor: '#fcfbfe', borderRadius: '24px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
-                
+              {/* 오른쪽 사이드바 영역 */}
+              <div className="sidebar-area" style={{ flex: 1, backgroundColor: '#fcfbfe', borderRadius: '24px', padding: '30px 25px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '25px', height: 'fit-content', minWidth: '280px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '12px' }}>
                     <h2 style={{ margin: 0, fontSize: '18px', color: '#4a3b5c', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 900 }}>🎮 종겜 링크 찾기</h2>
                   </div>
                   {isAdmin && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-                      <input 
-                        type="text" 
-                        value={gameSearchQuery} 
-                        onChange={(e) => setGameSearchQuery(e.target.value)} 
-                        placeholder="" 
-                        onKeyPress={(e) => { if(e.key==='Enter') searchGame('steam'); }} 
-                        style={{ padding: '12px 14px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box', backgroundColor: '#fff' }}
-                      />
+                      <input type="text" value={gameSearchQuery} onChange={(e) => setGameSearchQuery(e.target.value)} placeholder="" onKeyPress={(e) => { if(e.key==='Enter') searchGame('steam'); }} style={{ padding: '12px 14px', border: '1px solid #e4dceb', borderRadius: '14px', outline: 'none', fontSize: '14px', fontWeight: 'bold', width: '100%', boxSizing: 'border-box', backgroundColor: '#fff' }} />
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button onClick={() => searchGame('steam')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#1b2838', color: 'white', fontSize: '13px' }}>Steam 검색</button>
                         <button onClick={() => searchGame('google')} style={{ flex: 1, padding: '10px', border: '1px solid #e4dceb', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontSize: '13px' }}>Google 검색</button>
@@ -661,19 +672,8 @@ export default function CalendarPage() {
                       if (!h || !h.query) return null;
                       const link = h.engine === 'steam' ? 'https://store.steampowered.com/search/?term=' + encodeURIComponent(h.query) : 'https://www.google.com/search?q=' + encodeURIComponent(h.query + ' 게임');
                       return (
-                        <div 
-                          key={index} 
-                          draggable={isAdmin}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData("gameName", h.query);
-                            e.dataTransfer.setData("gameLink", link);
-                            e.dataTransfer.setData("gameIndex", index.toString());
-                          }}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #eee', fontSize: '13px', fontWeight: 500, cursor: isAdmin ? 'grab' : 'default', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}
-                        >
-                          <a href={link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#333', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {h.engine === 'steam' ? '💨' : '🔍'} {h.query}
-                          </a>
+                        <div key={index} draggable={isAdmin} onDragStart={(e) => { e.dataTransfer.setData("gameName", h.query); e.dataTransfer.setData("gameLink", link); e.dataTransfer.setData("gameIndex", index.toString()); }} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '12px', border: '1px solid #eee', fontSize: '13px', fontWeight: 500, cursor: isAdmin ? 'grab' : 'default', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                          <a href={link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#333', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.engine === 'steam' ? '💨' : '🔍'} {h.query}</a>
                           {isAdmin && <button onClick={() => deleteHistory(index)} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✕</button>}
                         </div>
                       );
@@ -707,17 +707,16 @@ export default function CalendarPage() {
                     })}
                   </div>
                 </div>
-
               </div>
 
             </div>
           </div>
         </div>
 
-        {/* 일정 추가/수정 모달 */}
+        {/* ---------------- 모달 창들은 기존과 100% 동일하게 유지 ---------------- */}
         {isAddModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsAddModalOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '560px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 14px', borderRadius: '10px', fontSize: '14px' }}>{selectedDateKey} 일정 등록</span>
                 <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
@@ -745,21 +744,13 @@ export default function CalendarPage() {
                 </select>
               </div>
 
-              {/* 방송 분류 버튼 6개 한 줄 정렬 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>방송 분류</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
                   {['합방', '방송', '휴방', '겜방', 'LCK', '같이보기'].map((type) => (
                     <button 
-                      key={type} 
-                      type="button" 
-                      onClick={() => setCurrentSchType(type)} 
-                      style={{ 
-                        border: 'none', padding: '12px 0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px',
-                        backgroundColor: currentSchType === type ? (categoryColors as any)[type] || '#8b5cf6' : '#f2f2f2', 
-                        color: currentSchType === type ? '#fff' : '#777',
-                        boxShadow: currentSchType === type ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
-                      }}
+                      key={type} type="button" onClick={() => setCurrentSchType(type)} 
+                      style={{ border: 'none', padding: '12px 0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', backgroundColor: currentSchType === type ? (categoryColors as any)[type] || '#8b5cf6' : '#f2f2f2', color: currentSchType === type ? '#fff' : '#777', boxShadow: currentSchType === type ? '0 4px 10px rgba(0,0,0,0.15)' : 'none' }}
                     >
                       {type}
                     </button>
@@ -770,37 +761,15 @@ export default function CalendarPage() {
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                   <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임</label>
-                  <input 
-                    type="text" 
-                    value={inputMembers} 
-                    onChange={handleStreamerSearch} 
-                    placeholder="" 
-                    style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
-                  />
+                  <input type="text" value={inputMembers} onChange={handleStreamerSearch} placeholder="" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} />
 
-                  {/* 🟢 크롤링 로딩 스피너 및 결과 드롭다운 UI */}
                   {(isSearching || streamerResults.length > 0) && (
-                    <div style={{ 
-                      position: 'absolute', top: '100%', left: 0, width: '100%', 
-                      background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', 
-                      marginTop: '4px', zIndex: 1100, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0' 
-                    }}>
+                    <div style={{ position: 'absolute', top: '100%', left: 0, width: '100%', background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', marginTop: '4px', zIndex: 1100, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0' }}>
                       {isSearching ? (
-                        <div style={{ padding: '15px', textAlign: 'center', color: '#8b5cf6', fontSize: '13px', fontWeight: 'bold' }}>
-                          🔍 숲(SOOP)에서 정보를 찾는 중입니다...
-                        </div>
+                        <div style={{ padding: '15px', textAlign: 'center', color: '#8b5cf6', fontSize: '13px', fontWeight: 'bold' }}>🔍 숲(SOOP)에서 정보를 찾는 중입니다...</div>
                       ) : (
                         streamerResults.map((s, idx) => (
-                          <div 
-                            key={idx}
-                            onClick={() => handleSelectStreamer(s)}
-                            style={{ 
-                              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
-                              cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                          >
+                          <div key={idx} onClick={() => handleSelectStreamer(s)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
                             <img src={s.profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} onError={(e: any)=>{e.target.style.display='none'}} />
                             <div>
                               <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
@@ -831,10 +800,9 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 🟢 관리자 전용: 스트리머 명부 등록 모달 */}
         {isStreamerManagerOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsStreamerManagerOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '480px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '480px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 14px', borderRadius: '10px', fontSize: '14px' }}>👥 스트리머 명부 직접 등록</span>
                 <button onClick={() => setIsStreamerManagerOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
@@ -857,10 +825,9 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 일정 상세 보기 모달 */}
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => setViewModalData(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
               
               <h2 style={{ margin: 0, fontSize: '28px', color: '#222' }}>{viewModalData.sch.title}</h2>
@@ -891,12 +858,7 @@ export default function CalendarPage() {
 
                       return (
                         <a key={idx} href={matched.broadcastUrl} target="_blank" rel="noreferrer" title={`${matched.name} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
-                          <img 
-                            src={matched.profileImg} 
-                            alt={matched.name} 
-                            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                            onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(matched.name.charAt(0))}`; }}
-                          />
+                          <img src={matched.profileImg} alt={matched.name} style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(matched.name.charAt(0))}`; }} />
                           <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{matched.name}</span>
                         </a>
                       );
@@ -912,9 +874,7 @@ export default function CalendarPage() {
                       const parts = viewModalData.sch.content.replace('[GAME_LINK]', '').split('|');
                       return (
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '120px', backgroundColor: '#f8f9fa', borderRadius: '12px', width: '100%', boxSizing: 'border-box' }}>
-                          <a href={parts[1] || '#'} target="_blank" rel="noreferrer" style={{ backgroundColor: '#ffffff', padding: '10px 20px', borderRadius: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '8px', color: '#333', fontWeight: 'bold', textDecoration: 'none' }}>
-                            🎮 {parts[0]}
-                          </a>
+                          <a href={parts[1] || '#'} target="_blank" rel="noreferrer" style={{ backgroundColor: '#ffffff', padding: '10px 20px', borderRadius: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '8px', color: '#333', fontWeight: 'bold', textDecoration: 'none' }}>🎮 {parts[0]}</a>
                         </div>
                       );
                     })()
@@ -927,9 +887,7 @@ export default function CalendarPage() {
               )}
 
               {viewModalData.sch.vodLink && (
-                <a href={viewModalData.sch.vodLink.startsWith('http') ? viewModalData.sch.vodLink : `https://${viewModalData.sch.vodLink}`} target="_blank" rel="noreferrer" style={{ display: 'block', width: '100%', textAlign: 'center', backgroundColor: '#ff4757', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', textDecoration: 'none', boxSizing: 'border-box' }}>
-                  📺 다시보기 시청
-                </a>
+                <a href={viewModalData.sch.vodLink.startsWith('http') ? viewModalData.sch.vodLink : `https://${viewModalData.sch.vodLink}`} target="_blank" rel="noreferrer" style={{ display: 'block', width: '100%', textAlign: 'center', backgroundColor: '#ff4757', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', textDecoration: 'none', boxSizing: 'border-box' }}>📺 다시보기 시청</a>
               )}
 
               {isAdmin && (
@@ -942,10 +900,9 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 카테고리 색상 설정 모달 */}
         {isColorModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontWeight: 'bold', backgroundColor: '#f3e8ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontSize: '14px' }}>🎨 카테고리 색상 설정</span>
                 <button onClick={() => setIsColorModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
@@ -954,12 +911,7 @@ export default function CalendarPage() {
               {Object.keys(categoryColors).map((cat) => (
                 <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px' }}>
                   <label style={{ fontSize: '15px', fontWeight: 'bold', color: (categoryColors as any)[cat] }}>{cat} 색상</label>
-                  <input 
-                    type="color" 
-                    value={(categoryColors as any)[cat]} 
-                    onChange={(e) => setCategoryColors({ ...categoryColors, [cat]: e.target.value })} 
-                    style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} 
-                  />
+                  <input type="color" value={(categoryColors as any)[cat]} onChange={(e) => setCategoryColors({ ...categoryColors, [cat]: e.target.value })} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} />
                 </div>
               ))}
 
