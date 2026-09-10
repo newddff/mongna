@@ -383,6 +383,7 @@ export default function CalendarPage() {
 
             <div style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#333', fontSize: '15px' }}>
               <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
+              <a href="/wiki" style={{ textDecoration: 'none', color: 'inherit' }}>몽무위키</a>
               <a href="/calendar" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
               <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
               <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
