@@ -70,7 +70,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 2. 없으면 우리가 만든 구글 크롤링 API(`/api/search-streamer`) 호출
+    // 2. 없으면 구글 크롤링 API(`/api/search-streamer`) 호출
     try {
       const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
       const data = await res.json();
@@ -84,13 +84,16 @@ export default function CalendarPage() {
   // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (파이어베이스에 자동 캐싱)
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
+    
+    // 마지막에 타이핑 중이던 파편 대신, 완벽하게 선택된 스트리머의 공식 닉네임(selected.name)을 장착
     if (terms.length > 0) {
       terms[terms.length - 1] = selected.name;
     } else {
       terms.push(selected.name);
     }
+    
     setInputMembers(terms.join(', ') + ', ');
-    setStreamerResults([]);
+    setStreamerResults([]); // 드롭다운 닫기
 
     // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱)
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
@@ -455,7 +458,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -704,8 +707,8 @@ export default function CalendarPage() {
                     const hour = i % 12 === 0 ? 12 : i % 12;
                     return (
                       <React.Fragment key={i}>
-                        <option value={`${ampm} ${hour}:00`}>{ampm} ${hour}:00</option>
-                        <option value={`${ampm} ${hour}:30`}>{ampm} ${hour}:30</option>
+                        <option value={`${ampm} ${hour}:00`}>{ampm} {hour}:00</option>
+                        <option value={`${ampm} ${hour}:30`}>{ampm} {hour}:30</option>
                       </React.Fragment>
                     );
                   })}
