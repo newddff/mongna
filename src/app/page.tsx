@@ -18,6 +18,7 @@ export default function HomePage() {
   
   const [scheduleData, setScheduleData] = useState<any>({});
   
+  // 캘린더와 동일한 파스텔 색상 연동을 위한 상태
   const [categoryColors, setCategoryColors] = useState<any>({
     합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
   });
@@ -70,6 +71,7 @@ export default function HomePage() {
       }
     });
 
+    // 캘린더 색상 실시간 연동
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
       if (docSnap.exists()) {
         setCategoryColors((prev: any) => ({ ...prev, ...(docSnap.data() as any) }));
@@ -179,6 +181,7 @@ export default function HomePage() {
     }
   };
 
+  // 캘린더 색상과 연동되도록 업그레이드된 색상 함수
   const getEventColor = (sch: any) => {
     if (sch.backgroundColor) return sch.backgroundColor;
     if (categoryColors[sch.type]) return categoryColors[sch.type]; 
@@ -220,8 +223,7 @@ export default function HomePage() {
         __html: `
         @media (max-width: 768px) {
           .main-container { flex-direction: column !important; }
-          /* 모바일에서는 높이를 자동으로 조절 */
-          .left-profile { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; height: auto !important; min-height: 300px !important; }
+          .left-profile { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; height: auto !important; }
           .schedule-grid { display: flex !important; overflow-x: auto !important; padding-bottom: 10px; }
           .schedule-grid > div { min-width: 100px; }
           .schedule-grid::-webkit-scrollbar { display: none; }
@@ -269,9 +271,13 @@ export default function HomePage() {
         {/* 메인 레이아웃 */}
         <div className="main-container" style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
           
-          {/* 🟢 수정됨: 좌측 메인 사진 (원래 만드셨던 height와 minHeight 복구!) */}
-          <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', height: 'calc(100vh - 150px)', minHeight: '500px', display: 'flex' }}>
-            <img src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} alt="메인 사진" style={{ width: '100%', height: '100%', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} />
+          {/* 🌟 핵심 수정: 해상도(모니터 크기)에 따라 찌그러지지 않고 비율을 예쁘게 유지하는 aspectRatio 적용 */}
+          <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', display: 'flex' }}>
+            <img 
+              src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} 
+              alt="메인 사진" 
+              style={{ width: '100%', aspectRatio: '3/4', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} 
+            />
           </div>
 
           <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
@@ -306,11 +312,11 @@ export default function HomePage() {
                               [{sch.time || '미정'}]
                             </div>
                             <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
                 })}
               </div>
             </div>
