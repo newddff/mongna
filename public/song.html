@@ -28,7 +28,7 @@
   .top-bar {
     height: 70px; display: flex; align-items: center; justify-content: space-between;
     padding: 0 40px; position: sticky; top: 0; z-index: 100;
-    background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168, 85, 247, 0.1);
   }
   
   .logo-wrap {
@@ -70,7 +70,7 @@
   
   .search-wrap { flex: 1; min-width: 250px; display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 12px 20px; border-radius: 16px; border: 1px solid #e2e8f0; transition: 0.2s; }
   .search-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
-  .search-wrap input { border: none; background: transparent; outline: none; font-size: 15px; flex: 1; font-weight: 500; }
+  .search-wrap input { border: none; background: transparent; outline: none; font-size: 15px; flex: 1; font-weight: 500; color: #333; }
   
   .sort-select { padding: 12px 15px; border-radius: 16px; border: 1px solid #e2e8f0; background: white; font-weight: bold; font-size: 14px; outline: none; cursor: pointer; color: var(--text-main); }
   .sort-select:focus { border-color: var(--primary); }
@@ -97,16 +97,9 @@
   
   .artist-group-header {
     grid-column: 1 / -1; 
-    font-size: 20px;
-    font-weight: 900;
-    color: #1e293b;
-    margin-top: 25px;
-    margin-bottom: 5px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f1f5f9;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 20px; font-weight: 900; color: #1e293b;
+    margin-top: 25px; margin-bottom: 5px; padding-bottom: 10px;
+    border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: 8px;
   }
   .artist-group-header:first-child { margin-top: 0; } 
 
@@ -171,8 +164,8 @@
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-sub); font-weight: bold; }
 
   /* 룰렛 모달창 */
-  .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  .roulette-box { background: white; padding: 50px 40px; border-radius: 32px; width: 450px; max-width: 90vw; min-height: 400px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); position: relative; display: flex; flex-direction: column; justify-content: center;}
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+  .roulette-box { background: white; padding: 50px 40px; border-radius: 32px; width: 450px; max-width: 100%; min-height: 400px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); position: relative; display: flex; flex-direction: column; justify-content: center;}
   .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; transition: 0.2s; }
   .modal-close:hover { color: #1e293b; }
   .r-announce { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 30px; }
@@ -184,27 +177,43 @@
   @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
   /* 정보 수정 모달창 */
-  .edit-box { background: white; padding: 40px; border-radius: 24px; width: 400px; max-width: 90vw; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
+  .edit-box { background: white; padding: 40px; border-radius: 24px; width: 400px; max-width: 100%; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25); box-sizing: border-box; }
   .e-title { font-size: 20px; font-weight: 900; color: var(--primary); margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
   .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
   .input-group label { font-size: 14px; font-weight: bold; color: #475569; }
-  .input-group input, .input-group select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: 14px; outline: none; font-weight: bold; }
+  .input-group input, .input-group select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: 14px; outline: none; font-weight: bold; width: 100%; box-sizing: border-box; }
   .input-group input:focus, .input-group select:focus { border-color: var(--primary); }
   .save-edit-btn { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
   .save-edit-btn:hover { background: var(--primary-hover); }
-  .save-edit-btn:disabled { background: #94a3b8; }
+  .save-edit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
-  /* 모바일 뷰 최적화 */
+  /* 🟢 모바일 뷰 최적화 (반응형 끝판왕) */
   @media (max-width: 768px) {
-    .main-container { margin: 20px; padding: 20px; }
-    .top-bar { padding: 0 20px; }
-    .controls-row { flex-direction: column; align-items: stretch; }
+    .top-bar { flex-direction: column; height: auto; padding: 15px 20px; gap: 15px; }
+    .nav-menu { flex-wrap: wrap; justify-content: center; font-size: 14px; gap: 15px; width: 100%; }
+    .admin-btn { width: 100%; text-align: center; }
+
+    .main-container { margin: 20px 10px; padding: 20px 15px; border-radius: 20px; }
+    
+    .controls-row { flex-direction: column; align-items: stretch; gap: 10px; }
+    .search-wrap { width: 100%; box-sizing: border-box; }
+    .sort-select, .roulette-btn { width: 100%; justify-content: center; }
+    
+    /* 💡 모바일에서 상세 뷰가 리스트보다 '먼저' 나오도록 설정 */
     .split-layout { flex-direction: column; gap: 20px; }
-    .detail-view { width: 100%; position: static; padding: 20px; box-sizing: border-box; }
+    .detail-view { width: 100%; position: sticky; top: 130px; z-index: 10; padding: 20px; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; text-align: left; gap: 20px; }
+    .detail-cover { width: 100px; height: 100px; margin-bottom: 0; border-radius: 16px; }
+    .detail-text-wrap { display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
+    .detail-title { font-size: 18px; margin-bottom: 4px; }
+    .detail-artist { font-size: 13px; margin-bottom: 10px; }
+    .detail-tags { justify-content: flex-start; margin-bottom: 10px; }
+    
     .admin-input-group { flex-direction: column; }
     .add-btn { width: 100%; }
+    
     .roulette-box { padding: 30px 20px; min-height: 350px;}
     .winner-cover { width: 160px; height: 160px; }
+    .edit-box { padding: 25px; }
   }
 </style>
 </head>
@@ -218,7 +227,7 @@
   
   <div class="nav-menu">
     <a href="/">홈</a>
-    <a href="/wiki" style="text-decoration: none; color: inherit;">몽무위키</a>
+    <a href="/wiki">몽무위키</a>
     <a href="/calendar">캘린더</a>
     <a href="/song.html" class="active">노래책</a>
     <a href="/reward.html">업보(보상)</a>
@@ -256,7 +265,7 @@
   <!-- 스플릿 레이아웃 적용 영역 -->
   <div class="split-layout">
     
-    <!-- 좌측 상세 뷰 -->
+    <!-- 좌측 상세 뷰 (모바일에선 상단으로 이동) -->
     <div class="detail-view" id="detailView">
       <div class="empty-state" style="padding: 20px;">곡을 선택해주세요.</div>
     </div>
@@ -276,16 +285,16 @@
     <div style="display:flex; flex-direction:column; gap:10px;">
       
       <div class="admin-input-group">
-        <div style="flex:1.5; position:relative; min-width:200px;">
+        <div style="flex:1.5; position:relative; min-width:200px; width: 100%;">
           <input type="text" id="inputTitle" placeholder="노래 제목을 치면 검색창이 뜹니다!" oninput="handleTitleInput()" autocomplete="off">
           <div id="autoCompleteBox" class="autocomplete-box"></div>
         </div>
         
-        <div style="flex:1; min-width:120px;">
+        <div style="flex:1; min-width:120px; width: 100%;">
           <input type="text" id="inputArtist" placeholder="가수 이름">
         </div>
         
-        <div style="width:100px;">
+        <div style="width:100px; width: 100%;">
           <select id="inputGenre">
             <option value="K-POP">K-POP</option>
             <option value="POP">POP</option>
@@ -293,7 +302,7 @@
           </select>
         </div>
         
-        <div>
+        <div style="width: 100%;">
           <button class="add-btn" id="addBtn" onclick="addSong()">서버에 등록</button>
         </div>
       </div>
@@ -389,6 +398,13 @@
   let cachedCoverUrl = ""; 
   let globalYtApiKey = ""; 
 
+  // 💡 100% 에러 방어(안전 배열 변환) 헬퍼 함수
+  const safeArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    return Object.values(data).filter(item => item !== null && typeof item !== 'undefined');
+  };
+
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "");
@@ -408,7 +424,8 @@
   onSnapshot(songRef, (docSnap) => {
     try {
       if (docSnap.exists()) {
-        songs = docSnap.data().list || [];
+        const rawList = docSnap.data().list;
+        songs = safeArray(rawList).filter(s => s && typeof s === 'object');
       } else {
         songs = [];
       }
@@ -683,6 +700,11 @@
   window.selectSong = function(id) {
     selectedSongId = id;
     renderSongs(); 
+    
+    // 💡 모바일 환경일 때 곡을 선택하면 자동으로 부드럽게 상단으로 스크롤 올려주기
+    if (window.innerWidth <= 768) {
+      window.scrollTo({ top: 150, behavior: 'smooth' });
+    }
   };
 
   window.renderDetailView = function() {
@@ -704,22 +726,40 @@
     if (statusText === '보류') statusClass = 'tag-status-hold';
 
     const adminControlsHtml = isAdmin ? `
-      <div style="margin-top:25px; display:flex; gap:10px; width:100%;">
-        <button onclick="editSong(${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; color:#475569; font-weight:bold; cursor:pointer; transition:0.2s;">✏️ 정보 수정</button>
-        <button onclick="deleteSong(event, ${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#fee2e2; color:#ef4444; font-weight:bold; cursor:pointer; transition:0.2s;">🗑️ 삭제하기</button>
+      <div style="margin-top:20px; display:flex; gap:10px; width:100%;">
+        <button onclick="editSong(${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; color:#475569; font-weight:bold; cursor:pointer; transition:0.2s;">✏️ 수정</button>
+        <button onclick="deleteSong(event, ${song.id})" style="flex:1; padding:12px; border-radius:12px; border:none; background:#fee2e2; color:#ef4444; font-weight:bold; cursor:pointer; transition:0.2s;">🗑️ 삭제</button>
       </div>
     ` : '';
 
-    pane.innerHTML = `
-      <img src="${escapeHtml(song.cover)}" class="detail-cover" alt="커버">
-      <div class="detail-title">${escapeHtml(song.title)}</div>
-      <div class="detail-artist">${escapeHtml(song.artist)}</div>
-      <div class="detail-tags">
-        <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
-        <span class="tag ${statusClass}">${escapeHtml(statusText)}</span>
-      </div>
-      ${adminControlsHtml}
-    `;
+    // 💡 화면 크기에 따라 상세 뷰 렌더링 방식 변경
+    if (window.innerWidth <= 768) {
+      // 모바일 뷰 렌더링
+      pane.innerHTML = `
+        <img src="${escapeHtml(song.cover)}" class="detail-cover" alt="커버">
+        <div class="detail-text-wrap">
+          <div class="detail-title">${escapeHtml(song.title)}</div>
+          <div class="detail-artist">${escapeHtml(song.artist)}</div>
+          <div class="detail-tags">
+            <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
+            <span class="tag ${statusClass}">${escapeHtml(statusText)}</span>
+          </div>
+          ${adminControlsHtml}
+        </div>
+      `;
+    } else {
+      // PC 뷰 렌더링
+      pane.innerHTML = `
+        <img src="${escapeHtml(song.cover)}" class="detail-cover" alt="커버">
+        <div class="detail-title">${escapeHtml(song.title)}</div>
+        <div class="detail-artist">${escapeHtml(song.artist)}</div>
+        <div class="detail-tags">
+          <span class="tag ${genreClass}">${escapeHtml(song.genre)}</span>
+          <span class="tag ${statusClass}">${escapeHtml(statusText)}</span>
+        </div>
+        ${adminControlsHtml}
+      `;
+    }
   };
 
   window.renderSongs = function() {
@@ -840,6 +880,11 @@
     if (spinInterval) clearInterval(spinInterval);
     document.getElementById('rouletteModal').style.display = 'none';
   };
+
+  // 💡 모바일 화면 변화에 대응하기 위한 렌더링 추가
+  window.addEventListener('resize', () => {
+    if (selectedSongId) renderDetailView();
+  });
 
   updateAdminUI();
 
