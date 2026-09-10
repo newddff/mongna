@@ -79,8 +79,9 @@ export default function CalendarPage() {
       }
 
       const localMatch = Object.values(streamerDirectory).filter((s: any) => 
-        s.name.toLowerCase() === targetKeyword.toLowerCase() || 
-        s.userId.toLowerCase() === targetKeyword.toLowerCase()
+        s && typeof s === 'object' &&
+        (String(s.name || '').toLowerCase() === targetKeyword.toLowerCase() || 
+         String(s.userId || '').toLowerCase() === targetKeyword.toLowerCase())
       );
 
       if (localMatch.length > 0) {
@@ -94,7 +95,7 @@ export default function CalendarPage() {
       try {
         const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(targetKeyword)}`);
         const data = await res.json();
-        setStreamerResults(data.streamers || []);
+        setStreamerResults(Array.isArray(data.streamers) ? data.streamers : []);
       } catch (err) {
         console.error("쉼표 입력 후 크롤링 에러:", err);
         setStreamerResults([]);
@@ -110,8 +111,9 @@ export default function CalendarPage() {
     }
 
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
-      s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
-      s.userId.toLowerCase().includes(currentTerm.toLowerCase())
+      s && typeof s === 'object' &&
+      (String(s.name || '').toLowerCase().includes(currentTerm.toLowerCase()) || 
+       String(s.userId || '').toLowerCase().includes(currentTerm.toLowerCase()))
     );
 
     setStreamerResults(localMatches);
@@ -275,11 +277,11 @@ export default function CalendarPage() {
     setSelectedDateKey(dateKeyArg);
     setViewTargetSchId(schIdArg);
 
-    // 💡 에러 방지: 일정을 강제 배열로 변환
+    // 💡 안전하게 데이터 가져오기
     const rawSchedules = schedules[dateKeyArg] || [];
-    const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+    const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules)).filter(Boolean);
 
-    const target: any = daySchedules.find((s: any) => s.id === schIdArg);
+    const target: any = daySchedules.find((s: any) => s && s.id === schIdArg);
     if (!target) return;
 
     setInputTitle(target.title || ''); setInputTime(target.time || '시간 미정'); setCurrentSchType(target.type || '방송');
@@ -305,16 +307,14 @@ export default function CalendarPage() {
 
     const updatedSchedules = { ...schedules };
     
-    // 💡 에러 방지: 기존 데이터가 꼬여있으면 배열로 초기화
+    // 💡 배열화 보장 (찌꺼기 방지)
     if (!updatedSchedules[selectedDateKey] || !Array.isArray(updatedSchedules[selectedDateKey])) {
-      updatedSchedules[selectedDateKey] = Array.isArray(schedules[selectedDateKey]) 
-        ? [...schedules[selectedDateKey]] 
-        : Object.values(schedules[selectedDateKey] || {});
+      updatedSchedules[selectedDateKey] = Array.isArray(schedules[selectedDateKey]) ? [...schedules[selectedDateKey]] : Object.values(schedules[selectedDateKey] || {});
     }
 
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
-        if (s.id === viewTargetSchId) return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
+        if (s && s.id === viewTargetSchId) return { ...s, title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' };
         return s;
       });
     } else {
@@ -333,9 +333,8 @@ export default function CalendarPage() {
 
       const updatedSchedules = { ...schedules };
       if (updatedSchedules[dateKeyArg]) {
-        // 💡 에러 방지: 배열 강제화
         const rawArr = Array.isArray(updatedSchedules[dateKeyArg]) ? updatedSchedules[dateKeyArg] : Object.values(updatedSchedules[dateKeyArg]);
-        updatedSchedules[dateKeyArg] = rawArr.filter((s: any) => s.id !== schIdArg);
+        updatedSchedules[dateKeyArg] = rawArr.filter((s: any) => s && s.id !== schIdArg);
       }
 
       try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setViewModalData(null); } catch (e) { alert("삭제 실패!"); }
@@ -349,7 +348,7 @@ export default function CalendarPage() {
     const link = engine === 'steam' ? `https://store.steampowered.com/search/?term=${encodeURIComponent(query)}` : `https://www.google.com/search?q=${encodeURIComponent(query + ' 게임')}`;
     window.open(link, '_blank');
 
-    const newHistory = [{ query, engine }, ...searchHistory.filter((h: any) => h.query !== query)].slice(0, 5);
+    const newHistory = [{ query, engine }, ...searchHistory.filter((h: any) => h && h.query !== query)].slice(0, 5);
     setSearchHistory(newHistory); setGameSearchQuery('');
 
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
@@ -377,7 +376,6 @@ export default function CalendarPage() {
       const newSch = { id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: (categoryColors as any)['겜방'] || '#f59e0b' };
       const updatedSchedules = { ...schedules };
       
-      // 💡 에러 방지
       if (!updatedSchedules[dateKey] || !Array.isArray(updatedSchedules[dateKey])) {
         updatedSchedules[dateKey] = Array.isArray(schedules[dateKey]) ? [...schedules[dateKey]] : Object.values(schedules[dateKey] || {});
       }
@@ -429,11 +427,12 @@ export default function CalendarPage() {
     setIsColorModalOpen(false);
   };
 
-  // 💡 Hydration 및 렌더링 에러 방지
-  if (!isMounted) return <div />;
+  // 💡 Hydration 및 루트 충돌 방지: null 반환으로 완벽 차단
+  if (!isMounted) return null;
 
   return (
     <>
+      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -486,7 +485,6 @@ export default function CalendarPage() {
           <div className="main-wrapper" style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
             <div className="flex-layout" style={{ display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap' }}>
               
-              {/* 왼쪽: 캘린더 영역 */}
               <div className="calendar-area" style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
@@ -505,7 +503,6 @@ export default function CalendarPage() {
                 </div>
 
                 {isMobile ? (
-                  // 📱 모바일: 미니 달력 + 하단 상세 리스트 구조
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
                     <div style={{ background: '#fff', borderRadius: '24px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 'bold', marginBottom: '15px', fontSize: '14px' }}>
@@ -518,9 +515,10 @@ export default function CalendarPage() {
                           if (!dateObj) return <div key={idx} />;
                           const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
                           
-                          // 💡 에러 방지 로직 적용
+                          // 💡 100% 에러 방지 (null 객체 완벽 필터링)
                           const rawSchedules = schedules[dateKey] || [];
-                          const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+                          const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules))
+                            .filter((sch: any) => sch && typeof sch === 'object');
                           
                           const isToday = (dateKey === todayStr);
                           const isSelected = (dateKey === mobileSelectedDate);
@@ -549,7 +547,7 @@ export default function CalendarPage() {
                               {daySchedules.length > 0 && (
                                 <div style={{ display: 'flex', gap: '3px', position: 'absolute', bottom: '6px' }}>
                                   {daySchedules.slice(0,3).map((sch: any, sIdx: number) => (
-                                    <div key={sIdx} style={{ width: '5px', height: '5px', borderRadius: '50%', background: isSelected ? '#fff' : (sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e') }} />
+                                    <div key={sIdx} style={{ width: '5px', height: '5px', borderRadius: '50%', background: isSelected ? '#fff' : (sch.backgroundColor || (categoryColors as any)[sch.type || ''] || '#fb819e') }} />
                                   ))}
                                 </div>
                               )}
@@ -573,19 +571,23 @@ export default function CalendarPage() {
                        
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {(() => {
-                            // 💡 에러 방지 로직 적용
+                            // 💡 100% 에러 방지 필터링
                             const rawSelectedSchedules = schedules[mobileSelectedDate] || [];
-                            const selectedSchedules = Array.isArray(rawSelectedSchedules) ? rawSelectedSchedules : Object.values(rawSelectedSchedules);
+                            const selectedSchedules = (Array.isArray(rawSelectedSchedules) ? rawSelectedSchedules : Object.values(rawSelectedSchedules))
+                              .filter((sch: any) => sch && typeof sch === 'object');
                             
                             if (selectedSchedules.length === 0) {
                               return <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>선택된 날짜에 일정이 없습니다.</div>;
                             }
                             return selectedSchedules.map((sch: any, sIdx: number) => {
-                              const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
+                              const bg = sch.backgroundColor || (categoryColors as any)[sch.type || ''] || '#fb819e';
+                              const safeTitle = typeof sch.title === 'string' ? sch.title : String(sch.title || '제목 없음');
+                              const safeTime = sch.time ? String(sch.time) : '';
+
                               return (
                                 <div key={sIdx} onClick={() => setViewModalData({ sch, dateKey: mobileSelectedDate })} style={{ background: bg, color: '#fff', padding: '16px', borderRadius: '16px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                                  {sch.time && sch.time !== '시간 미정' && <span style={{ fontSize: '12px', background: 'rgba(0,0,0,0.15)', alignSelf: 'flex-start', padding: '4px 8px', borderRadius: '8px' }}>⏰ {sch.time}</span>}
-                                  <span>{sch.title}</span>
+                                  {safeTime && safeTime !== '시간 미정' && <span style={{ fontSize: '12px', background: 'rgba(0,0,0,0.15)', alignSelf: 'flex-start', padding: '4px 8px', borderRadius: '8px' }}>⏰ {safeTime}</span>}
+                                  <span>{safeTitle}</span>
                                 </div>
                               );
                             });
@@ -594,7 +596,6 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 ) : (
-                  // 💻 PC: 7칸 넓은 그리드 뷰 
                   <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
                       {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
@@ -610,9 +611,10 @@ export default function CalendarPage() {
 
                         const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
                         
-                        // 💡 에러 방지 로직 100% 적용 완료
+                        // 💡 100% 에러 방지 (null 객체 완벽 필터링)
                         const rawSchedules = schedules[dateKey] || [];
-                        const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+                        const daySchedules = (Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules))
+                          .filter((sch: any) => sch && typeof sch === 'object');
                         
                         const isToday = (dateObj.getFullYear() === today.getFullYear() && dateObj.getMonth() === today.getMonth() && dateObj.getDate() === today.getDate());
                         const dayOfWeek = dateObj.getDay();
@@ -640,21 +642,24 @@ export default function CalendarPage() {
                           >
                             <span style={{ fontSize: '15px', fontWeight: 900, color: numColor, marginBottom: '6px' }}>{dateObj.getDate()}</span>
                             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                              {daySchedules.map((sch: any) => {
-                                const bg = sch.backgroundColor || (categoryColors as any)[sch.type] || '#fb819e';
+                              {daySchedules.map((sch: any, sIdx: number) => {
+                                const bg = sch.backgroundColor || (categoryColors as any)[sch.type || ''] || '#fb819e';
+                                const safeTitle = typeof sch.title === 'string' ? sch.title : String(sch.title || '제목 없음');
+                                const safeTime = sch.time ? String(sch.time) : '';
+
                                 return (
                                   <div 
-                                    key={sch.id}
+                                    key={sch.id || sIdx}
                                     onClick={(e) => { e.stopPropagation(); setViewModalData({ sch, dateKey }); }}
                                     style={{ 
                                       fontSize: '11px', padding: '6px 8px', borderRadius: '8px', fontWeight: 700, boxShadow: '0 2px 5px rgba(0,0,0,0.08)', cursor: 'pointer', lineHeight: '1.35', overflow: 'hidden', textAlign: 'left',
                                       backgroundColor: bg, color: '#fff'
                                     }}
                                   >
-                                    {sch.time && sch.time !== '시간 미정' && (
-                                      <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '3px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 5px', borderRadius: '4px' }}>[{sch.time}]</span>
+                                    {safeTime && safeTime !== '시간 미정' && (
+                                      <span style={{ display: 'inline-block', opacity: 0.95, marginBottom: '3px', fontSize: '0.85em', fontWeight: 800, background: 'rgba(0,0,0,0.15)', padding: '2px 5px', borderRadius: '4px' }}>[{safeTime}]</span>
                                     )}
-                                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sch.title}</span>
+                                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{safeTitle}</span>
                                   </div>
                                 );
                               })}
@@ -840,7 +845,6 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 💡 일정 모달 렌더링 시 안전(Safe) 로직 완벽 적용 */}
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
             <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
@@ -858,7 +862,7 @@ export default function CalendarPage() {
               {viewModalData.sch.type === '합방' && viewModalData.sch.members && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {(() => {
-                    const rawMembers = viewModalData.sch.members || [];
+                    const rawMembers = viewModalData.sch.members;
                     const memberList = Array.isArray(rawMembers) ? rawMembers : Object.values(rawMembers);
 
                     return memberList.map((name: any, idx: number) => {
