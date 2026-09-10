@@ -48,53 +48,63 @@ export default function CalendarPage() {
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 군더더기 없이 깔끔하게 작동하는 검색 함수
-  const handleStreamerSearch = async (val: string) => {
+  // 🟢 타이핑 중엔 조용히 있다가 쉼표(,)를 치는 순간 크롤링을 수행하여 드롭다운을 띄우는 함수
+  const handleStreamerSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
     setInputMembers(val);
-    const terms = val.split(',');
-    const currentTerm = terms[terms.length - 1].trim();
 
+    const terms = val.split(',').map(m => m.trim()).filter(m => m !== '');
+    const currentTerm = terms[terms.length - 1] || '';
+
+    // 1. 쉼표(,)를 입력한 순간! (방금 타이핑 끝낸 단어 타겟팅)
+    if (val.endsWith(',')) {
+      const targetKeyword = terms[terms.length - 1];
+      if (!targetKeyword || targetKeyword.length < 1) {
+        setStreamerResults([]);
+        return;
+      }
+
+      // 이미 파이어베이스 명부에 있는지 확인
+      const localMatch = Object.values(streamerDirectory).filter((s: any) => 
+        s.name.toLowerCase() === targetKeyword.toLowerCase() || 
+        s.userId.toLowerCase() === targetKeyword.toLowerCase()
+      );
+
+      if (localMatch.length > 0) {
+        setStreamerResults(localMatch);
+        return;
+      }
+
+      // 명부에 없으면 쉼표가 찍힌 이 순간 ScraperAPI 크롤링 실행!
+      try {
+        const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(targetKeyword)}`);
+        const data = await res.json();
+        const fetchedResults = data.streamers || [];
+
+        // 드롭다운에 결과 띄우기
+        setStreamerResults(fetchedResults);
+      } catch (err) {
+        console.error("쉼표 입력 후 크롤링 에러:", err);
+        setStreamerResults([]);
+      }
+      return;
+    }
+
+    // 2. 쉼표 없이 타이핑 중일 때는 파이어베이스 명부에서만 초고속 실시간 필터링
     if (currentTerm.length < 1) {
       setStreamerResults([]);
       return;
     }
 
-    // 1단계: 파이어베이스 명부(캐시)에서 먼저 검색
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
       s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
       s.userId.toLowerCase().includes(currentTerm.toLowerCase())
     );
 
-    if (localMatches.length > 0) {
-      setStreamerResults(localMatches);
-      return;
-    }
-
-    // 2단계: 명부에 없을 때만 ScraperAPI 구글 크롤링 실행
-    try {
-      const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
-      const data = await res.json();
-      const fetchedResults = data.streamers || [];
-
-      setStreamerResults(fetchedResults);
-
-      if (fetchedResults.length > 0) {
-        const bestMatch = fetchedResults[0];
-        const updatedDir = { ...streamerDirectory, [bestMatch.name]: bestMatch };
-        setStreamerDirectory(updatedDir);
-
-        const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
-      }
-    } catch (err) {
-      console.error("스트리머 검색 오류:", err);
-      setStreamerResults([]);
-    }
+    setStreamerResults(localMatches);
   };
 
-  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수
+  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (파이어베이스 자동 캐싱 포함)
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     
@@ -107,6 +117,7 @@ export default function CalendarPage() {
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]); // 드롭다운 닫기
 
+    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱)
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
@@ -750,16 +761,16 @@ export default function CalendarPage() {
 
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (실시간 자동완성 & 크롤링)</label>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (입력 후 쉼표 입력 시 크롤링 및 목록 표시)</label>
                   <input 
                     type="text" 
                     value={inputMembers} 
-                    onChange={(e) => handleStreamerSearch(e.target.value)} 
-                    placeholder="닉네임 입력 시 구글 검색 크롤링 (예: 최또)" 
+                    onChange={handleStreamerSearch} 
+                    placeholder="예: 달묘_ (입력 후 쉼표 , 를 치면 검색 결과 목록이 뜸)" 
                     style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
                   />
 
-                  {/* 🟢 실시간 자동완성 드롭다운 UI */}
+                  {/* 🟢 크롤링 결과 드롭다운 UI */}
                   {streamerResults.length > 0 && (
                     <div style={{ 
                       position: 'absolute', top: '100%', left: 0, width: '100%', 
