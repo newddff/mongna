@@ -6,6 +6,9 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function WikiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false); // 💡 모바일 뷰 자동 감지
+  const [isMounted, setIsMounted] = useState(false);
+
   const [wikiData, setWikiData] = useState<any>({
     profile: {
       name: '몽나_',
@@ -20,20 +23,15 @@ export default function WikiPage() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
-  
-  // 현재 보고 있는 탭 (백과사전 or 역사)
   const [activeTab, setActiveTab] = useState('wiki'); 
 
-  // 페이지 넘기기 상태 (백과사전 탭)
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const ITEMS_PER_PAGE = 3; // 한 페이지에 보여줄 질문/답변 개수
+  const ITEMS_PER_PAGE = 3; 
 
-  // 모달 상태 관리
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<any>(null);
 
-  // 폼(Form) 입력 상태
   const [epName, setEpName] = useState('');
   const [epImg, setEpImg] = useState('');
   const [epSections, setEpSections] = useState<{title: string, content: string}[]>([]);
@@ -45,7 +43,15 @@ export default function WikiPage() {
   const [ecDesc, setEcDesc] = useState('');
   const [ecVod, setEcVod] = useState('');
 
-  // 🎵 책 넘기는 소리 재생 함수 (무음 구간 0.4초 자르고 즉시 재생)
+  // 💡 브라우저 사이즈 감지
+  useEffect(() => {
+    setIsMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const playPageSound = () => {
     if (typeof window !== 'undefined') {
       const audio = new Audio('/page-flip.mp3');
@@ -118,17 +124,33 @@ export default function WikiPage() {
     return doc(db, 'mongna_calendar_data', 'wiki_data');
   };
 
-  // 프로필(동적 항목) 편집 열기
+  // 💡 100% 에러 방어 로직: 섹션 데이터를 항상 올바른 배열로 추출
+  const getSafeSections = () => {
+    const rawSections = wikiData?.profile?.sections || [];
+    return (Array.isArray(rawSections) ? rawSections : Object.values(rawSections))
+      .filter((s: any) => s && typeof s === 'object');
+  };
+
+  // 💡 100% 에러 방어 로직: 히스토리 데이터를 항상 올바른 배열로 추출
+  const getSafeHistory = () => {
+    const rawHistory = wikiData?.history || [];
+    return (Array.isArray(rawHistory) ? rawHistory : Object.values(rawHistory))
+      .filter((c: any) => c && typeof c === 'object');
+  };
+
   const openProfileEdit = () => {
-    const p = wikiData.profile;
+    const p = wikiData.profile || {};
     setEpName(p.name || '');
     setEpImg(p.image || '');
     
-    const loadedSections = p.sections || [
-      { title: '📝 몽나 소개', content: p.desc || '' },
-      { title: '📜 방송 규칙', content: p.rules || '' },
-      { title: '🗣️ 유행어 & 밈', content: p.meme || '' }
-    ];
+    const loadedSections = getSafeSections();
+    if (loadedSections.length === 0) {
+      loadedSections.push(
+        { title: '📝 몽나 소개', content: p.desc || '' },
+        { title: '📜 방송 규칙', content: p.rules || '' },
+        { title: '🗣️ 유행어 & 밈', content: p.meme || '' }
+      );
+    }
     setEpSections(loadedSections);
     setIsProfileModalOpen(true);
   };
@@ -137,7 +159,7 @@ export default function WikiPage() {
     const newProfile = {
       name: epName.trim() || '몽나_',
       image: epImg.trim(),
-      sections: epSections
+      sections: epSections.filter(s => s.title.trim() !== '') // 빈 제목 방지
     };
     try {
       const updatedData = { ...wikiData, profile: newProfile };
@@ -148,7 +170,8 @@ export default function WikiPage() {
 
   const openCardEdit = (cardId: number | null) => {
     if (cardId) {
-      const card = wikiData.history.find((c: any) => c.id === cardId);
+      const safeHistory = getSafeHistory();
+      const card = safeHistory.find((c: any) => c.id === cardId);
       if (card) {
         setEcId(card.id);
         setEcTitle(card.title || '');
@@ -183,7 +206,7 @@ export default function WikiPage() {
       vodLink: ecVod.trim()
     };
 
-    let updatedHistory = [...(wikiData.history || [])];
+    let updatedHistory = [...getSafeHistory()];
     if (ecId) {
       const idx = updatedHistory.findIndex((c: any) => c.id === ecId);
       if (idx > -1) updatedHistory[idx] = newCard;
@@ -201,7 +224,8 @@ export default function WikiPage() {
   const deleteCard = async (cardId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("이 기록을 정말 삭제하시겠습니까?")) return;
-    const updatedHistory = wikiData.history.filter((c: any) => c.id !== cardId);
+    
+    const updatedHistory = getSafeHistory().filter((c: any) => c.id !== cardId);
     try {
       const updatedData = { ...wikiData, history: updatedHistory };
       await setDoc(getFirebaseRef(), { data: updatedData }, { merge: true });
@@ -211,14 +235,16 @@ export default function WikiPage() {
   const getProcessedVodLink = (link: string) => {
     if (!link) return '#';
     let processedLink = link.startsWith('http') ? link : `https://${link}`;
-    const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobile && processedLink.includes('vod.sooplive.com')) {
       processedLink = processedLink.replace('vod.sooplive.com/player', 'm.sooplive.co.kr/video');
     }
     return processedLink;
   };
 
-  const sortedHistory = [...(wikiData.history || [])].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const safeSections = getSafeSections();
+  const sortedHistory = getSafeHistory().sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+  if (!isMounted) return null; // Hydration 에러 방지
 
   return (
     <>
@@ -232,16 +258,29 @@ export default function WikiPage() {
         .cab:hover { background: white; transform: scale(1.1); }
         .card-admin-btns { display: none; }
         .admin-mode .card-admin-btns { display: flex; }
-        .sidebar-menu { display: flex; flex-direction: column; gap: 10px; width: 220px; flex-shrink: 0; }
         .menu-btn { padding: 15px 20px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; text-align: left; cursor: pointer; transition: 0.2s; background: transparent; color: #475569; }
         .menu-btn:hover { background: #f1f5f9; }
         .menu-btn.active { background: #a855f7; color: white; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3); }
+        
+        /* 🟢 모바일 자동 감지 및 뷰 전환 CSS */
         @media (max-width: 768px) {
-          .wiki-layout { flex-direction: column !important; }
-          .sidebar-menu { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding-bottom: 10px; }
-          .menu-btn { white-space: nowrap; }
-          .profile-section-wrap { flex-direction: column !important; align-items: center !important; }
-          .profile-info-wrap { width: 100% !important; border-left: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+          .nav-container { flex-direction: column !important; height: auto !important; padding: 15px 20px !important; gap: 15px; }
+          .nav-links { flex-wrap: wrap !important; justify-content: center !important; font-size: 14px !important; gap: 15px !important; }
+          .top-btn-group { width: 100%; justify-content: center; }
+          
+          .wiki-layout { flex-direction: column !important; padding: 20px !important; gap: 20px !important; }
+          
+          /* 모바일 사이드바 -> 탭바로 변신 */
+          .sidebar-menu { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding-bottom: 5px; gap: 10px !important; }
+          .sidebar-title { display: none !important; } /* 탭바에서는 '목차' 글씨 숨김 */
+          .menu-btn { white-space: nowrap; text-align: center !important; flex: 1; padding: 12px !important; font-size: 14px !important; }
+          
+          /* 위키 책 화면 (가로를 세로로 변환) */
+          .profile-section-wrap { flex-direction: column !important; align-items: center !important; padding: 20px !important; border-radius: 20px !important; }
+          .book-divider { display: none !important; } /* 그림자 선 제거 */
+          .profile-info-wrap { width: 100% !important; padding-left: 0 !important; }
+          
+          .modal-box { width: 95% !important; padding: 25px 20px !important; }
         }
       `}} />
 
@@ -254,22 +293,22 @@ export default function WikiPage() {
         )}
 
         {/* 상단 네비게이션바 */}
-        <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0' }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
-            </a>
+        <nav className="nav-container" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', maxWidth: '1400px', margin: '0 auto' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
+          </a>
 
-            <div style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#1e293b', fontSize: '15px' }}>
-              <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
-              <a href="/calendar" style={{ textDecoration: 'none', color: 'inherit' }}>캘린더</a>
-              <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
-              <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
-              <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
-              <a href="/wiki" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '3px' }}>몽무위키</a>
-            </div>
+          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#1e293b', fontSize: '15px' }}>
+            <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
+            <a href="/calendar" style={{ textDecoration: 'none', color: 'inherit' }}>캘린더</a>
+            <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
+            <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
+            <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
+            <a href="/wiki" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '3px' }}>몽무위키</a>
+          </div>
 
-            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'white', color: isAdmin ? '#333' : '#1e293b', border: isAdmin ? 'none' : '1px solid #ddd' }}>
+          <div className="top-btn-group" style={{ display: 'flex', alignItems: 'center' }}>
+            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: isAdmin ? 'none' : '1px solid #ddd', background: isAdmin ? '#ffd700' : 'white', color: isAdmin ? '#333' : '#1e293b' }}>
               {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
             </button>
           </div>
@@ -278,9 +317,9 @@ export default function WikiPage() {
         {/* 메인 레이아웃 (좌측 목차 + 우측 내용) */}
         <div className="wiki-layout" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px 100px', display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
           
-          {/* 좌측 사이드바 (목차) */}
-          <div className="sidebar-menu">
-            <h3 style={{ margin: '0 0 10px 10px', fontSize: '18px', color: '#0f172a' }}>📑 목차</h3>
+          {/* 좌측 사이드바 (모바일에서는 가로 탭으로 변신) */}
+          <div className="sidebar-menu" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '220px', flexShrink: 0 }}>
+            <h3 className="sidebar-title" style={{ margin: '0 0 10px 10px', fontSize: '18px', color: '#0f172a' }}>📑 목차</h3>
             <button 
               className={`menu-btn ${activeTab === 'wiki' ? 'active' : ''}`}
               onClick={() => { playPageSound(); setActiveTab('wiki'); setCurrentPageIndex(0); }}
@@ -300,27 +339,26 @@ export default function WikiPage() {
             
             {/* 탭 1: 백과사전 */}
             {activeTab === 'wiki' && (
-              <section className="profile-section-wrap" style={{ display: 'flex', gap: '40px', alignItems: 'stretch', background: '#ffffff', padding: '40px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', position: 'relative', minHeight: '500px' }}>
+              <section className="profile-section-wrap" style={{ display: 'flex', flexDirection: 'row', gap: '40px', alignItems: 'stretch', background: '#ffffff', padding: '40px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', position: 'relative', minHeight: '500px' }}>
                 <button className="edit-overlay-btn" onClick={openProfileEdit} style={{ position: 'absolute', top: '20px', left: '20px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#475569', zIndex: 10 }}>✏️ 편집</button>
                 
                 {/* 책 왼쪽 면 (프로필 사진) */}
                 <div style={{ width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                   <div style={{ background: '#fff', padding: '15px', borderRadius: '4px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid #eee', transform: 'rotate(-2deg)' }}>
-                    <img src={wikiData.profile.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" style={{ width: '220px', height: '220px', objectFit: 'cover' }} onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
-                    <h1 style={{ fontSize: '24px', fontWeight: 900, margin: '15px 0 0 0', textAlign: 'center', color: '#333' }}>{wikiData.profile.name || '몽나_'}</h1>
+                    <img src={wikiData.profile?.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" style={{ width: '220px', height: '220px', objectFit: 'cover' }} onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, margin: '15px 0 0 0', textAlign: 'center', color: '#333' }}>{wikiData.profile?.name || '몽나_'}</h1>
                   </div>
                 </div>
                 
-                {/* 책 가운데 접히는 그림자 선 */}
-                <div style={{ width: '1px', background: 'linear-gradient(to bottom, transparent, #e2e8f0, transparent)', boxShadow: '0 0 15px rgba(0,0,0,0.1)', margin: '0 10px' }}></div>
+                {/* 💻 책 가운데 접히는 그림자 선 (PC 전용) */}
+                <div className="book-divider" style={{ width: '1px', background: 'linear-gradient(to bottom, transparent, #e2e8f0, transparent)', boxShadow: '0 0 15px rgba(0,0,0,0.1)', margin: '0 10px' }}></div>
                 
                 {/* 책 오른쪽 면 (항목 내용 및 페이지네이션) */}
                 <div className="profile-info-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: '10px', height: '100%', justifyContent: 'space-between' }}>
                   
-                  {/* 페이지 분할 렌더링 */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                    {wikiData.profile.sections && wikiData.profile.sections.length > 0 ? (
-                      wikiData.profile.sections
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginTop: isMobile ? '20px' : '0' }}>
+                    {safeSections.length > 0 ? (
+                      safeSections
                         .slice(currentPageIndex * ITEMS_PER_PAGE, (currentPageIndex + 1) * ITEMS_PER_PAGE)
                         .map((sec: any, idx: number) => (
                         <div key={idx}>
@@ -338,7 +376,7 @@ export default function WikiPage() {
                   </div>
 
                   {/* 페이지 넘기기 버튼 */}
-                  {wikiData.profile.sections && wikiData.profile.sections.length > ITEMS_PER_PAGE && (
+                  {safeSections.length > ITEMS_PER_PAGE && (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '30px', paddingTop: '15px' }}>
                       <button 
                         disabled={currentPageIndex === 0}
@@ -349,13 +387,13 @@ export default function WikiPage() {
                       </button>
                       
                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#94a3b8' }}>
-                        {currentPageIndex + 1} / {Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE)}
+                        {currentPageIndex + 1} / {Math.ceil(safeSections.length / ITEMS_PER_PAGE)}
                       </span>
 
                       <button 
-                        disabled={currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1}
+                        disabled={currentPageIndex >= Math.ceil(safeSections.length / ITEMS_PER_PAGE) - 1}
                         onClick={() => { playPageSound(); setCurrentPageIndex(p => p + 1); }}
-                        style={{ background: 'transparent', border: 'none', cursor: currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1 ? 'default' : 'pointer', opacity: currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1 ? 0.3 : 1, fontSize: '15px', fontWeight: 'bold', color: '#a855f7' }}
+                        style={{ background: 'transparent', border: 'none', cursor: currentPageIndex >= Math.ceil(safeSections.length / ITEMS_PER_PAGE) - 1 ? 'default' : 'pointer', opacity: currentPageIndex >= Math.ceil(safeSections.length / ITEMS_PER_PAGE) - 1 ? 0.3 : 1, fontSize: '15px', fontWeight: 'bold', color: '#a855f7' }}
                       >
                         다음 ▶
                       </button>
@@ -382,7 +420,7 @@ export default function WikiPage() {
                   ) : (
                     sortedHistory.map((card: any) => (
                       <div key={card.id} className="history-card" 
-                        onClick={() => { playPageSound(); setViewModalData(card); }} // 🎵 카드 열 때 소리
+                        onClick={() => { playPageSound(); setViewModalData(card); }} 
                         style={{ background: '#ffffff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                         
                         {card.thumb ? (
@@ -409,11 +447,12 @@ export default function WikiPage() {
           </div>
         </div>
 
-        {/* 3. 상세 팝업 (모달) */}
+        {/* ---------------- 모달 창 (상세 & 설정) ---------------- */}
+
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px', boxSizing: 'border-box' }} 
-               onClick={() => { playPageSound(); setViewModalData(null); }}> {/* 🎵 배경 클릭 닫을 때 소리 */}
-            <div style={{ background: 'white', borderRadius: '24px', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+               onClick={() => { playPageSound(); setViewModalData(null); }}>
+            <div className="modal-box" style={{ background: 'white', borderRadius: '24px', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { playPageSound(); setViewModalData(null); }} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', width: '32px', height: '32px', borderRadius: '50%', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>✕</button>
               
               {viewModalData.thumb && (
@@ -438,7 +477,7 @@ export default function WikiPage() {
         {/* 동적 프로필 편집 모달 */}
         {isProfileModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsProfileModalOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '550px', maxWidth: '90vw', padding: '30px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '15px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', width: '550px', maxWidth: '90vw', padding: '30px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '15px' }} onClick={e => e.stopPropagation()}>
               <h2 style={{ marginTop: 0, color: '#a855f7' }}>✏️ 프로필 편집</h2>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -500,7 +539,7 @@ export default function WikiPage() {
         {/* 카드 추가/수정 모달 */}
         {isCardModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsCardModalOpen(false)}>
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '500px', maxWidth: '90vw', padding: '30px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '15px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', width: '500px', maxWidth: '90vw', padding: '30px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '15px' }} onClick={e => e.stopPropagation()}>
               <h2 style={{ marginTop: 0, color: '#a855f7' }}>{ecId ? '기록 수정하기' : '새 기록 추가'}</h2>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
