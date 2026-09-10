@@ -213,6 +213,7 @@ export default function HomePage() {
 
         <div style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
           <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
+          <a href="/wiki" style={{ textDecoration: 'none', color: 'inherit' }}>몽무위키</a>
           <a href="/calendar" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
           <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
           <a href="/reward.html" style={{ textDecoration: 'none', color: '#1e293b' }}>업보(보상)</a>
