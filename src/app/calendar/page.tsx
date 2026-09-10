@@ -23,7 +23,6 @@ export default function CalendarPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
-  // 💡 모바일에서 날짜를 터치했을 때 해당 날짜를 기억하는 상태
   const todayObj = new Date();
   const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;
   const [mobileSelectedDate, setMobileSelectedDate] = useState<string>(todayStr);
@@ -51,7 +50,6 @@ export default function CalendarPage() {
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 브라우저 사이즈 감지
   useEffect(() => {
     setIsMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -60,14 +58,10 @@ export default function CalendarPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 💡 월을 넘길 때마다 '오늘'이 포함된 달이면 오늘을, 아니면 '1일'을 자동 선택
   useEffect(() => {
     const isCurrentMonth = todayObj.getFullYear() === selectedYear && (todayObj.getMonth() + 1) === selectedMonth;
-    if (isCurrentMonth) {
-      setMobileSelectedDate(todayStr);
-    } else {
-      setMobileSelectedDate(`${selectedYear}-${selectedMonth}-1`);
-    }
+    if (isCurrentMonth) setMobileSelectedDate(todayStr);
+    else setMobileSelectedDate(`${selectedYear}-${selectedMonth}-1`);
   }, [selectedYear, selectedMonth]);
 
   const handleStreamerSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,8 +275,11 @@ export default function CalendarPage() {
     setSelectedDateKey(dateKeyArg);
     setViewTargetSchId(schIdArg);
 
-    const daySchedules = schedules[dateKeyArg] || [];
-    const target = daySchedules.find((s: any) => s.id === schIdArg);
+    // 💡 에러 방지: 일정을 강제 배열로 변환
+    const rawSchedules = schedules[dateKeyArg] || [];
+    const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+
+    const target: any = daySchedules.find((s: any) => s.id === schIdArg);
     if (!target) return;
 
     setInputTitle(target.title || ''); setInputTime(target.time || '시간 미정'); setCurrentSchType(target.type || '방송');
@@ -307,7 +304,13 @@ export default function CalendarPage() {
     const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
 
     const updatedSchedules = { ...schedules };
-    if (!updatedSchedules[selectedDateKey]) updatedSchedules[selectedDateKey] = [];
+    
+    // 💡 에러 방지: 기존 데이터가 꼬여있으면 배열로 초기화
+    if (!updatedSchedules[selectedDateKey] || !Array.isArray(updatedSchedules[selectedDateKey])) {
+      updatedSchedules[selectedDateKey] = Array.isArray(schedules[selectedDateKey]) 
+        ? [...schedules[selectedDateKey]] 
+        : Object.values(schedules[selectedDateKey] || {});
+    }
 
     if (isEditMode) {
       updatedSchedules[selectedDateKey] = updatedSchedules[selectedDateKey].map((s: any) => {
@@ -329,7 +332,11 @@ export default function CalendarPage() {
       const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
 
       const updatedSchedules = { ...schedules };
-      if (updatedSchedules[dateKeyArg]) updatedSchedules[dateKeyArg] = updatedSchedules[dateKeyArg].filter((s: any) => s.id !== schIdArg);
+      if (updatedSchedules[dateKeyArg]) {
+        // 💡 에러 방지: 배열 강제화
+        const rawArr = Array.isArray(updatedSchedules[dateKeyArg]) ? updatedSchedules[dateKeyArg] : Object.values(updatedSchedules[dateKeyArg]);
+        updatedSchedules[dateKeyArg] = rawArr.filter((s: any) => s.id !== schIdArg);
+      }
 
       try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setViewModalData(null); } catch (e) { alert("삭제 실패!"); }
     }
@@ -369,7 +376,11 @@ export default function CalendarPage() {
     if (query) {
       const newSch = { id: Date.now(), title: query, time: '오후 8:00', type: '겜방', members: [], content: `[GAME_LINK]${query}|${link}`, vodLink: '', backgroundColor: (categoryColors as any)['겜방'] || '#f59e0b' };
       const updatedSchedules = { ...schedules };
-      if (!updatedSchedules[dateKey]) updatedSchedules[dateKey] = [];
+      
+      // 💡 에러 방지
+      if (!updatedSchedules[dateKey] || !Array.isArray(updatedSchedules[dateKey])) {
+        updatedSchedules[dateKey] = Array.isArray(schedules[dateKey]) ? [...schedules[dateKey]] : Object.values(schedules[dateKey] || {});
+      }
       updatedSchedules[dateKey].push(newSch);
 
       const newHistory = index !== "" ? searchHistory.filter((_, i) => i !== parseInt(index, 10)) : searchHistory;
@@ -418,11 +429,11 @@ export default function CalendarPage() {
     setIsColorModalOpen(false);
   };
 
+  // 💡 Hydration 및 렌더링 에러 방지
   if (!isMounted) return <div />;
 
   return (
     <>
-      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -478,7 +489,6 @@ export default function CalendarPage() {
               {/* 왼쪽: 캘린더 영역 */}
               <div className="calendar-area" style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
-                {/* 상단 년/월 이동 바 */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
                   <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>◀</button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f0fa', border: '2px solid #e4dceb', borderRadius: '99px', padding: '8px 25px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -494,12 +504,9 @@ export default function CalendarPage() {
                   <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>▶</button>
                 </div>
 
-                {/* 💡 캘린더 렌더링 (모바일 vs PC 분기) */}
                 {isMobile ? (
                   // 📱 모바일: 미니 달력 + 하단 상세 리스트 구조
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
-                    
-                    {/* 1. 귀여운 미니 달력 (날짜 선택용) */}
                     <div style={{ background: '#fff', borderRadius: '24px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 'bold', marginBottom: '15px', fontSize: '14px' }}>
                         {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
@@ -510,7 +517,11 @@ export default function CalendarPage() {
                         {calendarDays.map((dateObj, idx) => {
                           if (!dateObj) return <div key={idx} />;
                           const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-                          const daySchedules = schedules[dateKey] || [];
+                          
+                          // 💡 에러 방지 로직 적용
+                          const rawSchedules = schedules[dateKey] || [];
+                          const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+                          
                           const isToday = (dateKey === todayStr);
                           const isSelected = (dateKey === mobileSelectedDate);
                           const dayOfWeek = dateObj.getDay();
@@ -535,7 +546,6 @@ export default function CalendarPage() {
                               <span style={{ fontSize: '15px', fontWeight: isSelected || isToday ? 900 : 700, color: numColor }}>
                                 {dateObj.getDate()}
                               </span>
-                              {/* 💡 날짜 아래에 예쁜 일정 점(Dot) 표시 */}
                               {daySchedules.length > 0 && (
                                 <div style={{ display: 'flex', gap: '3px', position: 'absolute', bottom: '6px' }}>
                                   {daySchedules.slice(0,3).map((sch: any, sIdx: number) => (
@@ -549,7 +559,6 @@ export default function CalendarPage() {
                       </div>
                     </div>
 
-                    {/* 2. 선택된 날짜 상세 내역 (하단 짠!) */}
                     <div style={{ background: '#fff', borderRadius: '24px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                          <div style={{ fontSize: '18px', fontWeight: 900, color: '#333' }}>
@@ -564,7 +573,10 @@ export default function CalendarPage() {
                        
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {(() => {
-                            const selectedSchedules = schedules[mobileSelectedDate] || [];
+                            // 💡 에러 방지 로직 적용
+                            const rawSelectedSchedules = schedules[mobileSelectedDate] || [];
+                            const selectedSchedules = Array.isArray(rawSelectedSchedules) ? rawSelectedSchedules : Object.values(rawSelectedSchedules);
+                            
                             if (selectedSchedules.length === 0) {
                               return <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>선택된 날짜에 일정이 없습니다.</div>;
                             }
@@ -580,10 +592,9 @@ export default function CalendarPage() {
                           })()}
                        </div>
                     </div>
-
                   </div>
                 ) : (
-                  // 💻 PC: 7칸 넓은 그리드 뷰 (기존 그대로 유지)
+                  // 💻 PC: 7칸 넓은 그리드 뷰 
                   <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '10px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#fff', textAlign: 'center', fontWeight: 'bold', minWidth: '700px', marginBottom: '15px' }}>
                       {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
@@ -598,7 +609,11 @@ export default function CalendarPage() {
                         }
 
                         const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-                        const daySchedules = schedules[dateKey] || [];
+                        
+                        // 💡 에러 방지 로직 100% 적용 완료
+                        const rawSchedules = schedules[dateKey] || [];
+                        const daySchedules = Array.isArray(rawSchedules) ? rawSchedules : Object.values(rawSchedules);
+                        
                         const isToday = (dateObj.getFullYear() === today.getFullYear() && dateObj.getMonth() === today.getMonth() && dateObj.getDate() === today.getDate());
                         const dayOfWeek = dateObj.getDay();
 
@@ -825,6 +840,7 @@ export default function CalendarPage() {
           </div>
         )}
 
+        {/* 💡 일정 모달 렌더링 시 안전(Safe) 로직 완벽 적용 */}
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
             <div className="modal-box" style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '500px', maxWidth: '90vw', padding: '40px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '25px' }} onClick={e => e.stopPropagation()}>
@@ -842,7 +858,7 @@ export default function CalendarPage() {
               {viewModalData.sch.type === '합방' && viewModalData.sch.members && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {(() => {
-                    const rawMembers = viewModalData.sch.members;
+                    const rawMembers = viewModalData.sch.members || [];
                     const memberList = Array.isArray(rawMembers) ? rawMembers : Object.values(rawMembers);
 
                     return memberList.map((name: any, idx: number) => {
