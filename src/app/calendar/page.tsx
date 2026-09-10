@@ -41,6 +41,50 @@ export default function CalendarPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
+  // 🟢 스트리머 자동완성 검색용 상태 변수 추가
+  const [streamerKeyword, setStreamerKeyword] = useState('');
+  const [streamerResults, setStreamerResults] = useState<any[]>([]);
+  const [isSearchingStreamer, setIsSearchingStreamer] = useState(false);
+
+  // 🟢 실시간 스트리머 크롤링 검색 함수
+  const handleStreamerSearch = async (val: string) => {
+    setStreamerKeyword(val);
+    
+    // 쉼표(,) 기준으로 가장 마지막에 입력 중인 닉네임 추출
+    const terms = val.split(',');
+    const currentTerm = terms[terms.length - 1].trim();
+
+    if (currentTerm.length < 1) {
+      setStreamerResults([]);
+      return;
+    }
+
+    setIsSearchingStreamer(true);
+    try {
+      const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
+      const data = await res.json();
+      setStreamerResults(data.streamers || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearchingStreamer(false);
+    }
+  };
+
+  // 🟢 드롭다운에서 스트리머를 선택했을 때 자동 반영
+  const handleSelectStreamer = (selected: any) => {
+    const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
+    if (terms.length > 0) {
+      terms[terms.length - 1] = selected.name; // 현재 치고 있던 마지막 글자를 선택한 닉네임으로 대체
+    } else {
+      terms.push(selected.name);
+    }
+    const newMembersStr = terms.join(', ') + ', ';
+    setInputMembers(newMembersStr);
+    setStreamerKeyword('');
+    setStreamerResults([]);
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsAdmin(localStorage.getItem('mongna_calendar_admin') === 'true' || localStorage.getItem('mongna_home_admin') === 'true');
@@ -182,6 +226,8 @@ export default function CalendarPage() {
     setInputMembers('');
     setInputContent('');
     setInputVod('');
+    setStreamerKeyword('');
+    setStreamerResults([]);
     setIsAddModalOpen(true);
   };
 
@@ -201,6 +247,8 @@ export default function CalendarPage() {
     setInputMembers(target.members ? target.members.join(', ') : '');
     setInputContent(target.content || '');
     setInputVod(target.vodLink || '');
+    setStreamerKeyword('');
+    setStreamerResults([]);
     setIsAddModalOpen(true);
   };
 
@@ -352,7 +400,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
+    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
   };
 
   const saveCategoryColors = async () => {
@@ -629,9 +677,46 @@ export default function CalendarPage() {
               </div>
 
               {currentSchType === '합방' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분)</label>
-                  <input type="text" value={inputMembers} onChange={(e) => setInputMembers(e.target.value)} placeholder="쉼표(,)로 구분하여 입력 (예: 송현_, 마또, 히무루)" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (쉼표로 구분 및 실시간 자동완성)</label>
+                  <input 
+                    type="text" 
+                    value={inputMembers} 
+                    onChange={(e) => {
+                      setInputMembers(e.target.value);
+                      handleStreamerSearch(e.target.value);
+                    }} 
+                    placeholder="닉네임 입력 시 숲(SOOP) 실시간 검색 (예: 몽나)" 
+                    style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
+                  />
+
+                  {/* 🟢 실시간 검색 결과 드롭다운 UI */}
+                  {streamerResults.length > 0 && (
+                    <div style={{ 
+                      position: 'absolute', top: '100%', left: 0, width: '100%', 
+                      background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', 
+                      marginTop: '4px', zIndex: 1100, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0' 
+                    }}>
+                      {streamerResults.map((s, idx) => (
+                        <div 
+                          key={idx}
+                          onClick={() => handleSelectStreamer(s)}
+                          style={{ 
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 15px', 
+                            cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' 
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                        >
+                          <img src={s.profileImg} alt="프사" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} />
+                          <div>
+                            <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{s.name}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>@{s.userId}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -672,7 +757,6 @@ export default function CalendarPage() {
                   {viewModalData.sch.members.map((name: string, idx: number) => {
                     const trimmedName = name.trim();
                     
-                    // 💡 숲 닉네임과 실제 영문 ID 매핑 사전
                     const streamerMap: { [key: string]: { id: string, name: string } } = {
                       "송현_": { id: "songhy", name: "송현_" },
                       "송현": { id: "songhy", name: "송현_" },
