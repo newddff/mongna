@@ -8,14 +8,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ streamers: [] });
   }
 
-  // 💡 발급받으신 ScraperAPI 키
   const API_KEY = '06df5786daca7d1ae249f206dea645f2';
 
   try {
-    // 1. 구글에서 "닉네임 방송국" 검색하는 URL 생성
-    const targetUrl = `https://www.google.com/search?q=${encodeURIComponent(`${keyword} 방송국`)}&hl=ko&gl=KR`;
-
-    // 2. ScraperAPI 게이트웨이를 통해 요청 (구글 봇 차단 및 프록시 자동 우회)
+    // 1. 숲(SOOP) 방송국을 정확히 타겟팅하도록 검색어 조합 개선
+    const targetUrl = `https://www.google.com/search?q=${encodeURIComponent(`${keyword} 숲 방송국`)}&hl=ko&gl=KR`;
     const scraperApiUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}`;
 
     const response = await fetch(scraperApiUrl);
@@ -26,19 +23,26 @@ export async function GET(request: Request) {
 
     const htmlText = await response.text();
 
-    // 3. 긁어온 HTML에서 sooplive.com/station/아이디 패턴 추출
-    const regex = /sooplive\.com\/station\/([a-zA-Z0-9_]+)/g;
+    // 2. SOOP 방송국 URL 패턴 정밀 매칭 (소문자/대문자/숫자/_/- 허용)
+    const regex = /sooplive\.com\/station\/([a-zA-Z0-9_-]+)/g;
     let match;
     const foundIds = new Set<string>();
 
     while ((match = regex.exec(htmlText)) !== null) {
       if (match[1]) {
-        foundIds.add(match[1]);
+        // 불필요한 시스템 키워드 제외 필터링
+        const id = match[1];
+        if (!['station', 'm', 'www', 'bbs'].includes(id.toLowerCase())) {
+          foundIds.add(id);
+        }
       }
     }
 
     const uniqueIds = Array.from(foundIds);
-    const targetIds = uniqueIds.length > 0 ? uniqueIds : [keyword.toLowerCase().replace(/[^a-z0-9_]/g, '')];
+    
+    // 검색 결과가 없으면 입력한 키워드를 영문 아이디로 간주하여 기본 생성
+    const cleanKeywordId = keyword.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const targetIds = uniqueIds.length > 0 ? uniqueIds : [cleanKeywordId.length > 0 ? cleanKeywordId : 'mongna'];
 
     const streamers = targetIds.map((userId) => {
       const idLower = userId.toLowerCase();
@@ -57,8 +61,8 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('❌ ScraperAPI 연동 에러:', error);
     
-    // 에러 시 폴백 처리
-    const fallbackId = keyword.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const cleanKeywordId = keyword.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const fallbackId = cleanKeywordId.length > 0 ? cleanKeywordId : 'mongna';
     const prefix = fallbackId.substring(0, 2);
 
     return NextResponse.json({ 
