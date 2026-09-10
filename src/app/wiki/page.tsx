@@ -6,10 +6,12 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function WikiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState('book'); // 'book' | 'timeline'
+  
   const [wikiData, setWikiData] = useState<any>({
     profile: {
-      name: '몽나_',
-      image: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg',
+      name: '',
+      image: '',
       desc: '',
       rules: '',
       meme: ''
@@ -24,7 +26,7 @@ export default function WikiPage() {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<any>(null);
 
-  // 폼(Form) 입력 상태
+  // 폼 입력 상태
   const [epName, setEpName] = useState('');
   const [epImg, setEpImg] = useState('');
   const [epDesc, setEpDesc] = useState('');
@@ -189,11 +191,6 @@ export default function WikiPage() {
     } catch (e) { alert('삭제 실패'); }
   };
 
-  const openDetail = (card: any) => {
-    setViewModalData(card);
-  };
-
-  // 모바일 VOD 링크 자동 변환
   const getProcessedVodLink = (link: string) => {
     if (!link) return '#';
     let processedLink = link.startsWith('http') ? link : `https://${link}`;
@@ -218,9 +215,17 @@ export default function WikiPage() {
         .cab:hover { background: white; transform: scale(1.1); }
         .card-admin-btns { display: none; }
         .admin-mode .card-admin-btns { display: flex; }
-        @media (max-width: 768px) {
-          .profile-section-wrap { flex-direction: column !important; align-items: center !important; }
-          .profile-info-wrap { width: 100% !important; }
+        
+        .book-container { display: flex; background: #fff; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; min-height: 650px; overflow: hidden; position: relative; }
+        /* 책 제본선 효과 */
+        .book-spine { position: absolute; left: 40%; top: 0; bottom: 0; width: 40px; background: linear-gradient(to right, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.02) 100%); z-index: 5; pointer-events: none; border-left: 1px solid rgba(0,0,0,0.05); border-right: 1px solid rgba(0,0,0,0.05); }
+        
+        @media (max-width: 900px) {
+          .main-layout { flex-direction: column !important; }
+          .sidebar-nav { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding-bottom: 15px; }
+          .book-container { flex-direction: column; }
+          .book-spine { display: none; }
+          .book-left { width: 100% !important; border-right: none !important; border-bottom: 1px dashed #cbd5e1; }
         }
       `}} />
 
@@ -233,7 +238,7 @@ export default function WikiPage() {
         )}
 
         {/* 상단 네비게이션바 */}
-        <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0' }}>
+        <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0', marginBottom: '40px' }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
@@ -248,75 +253,119 @@ export default function WikiPage() {
               <a href="/wiki" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '3px' }}>몽무위키</a>
             </div>
 
-            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'white', color: isAdmin ? '#333' : '#1e293b', border: isAdmin ? 'none' : '1px solid #ddd' }}>
+            <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', background: isAdmin ? '#ffd700' : 'white', color: isAdmin ? '#333' : '#1e293b', border: isAdmin ? 'none' : '1px solid #ddd' }}>
               {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
             </button>
           </div>
         </nav>
 
-        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px 100px', display: 'flex', flexDirection: 'column', gap: '50px' }}>
+        {/* 메인 레이아웃 (좌측 목차 + 우측 컨텐츠) */}
+        <div className="main-layout" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px 100px', display: 'flex', gap: '40px' }}>
           
-          {/* 1. 책 표지 & 프로필 */}
-          <section className="profile-section-wrap" style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', background: '#ffffff', padding: '40px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', position: 'relative' }}>
-            <button className="edit-overlay-btn" onClick={openProfileEdit} style={{ position: 'absolute', top: '20px', right: '20px', background: '#f1f5f9', border: 'none', padding: '8px 16px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#475569' }}>✏️ 프로필 편집</button>
+          {/* 좌측 사이드바 (목차) */}
+          <div className="sidebar-nav" style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 900, marginBottom: '10px', color: '#0f172a', paddingLeft: '10px' }}>📑 목차</div>
             
-            <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
-              <img src={wikiData.profile.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" style={{ width: '220px', height: '220px', borderRadius: '50%', objectFit: 'cover', border: '4px solid #f3e8ff', boxShadow: '0 10px 20px rgba(168,85,247,0.15)' }} onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
-              <h1 style={{ fontSize: '28px', fontWeight: 900, margin: 0, textAlign: 'center' }}>{wikiData.profile.name || '몽나_'}</h1>
-            </div>
-            
-            <div className="profile-info-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '25px', width: '100%' }}>
-              <div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>📝 몽나 프로필</h3>
-                <div style={{ fontSize: '15px', lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap', background: '#f8fafc', padding: '15px 20px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>{wikiData.profile.desc || '설명이 없습니다.'}</div>
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>📜 방송 규칙</h3>
-                <div style={{ fontSize: '15px', lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap', background: '#f8fafc', padding: '15px 20px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>{wikiData.profile.rules || '규칙이 없습니다.'}</div>
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>🗣️ 유행어 & 밈</h3>
-                <div style={{ fontSize: '15px', lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap', background: '#f8fafc', padding: '15px 20px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>{wikiData.profile.meme || '유행어가 없습니다.'}</div>
-              </div>
-            </div>
-          </section>
+            <button 
+              onClick={() => setActiveTab('book')}
+              style={{ textAlign: 'left', padding: '14px 20px', borderRadius: '12px', border: 'none', background: activeTab === 'book' ? '#a855f7' : 'transparent', color: activeTab === 'book' ? 'white' : '#475569', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', transition: '0.2s' }}
+            >
+              📖 1. 몽나 백과사전
+            </button>
+            <button 
+              onClick={() => setActiveTab('timeline')}
+              style={{ textAlign: 'left', padding: '14px 20px', borderRadius: '12px', border: 'none', background: activeTab === 'timeline' ? '#a855f7' : 'transparent', color: activeTab === 'timeline' ? 'white' : '#475569', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', transition: '0.2s' }}
+            >
+              🗂️ 2. 몽나의 역사
+            </button>
+          </div>
 
-          {/* 2. 연혁 코너 (갤러리 뷰) */}
-          <section>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '3px solid #1e293b', paddingBottom: '15px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>📚 몽나의 역사 (타임라인)</h2>
-              {isAdmin && (
-                <button onClick={() => openCardEdit(null)} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+ 새 기록 추가</button>
-              )}
-            </div>
+          {/* 우측 메인 컨텐츠 영역 */}
+          <div style={{ flex: 1, position: 'relative' }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-              {sortedHistory.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#94a3b8', gridColumn: '1 / -1', padding: '40px', border: '1px dashed #cbd5e1', borderRadius: '20px' }}>아직 등록된 역사가 없습니다.<br/>관리자 로그인 후 첫 기록을 남겨보세요!</div>
-              ) : (
-                sortedHistory.map((card: any) => (
-                  <div key={card.id} className="history-card" onClick={() => openDetail(card)} style={{ background: '#ffffff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                    
-                    {card.thumb ? (
-                      <img src={card.thumb} style={{ width: '100%', height: '160px', objectFit: 'cover', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }} alt="썸네일" />
-                    ) : (
-                      <div style={{ width: '100%', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f3e8ff, #e0e7ff)', fontSize: '40px', borderBottom: '1px solid #e2e8f0' }}>📅</div>
-                    )}
-                    
-                    <div className="card-admin-btns" style={{ position: 'absolute', top: '10px', right: '10px', gap: '5px' }}>
-                      <button className="cab" onClick={(e) => { e.stopPropagation(); openCardEdit(card.id); }}>✏️</button>
-                      <button className="cab" onClick={(e) => deleteCard(card.id, e)}>🗑️</button>
-                    </div>
+            {/* 탭 1: 책 모드 (몽나 백과사전) */}
+            {activeTab === 'book' && (
+              <div className="book-container">
+                <div className="book-spine"></div>
+                
+                {/* 책 왼쪽 페이지 (표지/사진) */}
+                <div className="book-left" style={{ width: '40%', background: '#fcfbfe', borderRight: '1px dashed #cbd5e1', padding: '50px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '25px', position: 'relative' }}>
+                  
+                  {isAdmin && (
+                    <button className="edit-overlay-btn" onClick={openProfileEdit} style={{ position: 'absolute', top: '20px', left: '20px', background: '#e2e8f0', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', color: '#334155' }}>✏️ 프로필 편집</button>
+                  )}
 
-                    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#a855f7', background: '#f3e8ff', padding: '4px 10px', borderRadius: '8px', width: 'fit-content' }}>{card.date}</span>
-                      <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, lineHeight: 1.4, wordBreak: 'keep-all' }}>{card.title}</h3>
-                    </div>
+                  <img src={wikiData.profile.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" style={{ width: '200px', height: '200px', borderRadius: '50%', objectFit: 'cover', border: '5px solid #fff', boxShadow: '0 15px 35px rgba(168,85,247,0.2)' }} onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
+                  <div style={{ textAlign: 'center' }}>
+                    <h1 style={{ fontSize: '32px', fontWeight: 900, margin: '0 0 10px 0', color: '#0f172a' }}>{wikiData.profile.name || '몽나_'}</h1>
+                    <span style={{ fontSize: '14px', color: '#a855f7', fontWeight: 'bold', background: '#f3e8ff', padding: '6px 14px', borderRadius: '20px' }}>아프리카TV 스트리머</span>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
+                </div>
+                
+                {/* 책 오른쪽 페이지 (내용) */}
+                <div style={{ flex: 1, padding: '50px 40px', display: 'flex', flexDirection: 'column', gap: '35px', background: '#fff' }}>
+                  
+                  <div>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>📝 몽나 소개</h3>
+                    <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#334155', whiteSpace: 'pre-wrap' }}>{wikiData.profile.desc || '설명이 없습니다.'}</div>
+                  </div>
+                  <hr style={{ border: 0, borderTop: '1px dashed #e2e8f0' }} />
+                  
+                  <div>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>📜 방송 규칙</h3>
+                    <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#334155', whiteSpace: 'pre-wrap' }}>{wikiData.profile.rules || '규칙이 없습니다.'}</div>
+                  </div>
+                  <hr style={{ border: 0, borderTop: '1px dashed #e2e8f0' }} />
+                  
+                  <div>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>🗣️ 유행어 & 밈</h3>
+                    <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#334155', whiteSpace: 'pre-wrap' }}>{wikiData.profile.meme || '유행어가 없습니다.'}</div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* 탭 2: 노션 모드 (몽나의 역사 / 타임라인) */}
+            {activeTab === 'timeline' && (
+              <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', minHeight: '650px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', paddingBottom: '15px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0, color: '#0f172a' }}>🗂️ 몽나의 역사</h2>
+                  {isAdmin && (
+                    <button onClick={() => openCardEdit(null)} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+ 새 기록 추가</button>
+                  )}
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+                  {sortedHistory.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', gridColumn: '1 / -1', padding: '60px', border: '1px dashed #cbd5e1', borderRadius: '20px' }}>아직 등록된 역사가 없습니다.<br/>관리자 로그인 후 첫 기록을 남겨보세요!</div>
+                  ) : (
+                    sortedHistory.map((card: any) => (
+                      <div key={card.id} className="history-card" onClick={() => openDetail(card)} style={{ background: '#ffffff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                        
+                        {card.thumb ? (
+                          <img src={card.thumb} style={{ width: '100%', height: '150px', objectFit: 'cover', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }} alt="썸네일" />
+                        ) : (
+                          <div style={{ width: '100%', height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', fontSize: '30px', borderBottom: '1px solid #e2e8f0' }}>📝</div>
+                        )}
+                        
+                        <div className="card-admin-btns" style={{ position: 'absolute', top: '10px', right: '10px', gap: '5px' }}>
+                          <button className="cab" onClick={(e) => { e.stopPropagation(); openCardEdit(card.id); }}>✏️</button>
+                          <button className="cab" onClick={(e) => deleteCard(card.id, e)}>🗑️</button>
+                        </div>
+
+                        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>{card.date}</span>
+                          <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, lineHeight: 1.4, wordBreak: 'keep-all', color: '#1e293b' }}>{card.title}</h3>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
 
         {/* 3. 상세 팝업 (모달) */}
@@ -355,7 +404,7 @@ export default function WikiPage() {
                 <input type="text" value={epName} onChange={e => setEpName(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>프로필 사진 URL (비우면 기본 숲 프사)</label>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>프로필 사진 URL</label>
                 <input type="text" value={epImg} onChange={e => setEpImg(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -383,7 +432,7 @@ export default function WikiPage() {
               <h2 style={{ marginTop: 0, color: '#a855f7' }}>{ecId ? '기록 수정하기' : '새 기록 추가'}</h2>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>제목 (예: 몽나 첫 방송!)</label>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>제목</label>
                 <input type="text" value={ecTitle} onChange={e => setEcTitle(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -392,15 +441,15 @@ export default function WikiPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>썸네일 이미지 URL (선택)</label>
-                <input type="text" value={ecThumb} onChange={e => setEcThumb(e.target.value)} placeholder="사진 링크를 넣으면 예쁜 카드가 됩니다" style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
+                <input type="text" value={ecThumb} onChange={e => setEcThumb(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>상세 내용 (비하인드 썰 등)</label>
-                <textarea value={ecDesc} onChange={e => setEcDesc(e.target.value)} placeholder="팝업창을 띄웠을 때 보일 자세한 내용을 적어주세요" style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none', height: '120px', resize: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>상세 내용</label>
+                <textarea value={ecDesc} onChange={e => setEcDesc(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none', height: '120px', resize: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>📺 다시보기(VOD) 링크 (선택)</label>
-                <input type="text" value={ecVod} onChange={e => setEcVod(e.target.value)} placeholder="https://..." style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>📺 VOD 링크 (선택)</label>
+                <input type="text" value={ecVod} onChange={e => setEcVod(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               
               <button onClick={saveCard} style={{ background: '#a855f7', color: 'white', border: 'none', padding: '15px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>기록 저장하기</button>
