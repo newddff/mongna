@@ -11,23 +11,29 @@ export default function WikiPage() {
       name: '몽나_',
       image: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg',
       sections: [
-        { title: '📝 몽나 소개', content: '' },
-        { title: '📜 방송 규칙', content: '' },
-        { title: '🗣️ 유행어 & 밈', content: '' }
+        { title: '📝 몽나 소개', content: '우주 최고 귀요미 스트리머 몽나입니다! 💜' },
+        { title: '📜 방송 규칙', content: '1. 타 스트리머 언급 자제\n2. 시청자 간 친목 금지\n3. 예쁜 말 고운 말 쓰기!' },
+        { title: '🗣️ 유행어 & 밈', content: '몽구다 몽구~\n진짜루~' }
       ]
     },
     history: []
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 현재 보고 있는 탭 (백과사전 or 역사)
   const [activeTab, setActiveTab] = useState('wiki'); 
+
+  // 페이지 넘기기 상태 (백과사전 탭)
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const ITEMS_PER_PAGE = 3; // 한 페이지에 보여줄 질문/답변 개수
 
   // 모달 상태 관리
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<any>(null);
 
-  // 폼 입력 상태
+  // 폼(Form) 입력 상태
   const [epName, setEpName] = useState('');
   const [epImg, setEpImg] = useState('');
   const [epSections, setEpSections] = useState<{title: string, content: string}[]>([]);
@@ -39,11 +45,11 @@ export default function WikiPage() {
   const [ecDesc, setEcDesc] = useState('');
   const [ecVod, setEcVod] = useState('');
 
-  // 🎵 책 넘기는 소리 재생 함수
+  // 🎵 책 넘기는 소리 재생 함수 (무음 구간 0.4초 자르고 즉시 재생)
   const playPageSound = () => {
     if (typeof window !== 'undefined') {
       const audio = new Audio('/page-flip.mp3');
-      audio.currentTime = 0.4; 
+      audio.currentTime = 0.4;
       audio.play().catch(e => console.log('소리 재생 무시됨:', e));
     }
   };
@@ -73,6 +79,7 @@ export default function WikiPage() {
         }
         setIsLoading(false);
       } catch (e) {
+        console.error("위키 데이터 로드 오류:", e);
         setIsLoading(false);
       }
     });
@@ -97,7 +104,7 @@ export default function WikiPage() {
           localStorage.setItem('mongna_home_admin', 'true');
           localStorage.setItem('mongna_calendar_admin', 'true');
         }
-        alert("인증 성공! 위키를 꾸며보세요.");
+        alert("인증 성공! 연필 모양 버튼을 눌러 위키를 꾸며보세요.");
       } else if (password !== null) {
         alert("비밀번호가 틀렸습니다.");
       }
@@ -116,7 +123,12 @@ export default function WikiPage() {
     const p = wikiData.profile;
     setEpName(p.name || '');
     setEpImg(p.image || '');
-    const loadedSections = p.sections || [];
+    
+    const loadedSections = p.sections || [
+      { title: '📝 몽나 소개', content: p.desc || '' },
+      { title: '📜 방송 규칙', content: p.rules || '' },
+      { title: '🗣️ 유행어 & 밈', content: p.meme || '' }
+    ];
     setEpSections(loadedSections);
     setIsProfileModalOpen(true);
   };
@@ -138,21 +150,39 @@ export default function WikiPage() {
     if (cardId) {
       const card = wikiData.history.find((c: any) => c.id === cardId);
       if (card) {
-        setEcId(card.id); setEcTitle(card.title || ''); setEcDate(card.date || '');
-        setEcThumb(card.thumb || ''); setEcDesc(card.desc || ''); setEcVod(card.vodLink || '');
+        setEcId(card.id);
+        setEcTitle(card.title || '');
+        setEcDate(card.date || '');
+        setEcThumb(card.thumb || '');
+        setEcDesc(card.desc || '');
+        setEcVod(card.vodLink || '');
       }
     } else {
       const now = new Date();
-      setEcId(null); setEcTitle(''); setEcThumb(''); setEcDesc(''); setEcVod('');
+      setEcId(null);
+      setEcTitle('');
       setEcDate(`${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`);
+      setEcThumb('');
+      setEcDesc('');
+      setEcVod('');
     }
     setIsCardModalOpen(true);
   };
 
   const saveCard = async () => {
-    const title = ecTitle.trim(); const date = ecDate.trim();
+    const title = ecTitle.trim();
+    const date = ecDate.trim();
     if (!title || !date) return alert("제목과 날짜는 필수입니다!");
-    const newCard = { id: ecId || Date.now(), title, date, thumb: ecThumb.trim(), desc: ecDesc.trim(), vodLink: ecVod.trim() };
+
+    const newCard = {
+      id: ecId || Date.now(),
+      title,
+      date,
+      thumb: ecThumb.trim(),
+      desc: ecDesc.trim(),
+      vodLink: ecVod.trim()
+    };
+
     let updatedHistory = [...(wikiData.history || [])];
     if (ecId) {
       const idx = updatedHistory.findIndex((c: any) => c.id === ecId);
@@ -160,6 +190,7 @@ export default function WikiPage() {
     } else {
       updatedHistory.push(newCard);
     }
+
     try {
       const updatedData = { ...wikiData, history: updatedHistory };
       await setDoc(getFirebaseRef(), { data: updatedData }, { merge: true });
@@ -188,152 +219,37 @@ export default function WikiPage() {
   };
 
   const sortedHistory = [...(wikiData.history || [])].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
-  // 책 느낌을 위해 연혁을 반씩 나눕니다 (왼쪽 페이지 / 오른쪽 페이지)
-  const leftHistory = sortedHistory.filter((_, i) => i % 2 === 0);
-  const rightHistory = sortedHistory.filter((_, i) => i % 2 === 1);
 
   return (
     <>
       <style dangerouslySetInnerHTML={{
         __html: `
-        /* 책 전체 래퍼 */
-        .book-wrapper {
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          perspective: 1500px;
-        }
-        /* 양장본 느낌의 책 컨테이너 */
-        .book-container {
-          display: flex;
-          width: 100%;
-          max-width: 1000px;
-          min-height: 650px;
-          background: #fdfcf8;
-          border-radius: 4px 16px 16px 4px;
-          position: relative;
-          box-shadow: 
-            0 25px 50px -12px rgba(0, 0, 0, 0.25),
-            inset 0 0 0 1px rgba(0,0,0,0.05);
-        }
-        /* 중앙 접히는 책등(그림자) 효과 */
-        .book-spine {
-          position: absolute;
-          top: 0; bottom: 0; left: 50%;
-          width: 80px;
-          transform: translateX(-50%);
-          background: linear-gradient(
-            to right,
-            transparent 0%,
-            rgba(0,0,0,0.02) 20%,
-            rgba(0,0,0,0.12) 48%,
-            rgba(0,0,0,0.2) 50%,
-            rgba(0,0,0,0.12) 52%,
-            rgba(0,0,0,0.02) 80%,
-            transparent 100%
-          );
-          z-index: 10;
-          pointer-events: none;
-        }
-        /* 종이 페이지 질감 설정 */
-        .page-left, .page-right {
-          flex: 1;
-          padding: 60px 50px;
-          position: relative;
-          background-color: #fcfbf6;
-        }
-        .page-left {
-          border-radius: 4px 0 0 4px;
-          background: linear-gradient(to right, #f4f1ea 0%, #fdfcf8 8%);
-          border-right: 1px solid rgba(0,0,0,0.06);
-        }
-        .page-right {
-          border-radius: 0 16px 16px 0;
-          background: linear-gradient(to left, #f4f1ea 0%, #fdfcf8 8%);
-        }
-        
-        /* 폴라로이드 사진 스타일 */
-        .polaroid {
-          background: white;
-          padding: 15px 15px 35px 15px;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05);
-          transform: rotate(-3deg);
-          border: 1px solid #f0f0f0;
-          margin: 0 auto 30px auto;
-          width: fit-content;
-          position: relative;
-        }
-        /* 폴라로이드 위에 붙은 귀여운 테이프 */
-        .polaroid::before {
-          content: '';
-          position: absolute;
-          top: -10px; left: 50%;
-          transform: translateX(-50%) rotate(2deg);
-          width: 80px; height: 25px;
-          background: rgba(255, 255, 255, 0.4);
-          backdrop-filter: blur(2px);
-          border: 1px solid rgba(0,0,0,0.05);
-          box-shadow: 1px 2px 3px rgba(0,0,0,0.05);
-        }
-        .polaroid img {
-          width: 240px; height: 240px; object-fit: cover; background: #eee;
-        }
-        .polaroid h2 {
-          text-align: center; margin: 20px 0 0 0; font-weight: 900; font-size: 26px; color: #333;
-        }
-
-        /* 텍스트(글씨) 꾸밈 효과 */
-        .book-section-title {
-          font-size: 20px; font-weight: 900; color: #1e293b;
-          margin: 0 0 15px 0; display: inline-block;
-          background: linear-gradient(120deg, #e9d5ff 0%, #e9d5ff 100%);
-          background-repeat: no-repeat;
-          background-size: 100% 40%;
-          background-position: 0 88%;
-        }
-        .book-section-content {
-          font-size: 16px; lineHeight: 1.8; color: #334155;
-          white-space: pre-wrap; margin-bottom: 40px;
-        }
-
-        /* 기록 카드(연혁) 테마 */
-        .history-card { 
-          transition: 0.3s; cursor: pointer; background: white; 
-          border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; 
-          box-shadow: 0 4px 10px rgba(0,0,0,0.03); position: relative; margin-bottom: 20px; 
-        }
-        .history-card:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 25px rgba(168,85,247,0.15); border-color: #a855f7; }
-        
+        .history-card { transition: 0.3s; cursor: pointer; }
+        .history-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(168,85,247,0.15) !important; border-color: #a855f7 !important; }
+        .edit-overlay-btn { display: none; }
+        .admin-mode .edit-overlay-btn { display: block; }
         .cab { background: rgba(255,255,255,0.9); border: 1px solid #ddd; border-radius: 8px; padding: 5px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .cab:hover { background: white; transform: scale(1.1); }
         .card-admin-btns { display: none; }
         .admin-mode .card-admin-btns { display: flex; }
-        
-        /* 사이드바 메뉴바 */
         .sidebar-menu { display: flex; flex-direction: column; gap: 10px; width: 220px; flex-shrink: 0; }
         .menu-btn { padding: 15px 20px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; text-align: left; cursor: pointer; transition: 0.2s; background: transparent; color: #475569; }
         .menu-btn:hover { background: #f1f5f9; }
         .menu-btn.active { background: #a855f7; color: white; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3); }
-        
-        /* 모바일 대응 */
         @media (max-width: 768px) {
-          .wiki-layout { flex-direction: column !important; padding: 20px 10px !important; }
+          .wiki-layout { flex-direction: column !important; }
           .sidebar-menu { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding-bottom: 10px; }
           .menu-btn { white-space: nowrap; }
-          .book-container { flex-direction: column !important; border-radius: 16px !important; }
-          .book-spine { display: none !important; }
-          .page-left { border-right: none !important; border-bottom: 2px dashed #e2e8f0; border-radius: 16px 16px 0 0 !important; padding: 40px 20px !important; }
-          .page-right { border-radius: 0 0 16px 16px !important; padding: 40px 20px !important; }
-          .polaroid img { width: 100% !important; height: auto !important; aspect-ratio: 1; }
+          .profile-section-wrap { flex-direction: column !important; align-items: center !important; }
+          .profile-info-wrap { width: 100% !important; border-left: none !important; padding-left: 0 !important; margin-left: 0 !important; }
         }
       `}} />
 
-      <div style={{ backgroundColor: '#f1f5f9', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }} className={isAdmin ? 'admin-mode' : ''}>
+      <div style={{ backgroundColor: '#f8fafc', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }} className={isAdmin ? 'admin-mode' : ''}>
         
         {isLoading && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '16px' }}>책을 펴는 중입니다... 📖</div>
+            <div style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '16px' }}>위키를 불러오는 중입니다... 📖</div>
           </div>
         )}
 
@@ -359,15 +275,15 @@ export default function WikiPage() {
           </div>
         </nav>
 
-        {/* 메인 레이아웃 */}
-        <div className="wiki-layout" style={{ maxWidth: '1250px', margin: '0 auto', padding: '50px 20px 100px', display: 'flex', gap: '50px', alignItems: 'flex-start' }}>
+        {/* 메인 레이아웃 (좌측 목차 + 우측 내용) */}
+        <div className="wiki-layout" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px 100px', display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
           
           {/* 좌측 사이드바 (목차) */}
           <div className="sidebar-menu">
             <h3 style={{ margin: '0 0 10px 10px', fontSize: '18px', color: '#0f172a' }}>📑 목차</h3>
             <button 
               className={`menu-btn ${activeTab === 'wiki' ? 'active' : ''}`}
-              onClick={() => { playPageSound(); setActiveTab('wiki'); }}
+              onClick={() => { playPageSound(); setActiveTab('wiki'); setCurrentPageIndex(0); }}
             >
               📖 1. 몽나 백과사전
             </button>
@@ -379,104 +295,124 @@ export default function WikiPage() {
             </button>
           </div>
 
-          {/* 우측 콘텐츠 영역 (책 형태) */}
-          <div className="book-wrapper">
-            <div className="book-container">
-              {/* 책 가운데 접히는 선(그림자) */}
-              <div className="book-spine"></div>
-
-              {/* 탭 1: 백과사전 */}
-              {activeTab === 'wiki' && (
-                <>
-                  <div className="page-left">
-                    {isAdmin && (
-                      <button onClick={openProfileEdit} style={{ position: 'absolute', top: '30px', left: '30px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#475569', zIndex: 20 }}>✏️ 편집</button>
-                    )}
-                    
-                    <div className="polaroid">
-                      <img src={wikiData.profile.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
-                      <h2>{wikiData.profile.name || '몽나_'}</h2>
-                    </div>
+          {/* 우측 콘텐츠 영역 */}
+          <div style={{ flex: 1, width: '100%' }}>
+            
+            {/* 탭 1: 백과사전 */}
+            {activeTab === 'wiki' && (
+              <section className="profile-section-wrap" style={{ display: 'flex', gap: '40px', alignItems: 'stretch', background: '#ffffff', padding: '40px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', position: 'relative', minHeight: '500px' }}>
+                <button className="edit-overlay-btn" onClick={openProfileEdit} style={{ position: 'absolute', top: '20px', left: '20px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#475569', zIndex: 10 }}>✏️ 편집</button>
+                
+                {/* 책 왼쪽 면 (프로필 사진) */}
+                <div style={{ width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <div style={{ background: '#fff', padding: '15px', borderRadius: '4px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid #eee', transform: 'rotate(-2deg)' }}>
+                    <img src={wikiData.profile.image || 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg'} alt="프로필" style={{ width: '220px', height: '220px', objectFit: 'cover' }} onError={(e: any) => e.target.src = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'} />
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, margin: '15px 0 0 0', textAlign: 'center', color: '#333' }}>{wikiData.profile.name || '몽나_'}</h1>
                   </div>
-
-                  <div className="page-right">
+                </div>
+                
+                {/* 책 가운데 접히는 그림자 선 */}
+                <div style={{ width: '1px', background: 'linear-gradient(to bottom, transparent, #e2e8f0, transparent)', boxShadow: '0 0 15px rgba(0,0,0,0.1)', margin: '0 10px' }}></div>
+                
+                {/* 책 오른쪽 면 (항목 내용 및 페이지네이션) */}
+                <div className="profile-info-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: '10px', height: '100%', justifyContent: 'space-between' }}>
+                  
+                  {/* 페이지 분할 렌더링 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                     {wikiData.profile.sections && wikiData.profile.sections.length > 0 ? (
-                      wikiData.profile.sections.map((sec: any, idx: number) => (
+                      wikiData.profile.sections
+                        .slice(currentPageIndex * ITEMS_PER_PAGE, (currentPageIndex + 1) * ITEMS_PER_PAGE)
+                        .map((sec: any, idx: number) => (
                         <div key={idx}>
-                          <h3 className="book-section-title">{sec.title || '제목 없음'}</h3>
-                          <div className="book-section-content">{sec.content || '내용이 없습니다.'}</div>
+                          <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                            {sec.title || '제목 없음'}
+                          </h3>
+                          <div style={{ fontSize: '15px', lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap', padding: '0 5px' }}>
+                            {sec.content || '내용이 없습니다.'}
+                          </div>
                         </div>
                       ))
                     ) : (
-                      <div style={{ color: '#94a3b8' }}>작성된 페이지가 없습니다.</div>
+                      <div style={{ color: '#94a3b8' }}>등록된 항목이 없습니다.</div>
                     )}
                   </div>
-                </>
-              )}
 
-              {/* 탭 2: 몽나의 역사 (왼쪽, 오른쪽 페이지로 나눔) */}
-              {activeTab === 'history' && (
-                <>
-                  <div className="page-left">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                      <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0, color: '#1e293b' }}>📚 몽나의 역사</h2>
-                      {isAdmin && (
-                        <button onClick={() => openCardEdit(null)} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', zIndex: 20 }}>+ 기록 추가</button>
-                      )}
+                  {/* 페이지 넘기기 버튼 */}
+                  {wikiData.profile.sections && wikiData.profile.sections.length > ITEMS_PER_PAGE && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '30px', paddingTop: '15px' }}>
+                      <button 
+                        disabled={currentPageIndex === 0}
+                        onClick={() => { playPageSound(); setCurrentPageIndex(p => p - 1); }}
+                        style={{ background: 'transparent', border: 'none', cursor: currentPageIndex === 0 ? 'default' : 'pointer', opacity: currentPageIndex === 0 ? 0.3 : 1, fontSize: '15px', fontWeight: 'bold', color: '#a855f7' }}
+                      >
+                        ◀ 이전
+                      </button>
+                      
+                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#94a3b8' }}>
+                        {currentPageIndex + 1} / {Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE)}
+                      </span>
+
+                      <button 
+                        disabled={currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1}
+                        onClick={() => { playPageSound(); setCurrentPageIndex(p => p + 1); }}
+                        style={{ background: 'transparent', border: 'none', cursor: currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1 ? 'default' : 'pointer', opacity: currentPageIndex >= Math.ceil(wikiData.profile.sections.length / ITEMS_PER_PAGE) - 1 ? 0.3 : 1, fontSize: '15px', fontWeight: 'bold', color: '#a855f7' }}
+                      >
+                        다음 ▶
+                      </button>
                     </div>
-                    
-                    {leftHistory.length === 0 && rightHistory.length === 0 ? (
-                       <div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px', border: '1px dashed #cbd5e1', borderRadius: '20px' }}>첫 기록을 남겨보세요!</div>
-                    ) : (
-                      leftHistory.map((card: any) => (
-                        <div key={card.id} className="history-card" onClick={() => { playPageSound(); setViewModalData(card); }}>
-                          {card.thumb ? (
-                            <img src={card.thumb} style={{ width: '100%', height: '150px', objectFit: 'cover', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }} alt="썸네일" />
-                          ) : (
-                            <div style={{ width: '100%', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f3e8ff, #e0e7ff)', fontSize: '30px', borderBottom: '1px solid #e2e8f0' }}>📅</div>
-                          )}
-                          <div className="card-admin-btns" style={{ position: 'absolute', top: '10px', right: '10px', gap: '5px' }}>
-                            <button className="cab" onClick={(e) => { e.stopPropagation(); openCardEdit(card.id); }}>✏️</button>
-                            <button className="cab" onClick={(e) => deleteCard(card.id, e)}>🗑️</button>
-                          </div>
-                          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#a855f7' }}>{card.date}</span>
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, lineHeight: 1.4 }}>{card.title}</h3>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  )}
 
-                  <div className="page-right">
-                    {rightHistory.map((card: any) => (
-                      <div key={card.id} className="history-card" onClick={() => { playPageSound(); setViewModalData(card); }}>
+                </div>
+              </section>
+            )}
+
+            {/* 탭 2: 몽나의 역사 */}
+            {activeTab === 'history' && (
+              <section>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '3px solid #1e293b', paddingBottom: '15px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>📚 몽나의 역사 (타임라인)</h2>
+                  {isAdmin && (
+                    <button onClick={() => openCardEdit(null)} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+ 새 기록 추가</button>
+                  )}
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                  {sortedHistory.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', gridColumn: '1 / -1', padding: '40px', border: '1px dashed #cbd5e1', borderRadius: '20px' }}>아직 등록된 역사가 없습니다.<br/>관리자 로그인 후 첫 기록을 남겨보세요!</div>
+                  ) : (
+                    sortedHistory.map((card: any) => (
+                      <div key={card.id} className="history-card" 
+                        onClick={() => { playPageSound(); setViewModalData(card); }} // 🎵 카드 열 때 소리
+                        style={{ background: '#ffffff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                        
                         {card.thumb ? (
-                          <img src={card.thumb} style={{ width: '100%', height: '150px', objectFit: 'cover', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }} alt="썸네일" />
+                          <img src={card.thumb} style={{ width: '100%', height: '160px', objectFit: 'cover', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }} alt="썸네일" />
                         ) : (
-                          <div style={{ width: '100%', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #e0e7ff, #f3e8ff)', fontSize: '30px', borderBottom: '1px solid #e2e8f0' }}>📅</div>
+                          <div style={{ width: '100%', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f3e8ff, #e0e7ff)', fontSize: '40px', borderBottom: '1px solid #e2e8f0' }}>📅</div>
                         )}
+                        
                         <div className="card-admin-btns" style={{ position: 'absolute', top: '10px', right: '10px', gap: '5px' }}>
                           <button className="cab" onClick={(e) => { e.stopPropagation(); openCardEdit(card.id); }}>✏️</button>
                           <button className="cab" onClick={(e) => deleteCard(card.id, e)}>🗑️</button>
                         </div>
-                        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#a855f7' }}>{card.date}</span>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, lineHeight: 1.4 }}>{card.title}</h3>
+
+                        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#a855f7', background: '#f3e8ff', padding: '4px 10px', borderRadius: '8px', width: 'fit-content' }}>{card.date}</span>
+                          <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, lineHeight: 1.4, wordBreak: 'keep-all' }}>{card.title}</h3>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+                    ))
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         </div>
 
         {/* 3. 상세 팝업 (모달) */}
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px', boxSizing: 'border-box' }} 
-               onClick={() => { playPageSound(); setViewModalData(null); }}>
+               onClick={() => { playPageSound(); setViewModalData(null); }}> {/* 🎵 배경 클릭 닫을 때 소리 */}
             <div style={{ background: 'white', borderRadius: '24px', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { playPageSound(); setViewModalData(null); }} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', width: '32px', height: '32px', borderRadius: '50%', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>✕</button>
               
@@ -510,7 +446,7 @@ export default function WikiPage() {
                 <input type="text" value={epName} onChange={e => setEpName(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>프로필 사진 URL (비우면 기본 프사)</label>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>프로필 사진 URL (비우면 기본 숲 프사)</label>
                 <input type="text" value={epImg} onChange={e => setEpImg(e.target.value)} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', outline: 'none' }} />
               </div>
               
@@ -521,22 +457,34 @@ export default function WikiPage() {
                 <button onClick={() => setEpSections([...epSections, { title: '', content: '' }])} style={{ background: '#f3e8ff', color: '#a855f7', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ 항목 추가</button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto', paddingRight: '5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
                 {epSections.map((sec, idx) => (
                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                       <input 
-                        type="text" value={sec.title} 
-                        onChange={(e) => { const newSecs = [...epSections]; newSecs[idx].title = e.target.value; setEpSections(newSecs); }} 
+                        type="text" 
+                        value={sec.title} 
+                        onChange={(e) => {
+                          const newSecs = [...epSections];
+                          newSecs[idx].title = e.target.value;
+                          setEpSections(newSecs);
+                        }} 
                         placeholder="제목 (예: 몽나의 MBTI는?)" 
                         style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', outline: 'none' }} 
                       />
-                      <button onClick={() => { const newSecs = epSections.filter((_, i) => i !== idx); setEpSections(newSecs); }} 
+                      <button onClick={() => {
+                          const newSecs = epSections.filter((_, i) => i !== idx);
+                          setEpSections(newSecs);
+                        }} 
                         style={{ background: '#ff4757', color: 'white', border: 'none', borderRadius: '8px', padding: '0 15px', fontWeight: 'bold', cursor: 'pointer' }}>삭제</button>
                     </div>
                     <textarea 
                       value={sec.content} 
-                      onChange={(e) => { const newSecs = [...epSections]; newSecs[idx].content = e.target.value; setEpSections(newSecs); }} 
+                      onChange={(e) => {
+                        const newSecs = [...epSections];
+                        newSecs[idx].content = e.target.value;
+                        setEpSections(newSecs);
+                      }} 
                       placeholder="내용을 입력하세요" 
                       style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', height: '80px', resize: 'none', outline: 'none' }} 
                     />
