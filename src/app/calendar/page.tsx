@@ -9,7 +9,7 @@ export default function CalendarPage() {
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
   const [memoList, setMemoList] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any>({});
-  const [streamerDirectory, setStreamerDirectory] = useState<any>({}); // 파이어베이스 연동 스트리머 명부
+  const [streamerDirectory, setStreamerDirectory] = useState<any>({});
   const [categoryColors, setCategoryColors] = useState({
     합방: "#4dabf7",
     방송: "#ff9eb5",
@@ -39,16 +39,16 @@ export default function CalendarPage() {
 
   const [viewModalData, setViewModalData] = useState<any>(null);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
-  const [isStreamerManagerOpen, setIsStreamerManagerOpen] = useState(false); // 스트리머 관리 모달
+  const [isStreamerManagerOpen, setIsStreamerManagerOpen] = useState(false);
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // 🟢 실시간 크롤링 및 DB 연동 자동완성 상태
+  // 🟢 실시간 검색 및 자동완성 결과 상태
   const [streamerResults, setStreamerResults] = useState<any[]>([]);
   const [newStreamerNick, setNewStreamerNick] = useState('');
   const [newStreamerId, setNewStreamerId] = useState('');
 
-  // 🟢 숲 서버 실시간 크롤링 + 파이어베이스 명부 검색 로직
+  // 🟢 입력할 때마다 API를 찔러서 검색 결과를 가져오는 핵심 함수
   const handleStreamerSearch = async (val: string) => {
     setInputMembers(val);
     const terms = val.split(',');
@@ -59,7 +59,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 1. 먼저 파이어베이스에 저장된 명부(streamerDirectory)에서 일치하는 것 검색
+    // 1. 파이어베이스 명부에 이미 있는지 먼저 확인
     const localMatches = Object.values(streamerDirectory).filter((s: any) => 
       s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
       s.userId.toLowerCase().includes(currentTerm.toLowerCase())
@@ -70,18 +70,18 @@ export default function CalendarPage() {
       return;
     }
 
-    // 2. DB에 없다면 Next.js API를 통해 숲(SOOP) 서버 크롤링 실행
+    // 2. 없으면 우리가 만든 구글 크롤링 API(`/api/search-streamer`) 호출
     try {
       const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
       const data = await res.json();
       setStreamerResults(data.streamers || []);
     } catch (err) {
-      console.error("숲 서버 크롤링 오류:", err);
+      console.error("스트리머 검색 오류:", err);
       setStreamerResults([]);
     }
   };
 
-  // 🟢 드롭다운에서 스트리머 선택 시 자동 반영 및 파이어베이스 자동 캐싱
+  // 🟢 드롭다운에서 목록을 콕 집었을 때 실행되는 함수 (파이어베이스에 자동 캐싱)
   const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     if (terms.length > 0) {
@@ -92,7 +92,7 @@ export default function CalendarPage() {
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]);
 
-    // 선택한 스트리머 정보를 파이어베이스 명부에 자동 저장(캐싱)하여 다음부터 바로 불러오게 함
+    // 선택된 데이터를 파이어베이스 명부에 영구 저장(캐싱)
     const updatedDir = { ...streamerDirectory, [selected.name]: selected };
     setStreamerDirectory(updatedDir);
 
@@ -102,7 +102,6 @@ export default function CalendarPage() {
     await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
   };
 
-  // 🟢 관리자가 수동으로 스트리머 명부 등록하는 함수
   const saveManualStreamer = async () => {
     if (!isAdmin) return;
     const nick = newStreamerNick.trim();
@@ -118,7 +117,7 @@ export default function CalendarPage() {
       name: nick,
       userId: userId,
       profileImg: `https://profile.img.afreecatv.com/LOGO/${prefix}/${idLower}/${idLower}.jpg`,
-      broadcastUrl: `https://www.sooplive.com/${userId}`
+      broadcastUrl: `https://www.sooplive.com/station/${userId}`
     };
 
     const updatedDir = { ...streamerDirectory, [nick]: newEntry };
@@ -742,11 +741,11 @@ export default function CalendarPage() {
                     type="text" 
                     value={inputMembers} 
                     onChange={(e) => handleStreamerSearch(e.target.value)} 
-                    placeholder="닉네임 입력 (예: 송현_, 최또)" 
+                    placeholder="닉네임 입력 시 구글 검색 크롤링 (예: 최또)" 
                     style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
                   />
 
-                  {/* 자동완성 드롭다운 UI */}
+                  {/* 🟢 실시간 자동완성 드롭다운 UI */}
                   {streamerResults.length > 0 && (
                     <div style={{ 
                       position: 'absolute', top: '100%', left: 0, width: '100%', 
@@ -804,21 +803,17 @@ export default function CalendarPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>스트리머 한글 닉네임</label>
-                <input type="text" value={newStreamerNick} onChange={(e) => setNewStreamerNick(e.target.value)} placeholder="예: 송현_" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={newStreamerNick} onChange={(e) => setNewStreamerNick(e.target.value)} placeholder="예: 최또" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>숲(SOOP) 영문 아이디</label>
-                <input type="text" value={newStreamerId} onChange={(e) => setNewStreamerId(e.target.value)} placeholder="예: songhy" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+                <input type="text" value={newStreamerId} onChange={(e) => setNewStreamerId(e.target.value)} placeholder="예: choiagain" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
               </div>
 
               <button onClick={saveManualStreamer} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)' }}>
                 명부에 저장하기
               </button>
-
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#777', lineHeight: '1.4' }}>
-                💡 <b>팁:</b> 크롤링 검색으로 찾기 힘든 스트리머는 여기에 한 번만 등록해 두면 파이어베이스에 영구 저장되어 언제든 자동완성과 프사 연동이 가능합니다!
-              </div>
             </div>
           </div>
         )}
@@ -846,7 +841,7 @@ export default function CalendarPage() {
                       name: trimmedName, 
                       userId: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''),
                       profileImg: `https://profile.img.afreecatv.com/LOGO/${trimmedName.substring(0,2).toLowerCase()}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}.jpg`,
-                      broadcastUrl: `https://www.sooplive.com/${trimmedName}`
+                      broadcastUrl: `https://www.sooplive.com/station/${trimmedName}`
                     };
 
                     return (
@@ -901,7 +896,7 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* 톱니바퀴: 카테고리 색상 설정 모달 */}
+        {/* 카테고리 색상 설정 모달 */}
         {isColorModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsColorModalOpen(false)}>
             <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '520px', maxWidth: '90vw', padding: '32px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
