@@ -9,6 +9,7 @@ export default function CalendarPage() {
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
   const [memoList, setMemoList] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any>({});
+  const [streamerDirectory, setStreamerDirectory] = useState<any>({}); // 파이어베이스 연동 스트리머 명부
   const [categoryColors, setCategoryColors] = useState({
     합방: "#4dabf7",
     방송: "#ff9eb5",
@@ -38,12 +39,16 @@ export default function CalendarPage() {
 
   const [viewModalData, setViewModalData] = useState<any>(null);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+  const [isStreamerManagerOpen, setIsStreamerManagerOpen] = useState(false); // 스트리머 관리 모달
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [memoInputText, setMemoInputText] = useState('');
 
-  // 🟢 실시간 크롤링 자동완성용 상태
+  // 🟢 실시간 크롤링 및 DB 연동 자동완성 상태
   const [streamerResults, setStreamerResults] = useState<any[]>([]);
+  const [newStreamerNick, setNewStreamerNick] = useState('');
+  const [newStreamerId, setNewStreamerId] = useState('');
 
+  // 🟢 숲 서버 실시간 크롤링 + 파이어베이스 명부 검색 로직
   const handleStreamerSearch = async (val: string) => {
     setInputMembers(val);
     const terms = val.split(',');
@@ -54,16 +59,30 @@ export default function CalendarPage() {
       return;
     }
 
+    // 1. 먼저 파이어베이스에 저장된 명부(streamerDirectory)에서 일치하는 것 검색
+    const localMatches = Object.values(streamerDirectory).filter((s: any) => 
+      s.name.toLowerCase().includes(currentTerm.toLowerCase()) || 
+      s.userId.toLowerCase().includes(currentTerm.toLowerCase())
+    );
+
+    if (localMatches.length > 0) {
+      setStreamerResults(localMatches);
+      return;
+    }
+
+    // 2. DB에 없다면 Next.js API를 통해 숲(SOOP) 서버 크롤링 실행
     try {
       const res = await fetch(`/api/search-streamer?keyword=${encodeURIComponent(currentTerm)}`);
       const data = await res.json();
       setStreamerResults(data.streamers || []);
     } catch (err) {
-      console.error("스트리머 검색 오류:", err);
+      console.error("숲 서버 크롤링 오류:", err);
+      setStreamerResults([]);
     }
   };
 
-  const handleSelectStreamer = (selected: any) => {
+  // 🟢 드롭다운에서 스트리머 선택 시 자동 반영 및 파이어베이스 자동 캐싱
+  const handleSelectStreamer = async (selected: any) => {
     const terms = inputMembers.split(',').map(m => m.trim()).filter(m => m !== '');
     if (terms.length > 0) {
       terms[terms.length - 1] = selected.name;
@@ -72,6 +91,46 @@ export default function CalendarPage() {
     }
     setInputMembers(terms.join(', ') + ', ');
     setStreamerResults([]);
+
+    // 선택한 스트리머 정보를 파이어베이스 명부에 자동 저장(캐싱)하여 다음부터 바로 불러오게 함
+    const updatedDir = { ...streamerDirectory, [selected.name]: selected };
+    setStreamerDirectory(updatedDir);
+
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
+  };
+
+  // 🟢 관리자가 수동으로 스트리머 명부 등록하는 함수
+  const saveManualStreamer = async () => {
+    if (!isAdmin) return;
+    const nick = newStreamerNick.trim();
+    const userId = newStreamerId.trim();
+    if (!nick || !userId) {
+      alert("닉네임과 영문 아이디를 모두 입력해주세요!");
+      return;
+    }
+
+    const idLower = userId.toLowerCase();
+    const prefix = idLower.substring(0, 2);
+    const newEntry = {
+      name: nick,
+      userId: userId,
+      profileImg: `https://profile.img.afreecatv.com/LOGO/${prefix}/${idLower}/${idLower}.jpg`,
+      broadcastUrl: `https://www.sooplive.com/${userId}`
+    };
+
+    const updatedDir = { ...streamerDirectory, [nick]: newEntry };
+    setStreamerDirectory(updatedDir);
+    setNewStreamerNick('');
+    setNewStreamerId('');
+
+    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
+    alert("스트리머가 명부에 성공적으로 등록되었습니다!");
   };
 
   useEffect(() => {
@@ -94,6 +153,7 @@ export default function CalendarPage() {
     const sidebarRef = doc(db, 'mongna_calendar_data', 'sidebar_state');
     const scheduleRef = doc(db, 'mongna_calendar_data', 'schedule_data');
     const colorsRef = doc(db, 'mongna_calendar_data', 'category_colors');
+    const streamerDirRef = doc(db, 'mongna_calendar_data', 'streamer_directory');
 
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
       try {
@@ -102,6 +162,14 @@ export default function CalendarPage() {
           setCategoryColors(prev => ({ ...prev, ...data }));
         }
       } catch (e) { console.error("색상 로드 오류:", e); }
+    });
+
+    const unsubStreamerDir = onSnapshot(streamerDirRef, (docSnap) => {
+      try {
+        if (docSnap.exists()) {
+          setStreamerDirectory(docSnap.data() || {});
+        }
+      } catch (e) { console.error("스트리머 명부 로드 오류:", e); }
     });
 
     const unsubSidebar = onSnapshot(sidebarRef, (docSnap) => {
@@ -137,6 +205,7 @@ export default function CalendarPage() {
       unsubColors();
       unsubSidebar();
       unsubSchedule();
+      unsubStreamerDir();
     };
   }, []);
 
@@ -427,7 +496,10 @@ export default function CalendarPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {isAdmin && (
-                <button onClick={() => setIsColorModalOpen(true)} style={{ width: '40px', height: '40px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="카테고리 색상 설정">⚙️</button>
+                <>
+                  <button onClick={() => setIsStreamerManagerOpen(true)} style={{ padding: '8px 14px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }} title="스트리머 명부 관리">👥 스트리머 등록</button>
+                  <button onClick={() => setIsColorModalOpen(true)} style={{ width: '40px', height: '40px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="카테고리 색상 설정">⚙️</button>
+                </>
               )}
               <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: '1px solid transparent', background: isAdmin ? '#ffd700' : 'rgba(139, 92, 246, 0.1)', color: isAdmin ? '#333' : '#8b5cf6' }}>
                 {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
@@ -665,16 +737,16 @@ export default function CalendarPage() {
 
               {currentSchType === '합방' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (숲 실시간 크롤링 자동완성)</label>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>참여자 닉네임 (실시간 자동완성 & 크롤링)</label>
                   <input 
                     type="text" 
                     value={inputMembers} 
                     onChange={(e) => handleStreamerSearch(e.target.value)} 
-                    placeholder="닉네임 입력 시 숲 서버에서 검색 (예: 최또)" 
+                    placeholder="닉네임 입력 (예: 송현_, 최또)" 
                     style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', outline: 'none', boxSizing: 'border-box', width: '100%' }} 
                   />
 
-                  {/* 🟢 실시간 크롤링 결과 드롭다운 UI */}
+                  {/* 자동완성 드롭다운 UI */}
                   {streamerResults.length > 0 && (
                     <div style={{ 
                       position: 'absolute', top: '100%', left: 0, width: '100%', 
@@ -721,6 +793,36 @@ export default function CalendarPage() {
           </div>
         )}
 
+        {/* 🟢 관리자 전용: 스트리머 명부 등록 모달 */}
+        {isStreamerManagerOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsStreamerManagerOpen(false)}>
+            <div style={{ backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', width: '480px', maxWidth: '90vw', padding: '35px', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', gap: '18px' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 'bold', background: '#f3e8ff', color: '#7c3aed', padding: '6px 14px', borderRadius: '10px', fontSize: '14px' }}>👥 스트리머 명부 직접 등록</span>
+                <button onClick={() => setIsStreamerManagerOpen(false)} style={{ background: 'none', border: 'none', fontSize: '22px', color: '#888', cursor: 'pointer' }}>✕</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>스트리머 한글 닉네임</label>
+                <input type="text" value={newStreamerNick} onChange={(e) => setNewStreamerNick(e.target.value)} placeholder="예: 송현_" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>숲(SOOP) 영문 아이디</label>
+                <input type="text" value={newStreamerId} onChange={(e) => setNewStreamerId(e.target.value)} placeholder="예: songhy" style={{ padding: '12px 14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', outline: 'none' }} />
+              </div>
+
+              <button onClick={saveManualStreamer} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px', boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)' }}>
+                명부에 저장하기
+              </button>
+
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#777', lineHeight: '1.4' }}>
+                💡 <b>팁:</b> 크롤링 검색으로 찾기 힘든 스트리머는 여기에 한 번만 등록해 두면 파이어베이스에 영구 저장되어 언제든 자동완성과 프사 연동이 가능합니다!
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 일정 상세 보기 모달 */}
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setViewModalData(null)}>
@@ -740,20 +842,22 @@ export default function CalendarPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {viewModalData.sch.members.map((name: string, idx: number) => {
                     const trimmedName = name.trim();
-                    const idLower = trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const prefix = idLower.substring(0, 2);
-                    const profileImg = `https://profile.img.afreecatv.com/LOGO/${prefix}/${idLower}/${idLower}.jpg`;
-                    const stationUrl = `https://www.sooplive.com/${trimmedName}`;
+                    const matched = streamerDirectory[trimmedName] || { 
+                      name: trimmedName, 
+                      userId: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+                      profileImg: `https://profile.img.afreecatv.com/LOGO/${trimmedName.substring(0,2).toLowerCase()}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}/${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}.jpg`,
+                      broadcastUrl: `https://www.sooplive.com/${trimmedName}`
+                    };
 
                     return (
-                      <a key={idx} href={stationUrl} target="_blank" rel="noreferrer" title={`${trimmedName} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
+                      <a key={idx} href={matched.broadcastUrl} target="_blank" rel="noreferrer" title={`${matched.name} 방송국 바로가기`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none', transition: '0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='scale(1.05)'} onMouseOut={(e)=>e.currentTarget.style.transform='scale(1)'}>
                         <img 
-                          src={profileImg} 
-                          alt={trimmedName} 
+                          src={matched.profileImg} 
+                          alt={matched.name} 
                           style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C1ACD7', background: '#ddd', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                          onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(trimmedName.charAt(0))}`; }}
+                          onError={(e: any) => { e.target.src = `https://via.placeholder.com/56/C1ACD7/ffffff?text=${encodeURIComponent(matched.name.charAt(0))}`; }}
                         />
-                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{trimmedName}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{matched.name}</span>
                       </a>
                     );
                   })}
@@ -811,7 +915,7 @@ export default function CalendarPage() {
                   <label style={{ fontSize: '15px', fontWeight: 'bold', color: (categoryColors as any)[cat] }}>{cat} 색상</label>
                   <input 
                     type="color" 
-                    value={(categoryColors as data)[cat]} 
+                    value={(categoryColors as any)[cat]} 
                     onChange={(e) => setCategoryColors({ ...categoryColors, [cat]: e.target.value })} 
                     style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '2px', cursor: 'pointer', background: '#fff', width: '60px', height: '35px' }} 
                   />
