@@ -6,6 +6,9 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false); // 💡 모바일 뷰 감지 상태 추가
+  const [isMounted, setIsMounted] = useState(false);
+
   const [homeData, setHomeData] = useState({
     heroImg: '', ytChannelId: '', ytApiKey: '', isLive: false,
     links: [
@@ -17,8 +20,6 @@ export default function HomePage() {
   });
   
   const [scheduleData, setScheduleData] = useState<any>({});
-  
-  // 캘린더와 동일한 파스텔 색상 연동을 위한 상태
   const [categoryColors, setCategoryColors] = useState<any>({
     합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
   });
@@ -33,6 +34,15 @@ export default function HomePage() {
   const [inputYtApiKey, setInputYtApiKey] = useState('');
   const [inputIsLive, setInputIsLive] = useState(false);
   const [inputLinks, setInputLinks] = useState<any[]>([]);
+
+  // 💡 브라우저 사이즈를 감지하여 PC/모바일 모드 실시간 전환
+  useEffect(() => {
+    setIsMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -71,7 +81,6 @@ export default function HomePage() {
       }
     });
 
-    // 캘린더 색상 실시간 연동
     const unsubColors = onSnapshot(colorsRef, (docSnap) => {
       if (docSnap.exists()) {
         setCategoryColors((prev: any) => ({ ...prev, ...(docSnap.data() as any) }));
@@ -181,11 +190,9 @@ export default function HomePage() {
     }
   };
 
-  // 캘린더 색상과 연동되도록 업그레이드된 색상 함수
   const getEventColor = (sch: any) => {
     if (sch.backgroundColor) return sch.backgroundColor;
     if (categoryColors[sch.type]) return categoryColors[sch.type]; 
-    
     if (sch.color) return sch.color;
     if (sch.bgColor) return sch.bgColor;
     if (sch.eventColor) return sch.eventColor;
@@ -208,6 +215,7 @@ export default function HomePage() {
   sunday.setDate(todayObj.getDate() - currentDay);
 
   const thisWeekKeys = [];
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
   for (let i = 0; i < 7; i++) {
     const d = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + i);
     thisWeekKeys.push({
@@ -217,17 +225,27 @@ export default function HomePage() {
     });
   }
 
+  // Hydration 에러 방지
+  if (!isMounted) return null;
+
   return (
     <>
+      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
-          .main-container { flex-direction: column !important; }
-          .left-profile { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; height: auto !important; }
-          .schedule-grid { display: flex !important; overflow-x: auto !important; padding-bottom: 10px; }
-          .schedule-grid > div { min-width: 100px; }
-          .schedule-grid::-webkit-scrollbar { display: none; }
-          .nav-container { padding: 0 20px !important; }
+          .nav-container { flex-direction: column !important; height: auto !important; padding: 15px 20px !important; gap: 15px; }
+          .nav-links { flex-wrap: wrap !important; justify-content: center !important; font-size: 14px !important; gap: 15px !important; }
+          .top-btn-group { width: 100%; justify-content: center; }
+          
+          .main-container { flex-direction: column !important; padding: 20px 15px !important; gap: 30px !important; margin: 0 auto !important; }
+          .left-profile { position: static !important; width: 100% !important; max-width: 320px !important; margin: 0 auto !important; }
+          .content-area { padding-bottom: 20px !important; }
+          
+          /* 유튜브 모바일 1줄 정렬 */
+          .yt-grid { grid-template-columns: 1fr !important; }
+          /* 링크 모바일 1줄 정렬 */
+          .link-grid { grid-template-columns: 1fr !important; }
         }
       `}} />
 
@@ -246,7 +264,7 @@ export default function HomePage() {
             <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
-          <div style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
+          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
             <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
             <a href="/calendar" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
             <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
@@ -255,7 +273,7 @@ export default function HomePage() {
             <a href="/wiki" style={{ textDecoration: 'none', color: '#1e293b' }}>몽무위키</a>
           </div>
 
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             {homeData.isLive && (
               <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
             )}
@@ -271,54 +289,92 @@ export default function HomePage() {
         {/* 메인 레이아웃 */}
         <div className="main-container" style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
           
-          {/* 🌟 핵심 수정: 해상도(모니터 크기)에 따라 찌그러지지 않고 비율을 예쁘게 유지하는 aspectRatio 적용 */}
           <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', display: 'flex' }}>
             <img 
               src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} 
               alt="메인 사진" 
-              style={{ width: '100%', aspectRatio: '3/4', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box' }} 
+              style={{ width: '100%', aspectRatio: '3/4', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }} 
             />
           </div>
 
-          <div style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
+          <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
             
-            {/* 이번 주 일정 */}
-            <div style={{ background: '#ffffff', borderRadius: '24px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+            {/* 이번 주 일정 (모바일/PC 동적 전환) */}
+            <div style={{ background: '#ffffff', borderRadius: '24px', padding: isMobile ? '25px 20px' : '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
                 <a href="/calendar" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
               </div>
               
-              <div className="schedule-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', width: '100%' }}>
-                {thisWeekKeys.map(dayObj => {
-                  const daySchedules = scheduleData[dayObj.key] || [];
-                  const isToday = (dayObj.key === todayStr);
-                  let dateColor = '#1e293b';
-                  if (dayObj.dayIdx === 0) dateColor = '#ef4444';
-                  else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
+              {isMobile ? (
+                // 📱 모바일 뷰: 보기 편한 앱 형태의 세로 리스트 (가로 스크롤 없음!)
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {thisWeekKeys.map(dayObj => {
+                    const daySchedules = scheduleData[dayObj.key] || [];
+                    const isToday = (dayObj.key === todayStr);
+                    let dateColor = '#1e293b';
+                    if (dayObj.dayIdx === 0) dateColor = '#ef4444';
+                    else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
 
-                  return (
-                    <div key={dayObj.key} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 900, color: dateColor, marginBottom: '2px', textAlign: 'center' }}>
-                        {dayObj.dateNum}
-                      </div>
-                      {daySchedules.map((sch: any, idx: number) => {
-                        const bgColor = getEventColor(sch); 
-                        const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
-                        
-                        return (
-                          <div key={idx} style={{ borderRadius: '8px', padding: '6px', color: txtColor, fontSize: '11px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3', boxShadow: '0 2px 5px rgba(0,0,0,0.08)' }}>
-                            <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: 'white' }}>
-                              [{sch.time || '미정'}]
-                            </div>
-                            <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
+                    return (
+                      <div key={dayObj.key} style={{ display: 'flex', alignItems: 'center', gap: '15px', background: isToday ? '#f8f4ff' : '#fff', borderRadius: '16px', padding: '15px', border: isToday ? '2px solid #a855f7' : '1px solid #f1f5f9' }}>
+                        <div style={{ minWidth: '45px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{dayNames[dayObj.dayIdx]}</div>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: dateColor }}>{dayObj.dateNum}</div>
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-                })}
-              </div>
+                        <div style={{ width: '1px', background: '#e2e8f0', alignSelf: 'stretch' }}></div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {daySchedules.length > 0 ? (
+                            daySchedules.map((sch: any, idx: number) => {
+                              const bgColor = getEventColor(sch); 
+                              return (
+                                <div key={idx} style={{ background: bgColor, color: 'white', padding: '10px 12px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {sch.time && sch.time !== '시간 미정' && <span style={{ fontSize: '12px', opacity: 0.9 }}>⏰ {sch.time}</span>}
+                                  <span>{sch.title}</span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 500, padding: '5px 0' }}>일정이 없습니다.</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                // 💻 PC 뷰: 기존 예쁜 7칸 그리드
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', width: '100%' }}>
+                  {thisWeekKeys.map(dayObj => {
+                    const daySchedules = scheduleData[dayObj.key] || [];
+                    const isToday = (dayObj.key === todayStr);
+                    let dateColor = '#1e293b';
+                    if (dayObj.dayIdx === 0) dateColor = '#ef4444';
+                    else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
+
+                    return (
+                      <div key={dayObj.key} style={{ border: isToday ? '2px solid #a855f7' : '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: dateColor, marginBottom: '2px', textAlign: 'center' }}>
+                          {dayObj.dateNum}
+                        </div>
+                        {daySchedules.map((sch: any, idx: number) => {
+                          const bgColor = getEventColor(sch); 
+                          const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
+                          
+                          return (
+                            <div key={idx} style={{ borderRadius: '8px', padding: '6px', color: txtColor, fontSize: '11px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3', boxShadow: '0 2px 5px rgba(0,0,0,0.08)' }}>
+                              <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: 'white' }}>
+                                [{sch.time || '미정'}]
+                              </div>
+                              <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* 유튜브 섹션 */}
@@ -327,13 +383,13 @@ export default function HomePage() {
               {ytError ? (
                 <div style={{ textAlign: 'center', color: '#ef4444', fontSize: '14px', padding: '40px 0', background: 'white', borderRadius: '20px' }} dangerouslySetInnerHTML={{ __html: ytError }} />
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                   {ytVideos.map((item, idx) => {
                     const video = item.snippet;
                     const videoId = item.id.videoId || video.resourceId?.videoId;
                     const thumb = video.thumbnails?.medium?.url || '';
                     return (
-                      <a key={idx} href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
+                      <a key={idx} href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
                         <img src={thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
                         <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4' }}>{video.title}</div>
                       </a>
@@ -346,7 +402,7 @@ export default function HomePage() {
             {/* 몽나링크 섹션 */}
             <div>
               <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+              <div className="link-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
                 {homeData.links.map((link: any, idx: number) => (
                   <a key={idx} href={link.url || '#'} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
                     <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
