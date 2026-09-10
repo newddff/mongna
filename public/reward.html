@@ -152,8 +152,8 @@
   .profile-img { width: 70px; height: 70px; border-radius: 50%; background: #f1f5f9; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0; }
   
   .user-info { display: flex; flex-direction: column; gap: 4px; }
-  .user-name { font-size: 18px; font-weight: 900; color: var(--text-main); margin: 0; }
-  .user-id { font-size: 13px; color: var(--text-sub); font-weight: 500;}
+  .user-name { font-size: 18px; font-weight: 900; color: var(--text-main); margin: 0; word-break: break-all; }
+  .user-id { font-size: 13px; color: var(--text-sub); font-weight: 500; word-break: break-all; }
   
   .soop-link { font-size: 11px; background: #ebf5ff; color: #3b82f6; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; width: fit-content; transition: 0.2s; border: 1px solid transparent; }
   .soop-link:hover { background: #3b82f6; color: white; }
@@ -176,13 +176,13 @@
   .card-admin-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
 
   /* --- 모달 공통 --- */
-  .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  .modal-content { background-color: white; border-radius: 24px; width: 500px; max-width: 90vw; max-height: 85vh; overflow-y: auto; padding: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; }
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+  .modal-content { background-color: white; border-radius: 24px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto; padding: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; box-sizing: border-box; }
   .modal-close-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #888; cursor: pointer; transition: 0.2s; }
   
   .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
   .input-group label { font-size: 13px; font-weight: bold; color: #475569; }
-  .input-group input, .input-group select, .input-group textarea { padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: 14px; outline: none; }
+  .input-group input, .input-group select, .input-group textarea { padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: 14px; outline: none; box-sizing: border-box; width: 100%; }
   .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--primary); }
   
   .modal-save-btn { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
@@ -198,7 +198,7 @@
   .manage-item.is-comp { opacity: 0.6; }
   .mi-title { font-size: 15px; font-weight: 800; color: #333; }
   .mi-cat { font-size: 11px; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #64748b; margin-right: 5px; }
-  .mi-btns { display: flex; gap: 5px; }
+  .mi-btns { display: flex; gap: 5px; flex-wrap: wrap; }
   .mi-btn { padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; }
   .mi-comp-btn { background: #10b981; color: white; }
   .mi-pend-btn { background: #f59e0b; color: white; }
@@ -224,20 +224,37 @@
   }
   .img-viewer-close:hover { color: var(--primary-light); transform: scale(1.1); }
 
-  /* 모바일 가시성 */
-  @media (max-width: 1024px) {
-    .top-bar { padding: 10px 20px; height: auto; flex-wrap: wrap; }
-    .logo-wrap { order: 1; }
-    .right-menu { order: 2; }
-    .nav-menu { display: flex; order: 3; width: 100%; justify-content: center; gap: 15px; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(168, 85, 247, 0.1); overflow-x: auto; white-space: nowrap; font-size: 14px; }
-    .nav-menu::-webkit-scrollbar { display: none; }
+  /* 🟢 모바일 전용 반응형 레이아웃 100% 최적화 */
+  @media (max-width: 768px) {
+    .top-bar { flex-direction: column; height: auto; padding: 15px 20px; gap: 15px; }
+    .logo-wrap { align-self: center; }
+    .nav-menu { flex-wrap: wrap; justify-content: center; font-size: 14px; gap: 15px; width: 100%; }
+    .right-menu { width: 100%; justify-content: center; }
+    .admin-btn { width: 100%; }
+
+    .main-container { padding: 15px 15px 40px; margin: 0; gap: 15px; }
+    .category-wrap { flex-direction: column; align-items: stretch; gap: 10px; }
+    .category-tabs { padding-bottom: 10px; }
     
-    .main-container { padding: 0 20px 40px; margin-top: 20px; gap: 20px; }
     .split-container { flex-direction: column; gap: 20px; }
-    .left-panel-card { flex: none; position: static; width: 100%; max-width: none; max-height: none; padding: 20px; }
+    
+    .left-panel-card { position: static; width: 100%; min-width: 0; max-height: none; padding: 20px 15px; }
+    .right-panel { width: 100%; }
+    
     .panel-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .admin-controls { width: 100%; justify-content: flex-start; }
-    .admin-btn-action { flex: 1; text-align: center; }
+    .admin-controls { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .admin-btn-action { padding: 12px; font-size: 12px; text-align: center; }
+    .bg-add { grid-column: 1 / -1; } /* 추가 버튼은 크게 */
+
+    .large-search-wrap input { font-size: 14px; }
+    
+    .user-grid { grid-template-columns: 1fr; } /* 모바일 유저 카드 1열 */
+    .user-card { padding: 20px 15px; }
+    .modal-content { padding: 25px 20px; }
+    
+    /* 메뉴 항목들도 모바일에서 유연하게 떨어지도록 */
+    .manage-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .mi-btns { width: 100%; justify-content: flex-end; }
   }
 </style>
 </head>
@@ -249,7 +266,7 @@
   </a>
   <div class="nav-menu">
     <a href="/">홈</a>
-    <a href="/wiki" style="text-decoration: none; color: inherit;">몽무위키</a>
+    <a href="/wiki">몽무위키</a>
     <a href="/calendar">캘린더</a>
     <a href="/song.html">노래책</a>
     <a href="/reward.html" class="active">업보(보상)</a>
@@ -312,7 +329,7 @@
 
 <!-- 💡 엑셀 업로드 방식 선택 모달 -->
 <div class="modal-overlay" id="excelConfirmModal">
-  <div class="modal-content" style="width: 450px; text-align: center;">
+  <div class="modal-content" style="text-align: center;">
     <h2 style="margin-top:0; color:var(--primary); font-weight:900; font-size: 22px;">엑셀 등록 방식 선택</h2>
     <p id="excelConfirmMsg" style="font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;"></p>
     
@@ -358,7 +375,7 @@
 
 <!-- 사진 및 단가표 설정 모달 -->
 <div class="modal-overlay" id="menuModal" onclick="closeMenuSettings()">
-  <div class="modal-content" style="max-height: 90vh;" onclick="event.stopPropagation()">
+  <div class="modal-content" onclick="event.stopPropagation()">
     <button class="modal-close-btn" onclick="closeMenuSettings()">✕</button>
     <h2 style="margin-top:0; color:var(--text-main); font-weight:900;">카테고리별 사진 및 단가 설정</h2>
     <div class="input-group">
@@ -445,6 +462,13 @@
   let searchQuery = '';
   let leftTabMode = 'menu'; 
 
+  // 💡 데이터가 객체로 꼬였을 때를 대비한 '100% 에러 방어(안전 배열 변환)' 헬퍼 함수
+  const safeArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    return Object.values(data).filter(item => item !== null && typeof item !== 'undefined');
+  };
+
   // 슬라이드 제어
   window.currentSlideIdx = 0;
   window.moveSlide = function(dir) {
@@ -481,14 +505,16 @@
     return `https://profile.img.afreecatv.com/LOGO/${prefix}/${id}/${id}.jpg`;
   }
 
-  // --- 데이터 연동 ---
+  // --- 데이터 연동 (에러 방어 적용) ---
   onSnapshot(settingsRef, (docSnap) => {
     if (docSnap.exists()) {
-      settingsData = docSnap.data();
-      if(!settingsData.categories) settingsData.categories = [];
-      if(!settingsData.menuImages) settingsData.menuImages = {};
-      if(!settingsData.probImages) settingsData.probImages = {};
-      if(!settingsData.priceList) settingsData.priceList = {};
+      const raw = docSnap.data();
+      settingsData = {
+        categories: safeArray(raw.categories),
+        menuImages: raw.menuImages || {},
+        probImages: raw.probImages || {},
+        priceList: raw.priceList || {}
+      };
     }
     renderCategoryTabs();
     renderLeftImages();
@@ -496,8 +522,12 @@
   });
 
   onSnapshot(rewardRef, (docSnap) => {
-    if (docSnap.exists()) { rewards = docSnap.data().items || []; } 
-    else { rewards = []; }
+    if (docSnap.exists()) { 
+      // 💡 배열 꼬임 100% 방지 적용
+      rewards = safeArray(docSnap.data().items).filter(r => r && typeof r === 'object'); 
+    } else { 
+      rewards = []; 
+    }
     renderRewards();
   });
 
@@ -531,7 +561,9 @@
     const grid = document.getElementById('leftImagesGrid');
     let html = '';
     
-    let imgs = leftTabMode === 'menu' ? (settingsData.menuImages[currentCategory] || []) : (settingsData.probImages[currentCategory] || []);
+    // 💡 이미지 배열 꼬임 방어 적용
+    let rawImgs = leftTabMode === 'menu' ? (settingsData.menuImages[currentCategory] || []) : (settingsData.probImages[currentCategory] || []);
+    let imgs = safeArray(rawImgs);
     
     if(imgs.length > 0) {
       if(imgs.length === 1) {
@@ -692,7 +724,7 @@
             <img src="${profileUrl}" class="profile-img" onerror="this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'">
             <div class="user-info">
               <h3 class="user-name">${escapeHtml(user.nickname)}</h3>
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span class="user-id">@${escapeHtml(user.soopId || '아이디없음')}</span>
                 ${linkHtml}
               </div>
@@ -808,8 +840,8 @@
   
   window.loadImagesForCat = function() {
     const selectedCat = document.getElementById('menuCatSelect').value;
-    const mImgs = (settingsData.menuImages || {})[selectedCat] || [];
-    const pImgs = (settingsData.probImages || {})[selectedCat] || [];
+    const mImgs = safeArray((settingsData.menuImages || {})[selectedCat]);
+    const pImgs = safeArray((settingsData.probImages || {})[selectedCat]);
     const priceText = (settingsData.priceList || {})[selectedCat] || '';
     
     document.getElementById('menuImgUrls').value = mImgs.join('\n');
@@ -889,7 +921,7 @@
       const isComp = item.status === 'completed';
       const catText = item.category && item.category !== '미분류' ? `<span class="mi-cat">${escapeHtml(item.category)}</span>` : '';
       const statusBtn = isComp 
-        ? `<button class="mi-btn mi-pend-btn" onclick="changeStatus(${item.id}, 'pending')">취소(진행중으로)</button>`
+        ? `<button class="mi-btn mi-pend-btn" onclick="changeStatus(${item.id}, 'pending')">취소(진행중)</button>`
         : `<button class="mi-btn mi-comp-btn" onclick="changeStatus(${item.id}, 'completed')">청산 완료</button>`;
       
       html += `
