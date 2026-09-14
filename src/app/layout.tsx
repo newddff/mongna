@@ -1,7 +1,7 @@
 export const metadata = {
- icons: { 
-   icon: ' https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png',
- },
+  icons: {
+    icon: 'https://cdn-icons-png.flaticon.com/512/1823/1823321.png',
+  },
 };
 export default function RootLayout({
   children,
