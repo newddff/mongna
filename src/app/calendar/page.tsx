@@ -1,44 +1,19 @@
 'use client';
 
-import { getMongnaAnniversaries } from '@/utils/dday'; // 경로 맞춰주세요
-
-export default function CalendarPage() {
-  const { debutDays, birthDDay } = getMongnaAnniversaries();
-
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      {/* 캘린더 상단 디데이 위젯 */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="text-2xl bg-purple-100 w-12 h-12 flex items-center justify-center rounded-xl">🎙️</div>
-          <div>
-            <div className="text-xs text-gray-500 font-bold">몽나 방송 시작한 지</div>
-            <div className="text-lg font-extrabold text-purple-600">D+{debutDays}일</div>
-          </div>
-        </div>
-        
-        <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="text-2xl bg-pink-100 w-12 h-12 flex items-center justify-center rounded-xl">🎂</div>
-          <div>
-            <div className="text-xs text-gray-500 font-bold">다가오는 생일</div>
-            <div className="text-lg font-extrabold text-pink-500">
-              {birthDDay === 0 ? '오늘 생일! 🎉' : `D-${birthDDay}`}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 기존 캘린더 코드가 이 아래에 들어갑니다 */}
-      {/* <CalendarComponent /> */}
-    </div>
-  );
-}
-
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
+// 👇 디데이 계산 공통 함수 불러오기 (경로 유의)
+import { getMongnaAnniversaries } from '@/utils/dday'; 
+
 export default function CalendarPage() {
+  // 🌟 [추가] 디데이 계산 변수 선언
+  const { debutDays, birthDDay } = getMongnaAnniversaries();
+
+  // ----------------------------------------------------
+  // 기존 상태값 및 함수들 (원래 코드 유지)
+  // ----------------------------------------------------
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -268,8 +243,6 @@ export default function CalendarPage() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
-  // 💡 오늘 날짜 변수 복구 완료!
   const today = new Date();
 
   const calendarDays = [];
@@ -513,6 +486,27 @@ export default function CalendarPage() {
             </button>
           </div>
         </nav>
+
+        {/* 🌟🌟🌟 여기에 디데이 위젯 추가 완료! 🌟🌟🌟 */}
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1', minWidth: '300px', backgroundColor: '#fff', padding: '20px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '32px', backgroundColor: '#f3e8ff', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>🎙️</div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b' }}>몽나 방송 시작한 지</div>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#a855f7' }}>D+{debutDays}일</div>
+              </div>
+            </div>
+            
+            <div style={{ flex: '1', minWidth: '300px', backgroundColor: '#fff', padding: '20px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '32px', backgroundColor: '#fdf2f8', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>🎂</div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b' }}>다가오는 생일</div>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#ec4899' }}>{birthDDay === 0 ? '🎉 오늘이 바로 생일! 🎉' : `D-${birthDDay}`}</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '50px' }}>
           <div className="main-wrapper" style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>
