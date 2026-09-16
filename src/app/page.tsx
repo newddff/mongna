@@ -3,17 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { getMongnaAnniversaries } from '../utils/dday'; // ✨ 디데이 계산기 불러오기
+import { getMongnaAnniversaries } from '../utils/dday'; 
 
 export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // 💡 모바일 뷰 감지 상태 추가
+  const [isMobile, setIsMobile] = useState(false); 
   const [isMounted, setIsMounted] = useState(false);
 
   const [homeData, setHomeData] = useState({
     heroImg: '', ytChannelId: '', ytApiKey: '', isLive: false,
     links: [
-      { title: '숲 방송국', sub: '생방송 보러가기', icon: '📺', url: 'https://www.sooplive.com/station/pinktape8' },
+      { title: '숲 방송국', sub: '생방송 보러가기', icon: '📺', url: 'https://play.sooplive.co.kr/pinktape8' },
       { title: '유튜브', sub: '다시보기 & 하이라이트', icon: '🎬', url: 'https://www.youtube.com/@mongnaaa' },
       { title: '팬카페', sub: '소통과 정보 나눔', icon: '☕', url: 'https://cafe.naver.com/nightofmongna' },
       { title: '인스타그램', sub: '일상 공유', icon: '📷', url: 'https://www.instagram.com/m0n9na/' }
@@ -33,29 +33,17 @@ export default function HomePage() {
   // 🌟 SOOP 핫클립 데이터를 담을 변수
   const [soopClips, setSoopClips] = useState<any[]>([]);
 
-  // 🌟 화면 켜질 때 핫클립 가져오기
-  useEffect(() => {
-    fetch('/api/clips')
-      .then(res => res.json())
-      .then(data => {
-        if (data.clips) setSoopClips(data.clips);
-      })
-      .catch(err => console.error(err));
-  }, []);
-  
   const [inputHeroImg, setInputHeroImg] = useState('');
   const [inputYtChannelId, setInputYtChannelId] = useState('');
   const [inputYtApiKey, setInputYtApiKey] = useState('');
   const [inputIsLive, setInputIsLive] = useState(false);
   const [inputLinks, setInputLinks] = useState<any[]>([]);
 
-  // 🌟 [추가] 1분 자동 갱신 생방송 상태 & 디데이 변수
   const [autoIsLive, setAutoIsLive] = useState(false); 
   const { isBirthdayToday, isDebutToday, debutDays } = getMongnaAnniversaries();
-  // 자동 감지(autoIsLive)되거나 관리자가 수동으로 켰을 때(homeData.isLive) 뱃지 활성화
   const currentlyLive = homeData.isLive || autoIsLive;
 
-  // 💡 1분마다 방송 상태 자동 확인 (API 호출)
+  // 💡 1분마다 방송 상태 자동 확인
   useEffect(() => {
     const checkLiveStatus = async () => {
       try {
@@ -68,11 +56,21 @@ export default function HomePage() {
     };
     
     checkLiveStatus();
-    const interval = setInterval(checkLiveStatus, 60000); // 60초마다 반복
+    const interval = setInterval(checkLiveStatus, 60000); 
     return () => clearInterval(interval);
   }, []);
 
-  // 💡 브라우저 사이즈를 감지하여 PC/모바일 모드 실시간 전환
+  // 💡 화면 켜질 때 핫클립 가져오기 (SOOP API)
+  useEffect(() => {
+    fetch('/api/clips')
+      .then(res => res.json())
+      .then(data => {
+        if (data.clips) setSoopClips(data.clips);
+      })
+      .catch(err => console.error("핫클립 가져오기 실패:", err));
+  }, []);
+
+  // 💡 브라우저 사이즈 감지
   useEffect(() => {
     setIsMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -81,6 +79,7 @@ export default function HomePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // 💡 파이어베이스 데이터 연동
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true');
@@ -131,6 +130,7 @@ export default function HomePage() {
     };
   }, []);
 
+  // 💡 유튜브 영상 가져오기
   useEffect(() => {
     const channelId = (homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw').trim();
     const apiKey = homeData.ytApiKey;
@@ -262,12 +262,10 @@ export default function HomePage() {
     });
   }
 
-  // Hydration 에러 방지
   if (!isMounted) return null;
 
   return (
     <>
-      {/* 🟢 반응형 CSS 및 새롭게 추가된 애니메이션(Pulse) */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -279,13 +277,10 @@ export default function HomePage() {
           .left-profile { position: static !important; width: 100% !important; max-width: 320px !important; margin: 0 auto !important; }
           .content-area { padding-bottom: 20px !important; }
           
-          /* 유튜브 모바일 1줄 정렬 */
           .yt-grid { grid-template-columns: 1fr !important; }
-          /* 링크 모바일 1줄 정렬 */
           .link-grid { grid-template-columns: 1fr !important; }
         }
 
-        /* 🔴 생방송 뱃지 심장박동 애니메이션 */
         @keyframes live-pulse {
           0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); transform: scale(1); }
           50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); transform: scale(1.02); }
@@ -306,7 +301,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 네비게이션 바 */}
         <div className="nav-container" style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(168, 85, 247, 0.1)' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '40px', objectFit: 'contain' }} />
@@ -322,7 +316,6 @@ export default function HomePage() {
           </div>
 
           <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            {/* 💡 currentlyLive 로 수정: 수동 OR 자동 둘 중 하나라도 켜지면 뱃지 표시 */}
             {currentlyLive && (
               <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
             )}
@@ -335,7 +328,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 메인 레이아웃 */}
         <div className="main-container" style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
           
           <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', display: 'flex' }}>
@@ -348,11 +340,10 @@ export default function HomePage() {
 
           <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
             
-            {/* 🌟 [추가됨] 실시간 생방송 뱃지 (방송 중일 때만 애니메이션과 함께 등장!) */}
             {currentlyLive && (
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '-20px' }}>
                 <a 
-                  href="https://play.sooplive.co.kr/pinktape8"
+                  href="https://play.sooplive.co.kr/pinktape8" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{
@@ -368,7 +359,6 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* 🌟 [추가됨] 당일에만 나타나는 깜짝 축하 배너 */}
             {(isBirthdayToday || isDebutToday) && (
               <div style={{
                 background: 'linear-gradient(90deg, #fce7f3 0%, #f3e8ff 100%)',
@@ -389,7 +379,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* 이번 주 일정 (모바일/PC 동적 전환) */}
+            {/* 이번 주 일정 */}
             <div style={{ background: '#ffffff', borderRadius: '24px', padding: isMobile ? '25px 20px' : '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
@@ -397,7 +387,6 @@ export default function HomePage() {
               </div>
               
               {isMobile ? (
-                // 📱 모바일 뷰: 보기 편한 앱 형태의 세로 리스트 (가로 스크롤 없음!)
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {thisWeekKeys.map(dayObj => {
                     const daySchedules = scheduleData[dayObj.key] || [];
@@ -433,7 +422,6 @@ export default function HomePage() {
                   })}
                 </div>
               ) : (
-                // 💻 PC 뷰: 기존 예쁜 7칸 그리드
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', width: '100%' }}>
                   {thisWeekKeys.map(dayObj => {
                     const daySchedules = scheduleData[dayObj.key] || [];
@@ -489,6 +477,45 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* 🌟 SOOP 자동 수집 주간 핫클립 섹션 🌟 */}
+            <div style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 900 }}>🔥 SOOP 주간 핫클립</div>
+                  <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>가장 폼 미친 조회수의 영상들! (자동 갱신)</div>
+                </div>
+              </div>
+              
+              {soopClips.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', background: '#ffffff', borderRadius: '20px', color: '#94a3b8', fontWeight: 'bold', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+                  클립 데이터를 불러오는 중이거나 아직 영상이 없습니다 💦
+                </div>
+              ) : (
+                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                  {soopClips.map((clip, idx) => (
+                    <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', overflow: 'hidden', transition: 'transform 0.2s' }} className="hover:scale-105">
+                      {idx === 0 && (
+                        <div style={{ position: 'absolute', top: '25px', left: '25px', background: '#ef4444', color: 'white', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 900, zIndex: 10 }}>
+                          👑 조회수 1위
+                        </div>
+                      )}
+                      
+                      <div style={{ position: 'relative' }}>
+                        <img src={clip.thumb} alt="클립 썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', bottom: '25px', right: '10px', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 800 }}>
+                          👁️ {clip.views.toLocaleString()}회
+                        </div>
+                      </div>
+                      
+                      <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {clip.title}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* 몽나링크 섹션 */}
             <div>
               <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
@@ -526,42 +553,6 @@ export default function HomePage() {
                   🚨 현재 방송중 배지 강제 켜기 (수동)
                 </label>
               </div>
-
-              {/* 🌟 SOOP 자동 수집 주간 핫클립 섹션 🌟 */}
-            {soopClips.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
-                  <div>
-                    <div style={{ fontSize: '22px', fontWeight: 900 }}>🔥 SOOP 주간 핫클립</div>
-                    <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>이번 주 가장 폼 미친 조회수의 클립들! (자동 갱신)</div>
-                  </div>
-                </div>
-                
-                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                  {soopClips.map((clip, idx) => (
-                    <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', overflow: 'hidden', transition: 'transform 0.2s' }} className="hover:scale-105">
-                      {/* 조회수 1등 뱃지 */}
-                      {idx === 0 && (
-                        <div style={{ position: 'absolute', top: '25px', left: '25px', background: '#ef4444', color: 'white', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 900, zIndex: 10 }}>
-                          👑 조회수 1위
-                        </div>
-                      )}
-                      
-                      <div style={{ position: 'relative' }}>
-                        <img src={clip.thumb} alt="클립 썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
-                        <div style={{ position: 'absolute', bottom: '25px', right: '10px', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 800 }}>
-                          👁️ {clip.views.toLocaleString()}회
-                        </div>
-                      </div>
-                      
-                      <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {clip.title}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
 
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>📸 좌측 메인 사진 URL</label>
