@@ -4,6 +4,40 @@ import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
+import { getMongnaAnniversaries } from '@/utils/dday'; // 경로 맞춰주세요
+
+export default function CalendarPage() {
+  const { debutDays, birthDDay } = getMongnaAnniversaries();
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      {/* 캘린더 상단 디데이 위젯 */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-3">
+          <div className="text-2xl bg-purple-100 w-12 h-12 flex items-center justify-center rounded-xl">🎙️</div>
+          <div>
+            <div className="text-xs text-gray-500 font-bold">몽나 방송 시작한 지</div>
+            <div className="text-lg font-extrabold text-purple-600">D+{debutDays}일</div>
+          </div>
+        </div>
+        
+        <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-3">
+          <div className="text-2xl bg-pink-100 w-12 h-12 flex items-center justify-center rounded-xl">🎂</div>
+          <div>
+            <div className="text-xs text-gray-500 font-bold">다가오는 생일</div>
+            <div className="text-lg font-extrabold text-pink-500">
+              {birthDDay === 0 ? '오늘 생일! 🎉' : `D-${birthDDay}`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 기존 캘린더 코드가 이 아래에 들어갑니다 */}
+      {/* <CalendarComponent /> */}
+    </div>
+  );
+}
+
 export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
