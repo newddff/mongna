@@ -1,62 +1,50 @@
 import { NextResponse } from 'next/server';
 
-// 🌟 핵심 1: Vercel의 징글징글한 캐시 강제 폭파! (무조건 매번 최신 데이터 가져옴)
-export const dynamic = 'force-dynamic'; 
+// 🌟 종우님 말씀대로 트래픽 요금 폭탄을 막기 위해 '1시간(3600초) 캐시' 철벽 방어 모드로 복구!
+export const revalidate = 3600; 
 
 export async function GET() {
   try {
     const soopId = 'pinktape8'; 
     
-    // 🌟 핵심 2: 숲 서버가 제일 좋아하는 가장 안전하고 기본이 되는 URL로 변경 
-    const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20`, {
+    const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=all`, {
       headers: { 
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         'Accept': 'application/json'
-      },
-      cache: 'no-store' // 여기서도 캐시 한 번 더 원천 차단!
+      }
     });
     
-    // 만약 숲 서버가 응답을 안 주면 안전하게 텅 빈 박스(안내 문구)를 띄우도록 처리
     if (!res.ok) {
        return NextResponse.json({ clips: [] });
     }
 
     const data = await res.json();
-    
-    // 데이터가 어떤 껍데기에 싸여오든 무조건 배열(리스트)을 찾아내는 만능 탐지기
-    let rawClips = [];
-    if (Array.isArray(data)) rawClips = data;
-    else if (Array.isArray(data?.data)) rawClips = data.data;
-    else if (Array.isArray(data?.data?.list)) rawClips = data.data.list;
-    else if (Array.isArray(data?.list)) rawClips = data.list;
+    const rawClips = Array.isArray(data?.data) ? data.data : [];
 
     const hotClips = rawClips
-      .map((item: any) => {
-        const clip = item.vod || item.clip || item.catch || item;
+      .map((clip: any) => {
+        // 💡 1. 디버그로 알아낸 숲(SOOP)의 진짜 제목 이름표 적용! (title_name)
+        const title = clip.title_name || clip.title || '제목을 불러올 수 없습니다';
         
-        // 조회수 숫자로 깔끔하게 변환 (에러 방지)
-        const viewsRaw = clip.read_cnt || clip.view_cnt || clip.views || 0;
-        const viewsNum = typeof viewsRaw === 'string' ? parseInt(viewsRaw.replace(/,/g, ''), 10) : Number(viewsRaw) || 0;
+        // 💡 2. 조회수에 쉼표(,)가 섞여 있어도 강제로 다 빼버리고 순수 숫자로 계산!
+        const rawViews = clip.read_cnt || 0;
+        const views = parseInt(String(rawViews).replace(/,/g, ''), 10) || 0;
 
-        // 썸네일 이미지 링크 복구
-        let thumbUrl = clip.thumb || clip.thumbnail || clip.poster || '';
-        if (thumbUrl.startsWith('//')) {
-          thumbUrl = 'https:' + thumbUrl;
+        // 💡 3. 썸네일 이미지 링크 복구 (//stimg... 앞에 https: 강제 결합)
+        let thumb = clip.thumb || '';
+        if (thumb.startsWith('//')) {
+          thumb = 'https:' + thumb;
         }
 
-        // 🚨 [필살기] 만약 숲 서버에서 주는 데이터 이름이 바뀌었다면, 그 이름들을 화면에 띄워서 추적함!
-        const fallbackTitle = clip.title || clip.vod_title || clip.name || clip.subject;
-        const debugKeys = fallbackTitle ? fallbackTitle : `🚨오류분석: ${Object.keys(clip).join(', ')}`;
-
         return {
-          id: clip.title_no || clip.vod_no || clip.bbs_no || 'unknown',
-          title: debugKeys,
-          thumb: thumbUrl || 'https://via.placeholder.com/320x180?text=No+Image', 
-          views: viewsNum, 
-          url: `https://vod.sooplive.co.kr/player/${clip.title_no || clip.vod_no || clip.bbs_no}` 
+          id: clip.title_no,
+          title: title,
+          thumb: thumb,
+          views: views, 
+          url: `https://vod.sooplive.co.kr/player/${clip.title_no}` 
         };
       })
-      .sort((a: any, b: any) => b.views - a.views) // 조회수 순위 나열
+      .sort((a: any, b: any) => b.views - a.views) // 조회수 순위대로 나열
       .slice(0, 3); // 깔끔하게 1,2,3등만 자르기
 
     return NextResponse.json({ clips: hotClips });
