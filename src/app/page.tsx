@@ -339,7 +339,7 @@ export default function HomePage() {
             {currentlyLive && (
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '-20px' }}>
                 <a 
-                  href="https://play.soop.com/pinktape8" 
+                  href="https://play.sooplive.co.kr/pinktape8"
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{
