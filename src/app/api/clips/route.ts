@@ -9,7 +9,7 @@ export async function GET() {
     const soopId = 'pinktape8'; 
     
     // 숲(구 아프리카) VOD/클립 정보 가져오기 API (최신순 20개 먼저 가져옴)
-    const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=clip`, {
+    const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=all`, { ... })
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
     });
     
