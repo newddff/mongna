@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { getMongnaAnniversaries } from '../utils/dday'; // ✨ 디데이 계산기 불러오기
 
 export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -34,6 +35,29 @@ export default function HomePage() {
   const [inputYtApiKey, setInputYtApiKey] = useState('');
   const [inputIsLive, setInputIsLive] = useState(false);
   const [inputLinks, setInputLinks] = useState<any[]>([]);
+
+  // 🌟 [추가] 1분 자동 갱신 생방송 상태 & 디데이 변수
+  const [autoIsLive, setAutoIsLive] = useState(false); 
+  const { isBirthdayToday, isDebutToday, debutDays } = getMongnaAnniversaries();
+  // 자동 감지(autoIsLive)되거나 관리자가 수동으로 켰을 때(homeData.isLive) 뱃지 활성화
+  const currentlyLive = homeData.isLive || autoIsLive;
+
+  // 💡 1분마다 방송 상태 자동 확인 (API 호출)
+  useEffect(() => {
+    const checkLiveStatus = async () => {
+      try {
+        const res = await fetch('/api/live');
+        const data = await res.json();
+        setAutoIsLive(data.isLive);
+      } catch (error) {
+        console.error("방송 상태 확인 실패");
+      }
+    };
+    
+    checkLiveStatus();
+    const interval = setInterval(checkLiveStatus, 60000); // 60초마다 반복
+    return () => clearInterval(interval);
+  }, []);
 
   // 💡 브라우저 사이즈를 감지하여 PC/모바일 모드 실시간 전환
   useEffect(() => {
@@ -230,7 +254,7 @@ export default function HomePage() {
 
   return (
     <>
-      {/* 🟢 자동 모바일 뷰 감지 반응형 CSS */}
+      {/* 🟢 반응형 CSS 및 새롭게 추가된 애니메이션(Pulse) */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -246,6 +270,17 @@ export default function HomePage() {
           .yt-grid { grid-template-columns: 1fr !important; }
           /* 링크 모바일 1줄 정렬 */
           .link-grid { grid-template-columns: 1fr !important; }
+        }
+
+        /* 🔴 생방송 뱃지 심장박동 애니메이션 */
+        @keyframes live-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); transform: scale(1); }
+          50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); transform: scale(1.02); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
+        }
+        @keyframes live-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
         }
       `}} />
 
@@ -274,7 +309,8 @@ export default function HomePage() {
           </div>
 
           <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            {homeData.isLive && (
+            {/* 💡 currentlyLive 로 수정: 수동 OR 자동 둘 중 하나라도 켜지면 뱃지 표시 */}
+            {currentlyLive && (
               <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
             )}
             {isAdmin && (
@@ -299,6 +335,47 @@ export default function HomePage() {
 
           <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
             
+            {/* 🌟 [추가됨] 실시간 생방송 뱃지 (방송 중일 때만 애니메이션과 함께 등장!) */}
+            {currentlyLive && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '-20px' }}>
+                <a 
+                  href="https://play.soop.com/pinktape8" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: '#ef4444', color: 'white', padding: '12px 24px',
+                    borderRadius: '30px', fontWeight: 900, fontSize: '16px',
+                    textDecoration: 'none', animation: 'live-pulse 2s infinite'
+                  }}
+                >
+                  <div style={{ width: '12px', height: '12px', background: 'white', borderRadius: '50%', animation: 'live-dot 1s infinite' }}></div>
+                  몽나님 현재 생방송 중! 보러가기 🏃‍♀️
+                </a>
+              </div>
+            )}
+
+            {/* 🌟 [추가됨] 당일에만 나타나는 깜짝 축하 배너 */}
+            {(isBirthdayToday || isDebutToday) && (
+              <div style={{
+                background: 'linear-gradient(90deg, #fce7f3 0%, #f3e8ff 100%)',
+                border: '1px solid #fbcfe8', padding: '20px', borderRadius: '24px',
+                textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                marginBottom: '-20px'
+              }}>
+                {isBirthdayToday && (
+                  <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#db2777', margin: 0, marginBottom: isDebutToday ? '10px' : '0' }}>
+                    🎉 오늘은 몽나님 생일입니다! 모두 축하해 주세요! 🎉
+                  </h2>
+                )}
+                {isDebutToday && (
+                  <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#9333ea', margin: 0 }}>
+                    🎙️ 오늘은 몽나님 방송 데뷔 {debutDays}일째 되는 날! 🎙️
+                  </h2>
+                )}
+              </div>
+            )}
+
             {/* 이번 주 일정 (모바일/PC 동적 전환) */}
             <div style={{ background: '#ffffff', borderRadius: '24px', padding: isMobile ? '25px 20px' : '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
@@ -433,7 +510,7 @@ export default function HomePage() {
               <div style={{ marginBottom: '20px', background: '#fff0f0', padding: '15px', borderRadius: '12px' }}>
                 <label style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', gap: '8px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={inputIsLive} onChange={e => setInputIsLive(e.target.checked)} />
-                  🚨 현재 방송중 배지 켜기
+                  🚨 현재 방송중 배지 강제 켜기 (수동)
                 </label>
               </div>
 
