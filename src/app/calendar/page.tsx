@@ -1,9 +1,5 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-
 import { getMongnaAnniversaries } from '@/utils/dday'; // 경로 맞춰주세요
 
 export default function CalendarPage() {
@@ -37,6 +33,10 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+import React, { useEffect, useState } from 'react';
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function CalendarPage() {
   const [isAdmin, setIsAdmin] = useState(false);
