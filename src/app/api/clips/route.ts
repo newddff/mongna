@@ -5,87 +5,78 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const soopId = 'pinktape8'; 
-    const nocache = Date.now(); // 브라우저 캐시 파괴용 시간표
-
-    // 💡 전략: 숲 서버가 VOD만 던져주니, 아예 최신 영상 100개를 넉넉히 받아와서 우리가 '숏폼'만 걸러내자!
-    const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=100&type=all&_t=${nocache}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-      cache: 'no-store'
-    });
+    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' };
     
-    if (!res.ok) return NextResponse.json({ clips: [] });
-    const data = await res.json();
-    const rawClips = Array.isArray(data?.data) ? data.data : (data?.data?.list || []);
+    const allShorts: any[] = [];
 
-    const hotClips = rawClips
-      .map((clip: any) => {
-        // [필살기] 숲 서버가 이중 삼중으로 숨겨놓은 데이터를 통째로 문자열로 만들어서 정규식으로 다 뜯어버림
-        const flatStr = JSON.stringify(clip);
+    // 💡 1. 종우님이 알려주신 '유저클립' 해결: 클립 전용 API 타입(user_clip)으로 명확하게 찌르기!
+    try {
+        const clipApi = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=user_clip`, { headers, cache: 'no-store' });
+        const clipData = await clipApi.json();
+        const clips = Array.isArray(clipData?.data) ? clipData.data : (clipData?.data?.list || []);
+        allShorts.push(...clips);
+    } catch(e) {}
+
+    // 💡 2. 종우님이 알려주신 '캐치' 해결: 웹 스크래핑(HTML 파싱)으로 웹페이지 데이터 통째로 뜯어오기!
+    try {
+        const catchHtmlRes = await fetch(`https://www.sooplive.com/station/${soopId}/catch`, { headers, cache: 'no-store' });
+        const catchHtml = await catchHtmlRes.text();
         
-        // 1. 제목 추출
-        let title = clip.title_name || clip.title || clip.vod_title || '제목 없음';
-        if (title === '제목 없음') {
-          const tMatch = flatStr.match(/"(?:title_name|title|vod_title)"\s*:\s*"([^"]+)"/i);
-          if (tMatch) title = tMatch[1];
+        // 숲(SOOP) 웹페이지 깊숙이 숨겨진 JSON 데이터를 강제로 뜯어내는 정규식
+        const nextDataMatch = catchHtml.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+        if (nextDataMatch) {
+            const nextData = JSON.parse(nextDataMatch[1]);
+            
+            // 데이터 더미 속에서 'catch_no(캐치 고유번호)'가 있는 진짜 영상만 쏙쏙 찾아내는 탐지기
+            const findCatches = (obj: any) => {
+                if (!obj || typeof obj !== 'object') return;
+                if (obj.catch_no && obj.title) {
+                    allShorts.push(obj);
+                } else {
+                    Object.values(obj).forEach(val => findCatches(val));
+                }
+            };
+            findCatches(nextData);
         }
+    } catch(e) {}
 
-        // 2. 조회수 추출 (숨어있는 숫자 강제 적출)
-        let views = 0;
-        const vMatch = flatStr.match(/"(?:view_cnt|read_cnt|total_view_cnt)"\s*:\s*"?([\d,]+)"?/i);
-        if (vMatch && vMatch[1]) {
-          views = parseInt(vMatch[1].replace(/,/g, ''), 10);
-        }
+    // 💡 3. 캐치와 클립을 하나로 합쳐서 완벽하게 정렬!
+    const hotClips = allShorts
+      .map((clip: any) => {
+        const title = clip.title_name || clip.title || clip.vod_title || '제목 없음';
+        
+        const rawViews = clip.view_cnt || clip.read_cnt || clip.total_view_cnt || 0;
+        const views = parseInt(String(rawViews).replace(/[^0-9]/g, ''), 10) || 0;
 
-        // 3. 썸네일 추출 (아까 몽나님 프로필 사진이 뜨던 버그 강제 차단)
-        let thumb = '';
-        const thumbMatch = flatStr.match(/"([^"]*?stimg\.afreecatv\.com[^"]*?)"/gi);
-        if (thumbMatch) {
-          for (let t of thumbMatch) {
-            t = t.replace(/"/g, ''); // 쌍따옴표 제거
-            // 🚨 프로필 사진(LOGO, profile)이 아닌 진짜 영상 썸네일만 채택
-            if (!t.includes('LOGO') && !t.includes('profile')) {
-              thumb = t;
-              break;
-            }
-          }
-        }
+        let thumb = clip.thumb_path || clip.uc_thumb || clip.thumb || clip.thumbnail || '';
         if (thumb.startsWith('//')) thumb = 'https:' + thumb;
         else if (thumb && !thumb.startsWith('http')) thumb = 'https://' + thumb.replace(/^\/+/, '');
-        else if (!thumb) thumb = 'https://via.placeholder.com/320x180?text=No+Image';
-
-        // 4. ✨ 핵심: 영상 길이(초 단위) 추출 -> 다시보기를 걸러낼 유일한 단서!
-        let duration = 999999; // 기본값: 아주 긴 다시보기로 취급
-        const dMatch = flatStr.match(/"(?:duration|file_duration|play_time)"\s*:\s*"?(\d+)"?/i);
-        if (dMatch && dMatch[1]) {
-          duration = parseInt(dMatch[1], 10);
-        }
-
-        const videoId = clip.bbs_no || clip.uc_no || clip.catch_no || clip.title_no || clip.vod_no;
+        
+        const videoId = clip.catch_no || clip.uc_no || clip.bbs_no || clip.title_no;
 
         return {
           id: videoId || Math.random().toString(),
           title: title,
-          thumb: thumb,
-          views: views,
-          duration: duration, 
-          url: `https://vod.sooplive.co.kr/player/${videoId}`
+          thumb: thumb || 'https://via.placeholder.com/320x180?text=No+Image', 
+          views: views, 
+          // 캐치와 클립의 고유 주소 연결 (캐치 전용 주소 완벽 대응)
+          url: clip.catch_no 
+                ? `https://www.sooplive.com/catch/${soopId}/${videoId}`
+                : `https://vod.sooplive.co.kr/player/${videoId}` 
         };
       })
-      // 💡 [최종 숏폼 필터] 영상 길이가 20분(1200초) 이하인 숏폼/클립만 살리고, 2~3시간짜리 다시보기는 완벽 차단!
-      .filter((clip: any) => clip.duration <= 1200)
-      .sort((a: any, b: any) => b.views - a.views)
+      .filter((clip: any) => clip.title !== '제목 없음' && clip.id) // 찌꺼기 제거
+      .filter((clip: any, index: number, self: any[]) => index === self.findIndex((t) => t.id === clip.id)) // 중복 방지
+      .sort((a: any, b: any) => b.views - a.views) // 조회수 순으로 나열
       .slice(0, 3); 
 
-    // 🚨 브라우저 캐시(임시저장)까지 원천 차단하는 방어막 헤더 세팅
+    // 브라우저 캐시 원천 차단 방어막
     return NextResponse.json({ clips: hotClips }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
       }
     });
   } catch (error) {
-    console.error("클립 에러:", error);
     return NextResponse.json({ clips: [] }, { status: 500 });
   }
 }
