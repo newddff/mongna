@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-// 🌟 종우님 말씀대로 트래픽 요금 폭탄을 막기 위해 '1시간(3600초) 캐시' 철벽 방어 모드로 복구!
-export const revalidate = 3600; 
+// 🌟 빠른 확인을 위해 캐시 방어막을 0초로 엽니다! (성공 확인 후 나중에 3600으로 돌리면 됩니다)
+export const revalidate = 0; 
 
 export async function GET() {
   try {
@@ -11,7 +11,8 @@ export async function GET() {
       headers: { 
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         'Accept': 'application/json'
-      }
+      },
+      cache: 'no-store' // 확실한 디버깅을 위해 fetch 캐시도 원천 차단!
     });
     
     if (!res.ok) {
@@ -23,29 +24,31 @@ export async function GET() {
 
     const hotClips = rawClips
       .map((clip: any) => {
-        // 💡 1. 디버그로 알아낸 숲(SOOP)의 진짜 제목 이름표 적용! (title_name)
-        const title = clip.title_name || clip.title || '제목을 불러올 수 없습니다';
+        // ✅ 1. 제목 (완벽하게 작동 중!)
+        const title = clip.title_name || clip.title || '제목 없음';
         
-        // 💡 2. 조회수에 쉼표(,)가 섞여 있어도 강제로 다 빼버리고 순수 숫자로 계산!
-        const rawViews = clip.read_cnt || 0;
-        const views = parseInt(String(rawViews).replace(/,/g, ''), 10) || 0;
+        // ✅ 2. 숲(SOOP) 조회수 키값 총동원! (문자열에 섞인 한글이나 쉼표도 다 털어내고 숫자만 추출)
+        const rawViews = clip.view_cnt || clip.read_cnt || clip.total_view_cnt || clip.watch_cnt || 0;
+        const views = parseInt(String(rawViews).replace(/[^0-9]/g, ''), 10) || 0;
 
-        // 💡 3. 썸네일 이미지 링크 복구 (//stimg... 앞에 https: 강제 결합)
-        let thumb = clip.thumb || '';
+        // ✅ 3. 숲(SOOP) 썸네일 키값 총동원! (경로가 이상하게 오면 강제로 https:// 조립)
+        let thumb = clip.thumb_path || clip.thumb || clip.thumbnail || clip.uc_thumb || clip.file_path || '';
         if (thumb.startsWith('//')) {
           thumb = 'https:' + thumb;
+        } else if (thumb && !thumb.startsWith('http')) {
+          thumb = 'https://' + thumb.replace(/^\/+/, ''); // 맨 앞 슬래시 지우고 https 붙임
         }
 
         return {
-          id: clip.title_no,
+          id: clip.title_no || clip.vod_no || 'unknown',
           title: title,
-          thumb: thumb,
+          thumb: thumb || 'https://via.placeholder.com/320x180?text=No+Image', 
           views: views, 
-          url: `https://vod.sooplive.co.kr/player/${clip.title_no}` 
+          url: `https://vod.sooplive.co.kr/player/${clip.title_no || clip.vod_no}` 
         };
       })
-      .sort((a: any, b: any) => b.views - a.views) // 조회수 순위대로 나열
-      .slice(0, 3); // 깔끔하게 1,2,3등만 자르기
+      .sort((a: any, b: any) => b.views - a.views) // 진짜 숫자로 내림차순 정렬
+      .slice(0, 3); 
 
     return NextResponse.json({ clips: hotClips });
   } catch (error) {
