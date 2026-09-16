@@ -1,8 +1,8 @@
 export function getMongnaAnniversaries() {
   // 💡 여기서 몽나님의 진짜 데뷔일과 생일을 적어주세요!
   const debutDate = new Date('2023-11-18T00:00:00'); 
-  const birthdayMonth = 03; // 11월
-  const birthdayDay = 05;   // 15일
+  const birthdayMonth = 3; // 11월
+  const birthdayDay = 5;   // 15일
 
   const today = new Date();
   
