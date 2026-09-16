@@ -1,72 +1,91 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // 캐시 파괴 유지
 
 export async function GET() {
   try {
-    const soopId = 'pinktape8'; 
+    const soopId = 'pinktape8';
     const headers = { 'User-Agent': 'Mozilla/5.0' };
-    
-    // 💡 종우님이 찾아주신 1번 주소 (클립 탭) -> 숲 공식 API 'user_clip' 호출
-    const clipRes = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=user_clip`, { headers, cache: 'no-store' });
-    const clipJson = await clipRes.json().catch(() => ({}));
-    const clipList = Array.isArray(clipJson?.data) ? clipJson.data : (clipJson?.data?.list || []);
 
-    // 💡 종우님이 찾아주신 2번 주소 (캐치 탭) -> 숲 공식 API 'catchs' 전용 주소 호출! (vods가 아니었음!)
-    const catchRes = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/catchs?page=1&per_page=20`, { headers, cache: 'no-store' });
-    let catchJson = await catchRes.json().catch(() => ({}));
-    
-    // (혹시 catchs 주소가 막히면 예비용으로 vods?type=catch 호출)
-    if (!catchJson?.data) {
-        const catchRes2 = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=20&type=catch`, { headers, cache: 'no-store' });
-        catchJson = await catchRes2.json().catch(() => ({}));
+    // 💡 1. 숲 서버가 자꾸 말을 안 들으니, 3가지 가능성을 전부 찔러서 한 번에 싹 다 긁어옵니다.
+    const urls = [
+      `https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=30&type=all`,
+      `https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=30&type=catch`,
+      `https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=30&type=clip`
+    ];
+
+    const responses = await Promise.all(urls.map(url => fetch(url, { headers, cache: 'no-store' }).catch(() => null)));
+
+    let rawItems: any[] = [];
+    for (const res of responses) {
+        if (!res || !res.ok) continue;
+        const json = await res.json().catch(() => null);
+        // 데이터가 배열(Array) 형태로 어디에 숨어있든 다 끄집어냅니다.
+        if (json && Array.isArray(json.data)) {
+            rawItems.push(...json.data);
+        } else if (json && json.data && Array.isArray(json.data.list)) {
+            rawItems.push(...json.data.list);
+        }
     }
-    const catchList = Array.isArray(catchJson?.data) ? catchJson.data : (catchJson?.data?.list || []);
 
-    const allShorts = [];
+    // 💡 2. 데이터 추출 및 정규화 (이름표가 달라도 무조건 찾아냄!)
+    const parsedItems = rawItems.map(c => {
+        if (!c || typeof c !== 'object') return null;
 
-    // 🎯 유저클립(Clip) 데이터 예쁘게 다듬기
-    for (const c of clipList) {
-        const id = c.title_no || c.uc_no || c.bbs_no;
-        if (!id) continue;
-        
-        let thumb = c.uc_thumb || c.thumb || c.thumbnail || '';
+        const id = c.title_no || c.catch_no || c.uc_no || c.bbs_no || c.vod_no;
+        if (!id) return null;
+
+        // 🚨 제목 오류 완벽 해결: 다시보기(title_name)든 클립(title)이든 다 찾아냅니다!
+        const title = c.title_name || c.title || c.vod_title || c.subject || '제목 없음';
+
+        // 🚨 썸네일 오류 완벽 해결: 어떤 경로(thumb_path, uc_thumb)로 주든 강제로 https 붙여서 추출!
+        let thumb = c.thumb_path || c.thumb || c.uc_thumb || c.catch_thumb || c.thumbnail || c.poster || '';
         if (thumb.startsWith('//')) thumb = 'https:' + thumb;
+        else if (thumb && !thumb.startsWith('http')) thumb = 'https://' + thumb.replace(/^\/+/, '');
 
-        allShorts.push({
-            id: `clip_${id}`, // 겹치지 않게 이름표 붙이기
-            title: c.title || c.vod_title || '제목 없음',
-            thumb: thumb || 'https://via.placeholder.com/320x180?text=No+Image',
-            views: parseInt(String(c.read_cnt || c.view_cnt || 0).replace(/,/g, ''), 10) || 0,
-            url: `https://vod.sooplive.co.kr/player/${id}` // 클립 플레이어 주소
-        });
+        // 🚨 조회수 오류 완벽 해결
+        const viewsStr = c.read_cnt || c.view_cnt || c.total_view_cnt || c.watch_cnt || 0;
+        const views = parseInt(String(viewsStr).replace(/,/g, ''), 10) || 0;
+
+        // 💡 3. ✨ 영상 길이(시간) 정밀 측정 -> 다시보기를 걸러낼 핵심 무기!
+        let sec = 0;
+        const d = c.file_duration || c.duration || c.play_time;
+        if (typeof d === 'number') {
+            sec = d;
+        } else if (typeof d === 'string') {
+            const parts = d.split(':').map(Number);
+            if (parts.length === 3) sec = parts[0]*3600 + parts[1]*60 + (parts[2]||0);
+            else if (parts.length === 2) sec = parts[0]*60 + (parts[1]||0);
+            else sec = parseInt(d, 10) || 0;
+        }
+
+        // 4. 전용 플레이어 URL 조립 (캐치는 전용 주소 사용)
+        const isCatch = Boolean(c.catch_no || (thumb && thumb.includes('catch')));
+        const url = isCatch
+            ? `https://vod.sooplive.co.kr/player/${id}/catch`
+            : `https://vod.sooplive.co.kr/player/${id}`;
+
+        return { id, title, thumb, views, sec, url };
+    }).filter(Boolean);
+
+    // 💡 5. 똑같은 영상이 여러 개 딸려오지 않게 중복 제거!
+    const uniqueMap = new Map();
+    for (const item of parsedItems) {
+        if (!uniqueMap.has(item?.id)) {
+            uniqueMap.set(item?.id, item);
+        }
     }
 
-    // 🎯 캐치(Catch) 데이터 예쁘게 다듬기
-    for (const c of catchList) {
-        const id = c.catch_no || c.title_no;
-        if (!id) continue;
-        
-        let thumb = c.thumb_path || c.thumb || '';
-        if (thumb.startsWith('//')) thumb = 'https:' + thumb;
-
-        allShorts.push({
-            id: `catch_${id}`, // 겹치지 않게 이름표 붙이기
-            title: c.title_name || c.title || '제목 없음',
-            thumb: thumb || 'https://via.placeholder.com/320x180?text=No+Image',
-            views: parseInt(String(c.view_cnt || c.read_cnt || 0).replace(/,/g, ''), 10) || 0,
-            url: `https://vod.sooplive.co.kr/player/${id}/catch` // 🚨 숲(SOOP) 캐치 전용 플레이어 주소 적용!
-        });
-    }
-
-    // 🏆 두 탭의 영상들을 합쳐서 조회수(views) 기준으로 1~3등 줄세우기!
-    const hotClips = allShorts
-        .sort((a, b) => b.views - a.views)
+    // 💡 6. 🏆 [최종 필터링] 영상 길이가 30분(1800초) 이하인 숏폼/클립만 100% 살려내고 정렬!
+    const hotClips = Array.from(uniqueMap.values())
+        .filter((c: any) => c.sec <= 1800) // 🚨 다시보기 철벽 차단 필터
+        .sort((a: any, b: any) => b.views - a.views) // 조회수 1~3등
         .slice(0, 3);
 
     return NextResponse.json({ clips: hotClips }, {
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     });
+
   } catch (error) {
     console.error("클립 가져오기 실패:", error);
     return NextResponse.json({ clips: [] }, { status: 500 });
