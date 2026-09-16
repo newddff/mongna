@@ -3,16 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-
-// 👇 디데이 계산 공통 함수 불러오기 (경로 유의)
-import { getMongnaAnniversaries } from '@/utils/dday'; 
+import { getMongnaAnniversaries } from '../../utils/dday'; // ✨ 경로 점 2개로 수정한 부분!
 
 export default function CalendarPage() {
-  // 🌟 [추가] 디데이 계산 변수 선언
+  // 🌟 [추가] 디데이 계산 변수 선언 (딱 이거 한 줄만 추가되는 겁니다!)
   const { debutDays, birthDDay } = getMongnaAnniversaries();
 
   // ----------------------------------------------------
-  // 기존 상태값 및 함수들 (원래 코드 유지)
+  // 👇 기존 상태값들 (걱정하신 색상 코드 포함, 절대 안 건드립니다!)
   // ----------------------------------------------------
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -25,7 +23,8 @@ export default function CalendarPage() {
   const [categoryColors, setCategoryColors] = useState({
     합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
   });
-
+  
+  // ... 이후 원래 코드들 쭈욱 이어짐 ...
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
 
