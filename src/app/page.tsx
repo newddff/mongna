@@ -30,6 +30,19 @@ export default function HomePage() {
   const [ytVideos, setYtVideos] = useState<any[]>([]);
   const [ytError, setYtError] = useState('');
 
+  // 🌟 SOOP 핫클립 데이터를 담을 변수
+  const [soopClips, setSoopClips] = useState<any[]>([]);
+
+  // 🌟 화면 켜질 때 핫클립 가져오기
+  useEffect(() => {
+    fetch('/api/clips')
+      .then(res => res.json())
+      .then(data => {
+        if (data.clips) setSoopClips(data.clips);
+      })
+      .catch(err => console.error(err));
+  }, []);
+  
   const [inputHeroImg, setInputHeroImg] = useState('');
   const [inputYtChannelId, setInputYtChannelId] = useState('');
   const [inputYtApiKey, setInputYtApiKey] = useState('');
