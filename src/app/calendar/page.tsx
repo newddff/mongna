@@ -3,15 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { getMongnaAnniversaries } from '../../utils/dday'; // ✨ 경로 점 2개로 수정한 부분!
+import { getMongnaAnniversaries } from '../../utils/dday'; 
 
 export default function CalendarPage() {
-  // 🌟 [추가] 디데이 계산 변수 선언
   const { debutDays, birthDDay } = getMongnaAnniversaries();
 
-  // ----------------------------------------------------
-  // 👇 기존 상태값들 (걱정하신 색상 코드 포함, 절대 안 건드립니다!)
-  // ----------------------------------------------------
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -220,7 +216,6 @@ export default function CalendarPage() {
     return () => { unsubColors(); unsubSidebar(); unsubSchedule(); unsubStreamerDir(); };
   }, []);
 
-  // ✨ 백엔드 인증으로 보안 강화된 관리자 로그인 함수
   const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
@@ -234,7 +229,6 @@ export default function CalendarPage() {
       const pwd = prompt("관리자 비밀번호를 입력해주세요.");
       if (!pwd) return;
 
-      // 브라우저가 직접 검사하지 않고, 백엔드 서버에 물어봅니다.
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
