@@ -117,7 +117,7 @@ export default function HomePage() {
     };
   }, []);
 
-// 💡 유튜브 영상 가져오기 (안전한 백엔드 API 호출)
+  // 💡 유튜브 영상 가져오기 (안전한 백엔드 API 호출로 변경됨)
   useEffect(() => {
     const channelId = (homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw').trim();
 
@@ -134,42 +134,8 @@ export default function HomePage() {
       .catch(() => setYtError("서버 오류가 발생했습니다."));
   }, [homeData.ytChannelId]);
 
-    if (!apiKey) {
-      setYtError("구글 유튜브 API 키가 입력되지 않았습니다. 설정(⚙️) 창을 열어 키를 붙여넣어 주세요!");
-      return;
-    }
-
-    const uploadsPlaylistId = channelId.replace(/^UC/, 'UU');
-    const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=3&key=${apiKey}`;
-
-    fetch(playlistUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(res.status.toString());
-        return res.json();
-      })
-      .then(data => {
-        setYtVideos(data.items || []);
-        setYtError('');
-      })
-      .catch(err => {
-        if (err.message === "404") {
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=3&order=date&type=video&key=${apiKey}`;
-          fetch(searchUrl)
-            .then(res => res.json())
-            .then(data => {
-              setYtVideos(data.items || []);
-              setYtError('');
-            })
-            .catch(() => setYtError("유튜브 API 오류가 발생했습니다. 채널 ID를 확인해주세요."));
-        } else if (err.message === "403") {
-          setYtError("API 키 권한 거부 (403): 구글 콘솔 설정을 확인해주세요.");
-        } else {
-          setYtError("유튜브 API 오류가 발생했습니다.");
-        }
-      });
-  }, [homeData.ytChannelId, homeData.ytApiKey]);
-
-const toggleAdmin = async () => {
+  // 💡 관리자 로그인 로직 (안전한 백엔드 API 호출로 변경됨)
+  const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
@@ -179,7 +145,6 @@ const toggleAdmin = async () => {
       const pwd = prompt("관리자 비밀번호 입력:");
       if (!pwd) return;
 
-      // 브라우저가 직접 검사하지 않고, 백엔드 서버에 물어봅니다.
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
