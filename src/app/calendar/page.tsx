@@ -989,7 +989,7 @@ export default function CalendarPage() {
                   <div style={{ fontSize: '15px', fontWeight: 800, color: '#64748b' }}>몽나 방송 시작한 지</div>
                   {/* 👇 아래 '2023. 11. 17' 부분을 실제 몽나님 방송 시작일로 수정해주세요! */}
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#8b5cf6', backgroundColor: '#fff', padding: '5px 12px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(139, 92, 246, 0.15)', border: '1px solid #ede9fe' }}>
-                    📅 2021. 11. 26
+                    📅 2023. 11. 18
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -1010,7 +1010,7 @@ export default function CalendarPage() {
                   <div style={{ fontSize: '15px', fontWeight: 800, color: '#64748b' }}>다가오는 생일</div>
                   {/* 👇 아래 '03. 05' 부분을 실제 몽나님 생일로 수정해주세요! */}
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#ec4899', backgroundColor: '#fff', padding: '5px 12px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(236, 72, 153, 0.15)', border: '1px solid #fce7f3' }}>
-                    🎉 매년 03. 05
+                    🎉 2000. 03. 05
                   </div>
                 </div>
                 <div style={{ fontSize: '32px', fontWeight: 900, color: '#db2777', letterSpacing: '-1px' }}>
