@@ -755,17 +755,36 @@
     if(mCat && currentCategory !== 'all') mCat.value = currentCategory;
   }
 
-  window.toggleAdmin = function() {
+  // ✨ 백엔드 서버(Vercel) 통신 방식으로 강화된 보안 로그인 로직
+  window.toggleAdmin = async function() {
     if(isAdmin) {
       if(confirm("관리자 모드를 종료하시겠습니까?")) {
-        isAdmin = false; localStorage.removeItem('mongna_secure_admin_v2'); updateAdminUI();
+        isAdmin = false; 
+        localStorage.removeItem('mongna_secure_admin_v2'); 
+        updateAdminUI();
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
-      if(pwd === "mongna1234") {
-        isAdmin = true; localStorage.setItem('mongna_secure_admin_v2', 'true');
-        alert("관리자 인증 성공!"); updateAdminUI();
-      } else if(pwd) { alert("비밀번호 오류"); }
+      if(!pwd) return;
+      
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+
+        if (res.ok) {
+          isAdmin = true; 
+          localStorage.setItem('mongna_secure_admin_v2', 'true');
+          alert("관리자 인증 성공!"); 
+          updateAdminUI();
+        } else {
+          alert("비밀번호 오류");
+        }
+      } catch(e) {
+        alert("서버 연결에 실패했습니다.");
+      }
     }
   };
 
