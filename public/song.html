@@ -400,7 +400,8 @@
   const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2'); 
 
   let songs = [];
-  let isAdmin = localStorage.getItem('mongna_song_admin') === 'true';
+  // ✨ 하나로 묶어주는 슈퍼 영수증!
+  let isAdmin = localStorage.getItem('mongna_secure_admin_v2') === 'true';
   let currentFilter = '전체';
   let spinInterval = null; 
   let selectedSongId = null;
@@ -444,18 +445,38 @@
     } catch(e) { console.error("노래 목록 로드 에러:", e); }
   });
 
-  window.toggleAdmin = function() {
+  // ✨ Vercel 금고와 통신하는 완벽 보안 로그인
+  window.toggleAdmin = async function() {
     if(isAdmin) {
       if(confirm("관리자 모드를 종료하시겠습니까?")) {
-        isAdmin = false; localStorage.removeItem('mongna_song_admin');
-        updateAdminUI(); renderSongs();
+        isAdmin = false; 
+        localStorage.removeItem('mongna_secure_admin_v2');
+        updateAdminUI(); 
+        renderSongs();
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
-      if(pwd === "mongna1234") {
-        isAdmin = true; localStorage.setItem('mongna_song_admin', 'true');
-        alert("관리자 인증 성공!"); updateAdminUI(); renderSongs();
-      } else if(pwd) { alert("비밀번호 오류"); }
+      if(!pwd) return;
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+
+        if (res.ok) {
+          isAdmin = true; 
+          localStorage.setItem('mongna_secure_admin_v2', 'true');
+          alert("관리자 인증 성공!"); 
+          updateAdminUI(); 
+          renderSongs();
+        } else {
+          alert("비밀번호 오류");
+        }
+      } catch(e) {
+        alert("서버 연결에 실패했습니다.");
+      }
     }
   };
 
