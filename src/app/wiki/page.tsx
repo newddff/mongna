@@ -6,7 +6,7 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export default function WikiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // 💡 모바일 뷰 자동 감지
+  const [isMobile, setIsMobile] = useState(false); 
   const [isMounted, setIsMounted] = useState(false);
 
   const [wikiData, setWikiData] = useState<any>({
@@ -43,7 +43,6 @@ export default function WikiPage() {
   const [ecDesc, setEcDesc] = useState('');
   const [ecVod, setEcVod] = useState('');
 
-  // 💡 브라우저 사이즈 감지
   useEffect(() => {
     setIsMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -62,7 +61,7 @@ export default function WikiPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true' || localStorage.getItem('mongna_secure_admin_v2') === 'true');
+      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true');
     }
 
     const firebaseConfig = {
@@ -93,26 +92,37 @@ export default function WikiPage() {
     return () => unsubWiki();
   }, []);
 
-  const toggleAdmin = () => {
+  // ✨ Vercel 서버 인증 API로 교체된 관리자 로그인 기능
+  const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('mongna_secure_admin_v2');
-          localStorage.removeItem('mongna_secure_admin_v2');
         }
       }
     } else {
       const password = prompt("관리자 비밀번호를 입력해주세요.");
-      if (password === "mongna1234") {
-        setIsAdmin(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mongna_secure_admin_v2', 'true');
-          localStorage.setItem('mongna_secure_admin_v2', 'true');
+      if (!password) return;
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (res.ok) {
+          setIsAdmin(true);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('mongna_secure_admin_v2', 'true');
+          }
+          alert("인증 성공! 연필 모양 버튼을 눌러 위키를 꾸며보세요.");
+        } else {
+          alert("비밀번호가 틀렸습니다.");
         }
-        alert("인증 성공! 연필 모양 버튼을 눌러 위키를 꾸며보세요.");
-      } else if (password !== null) {
-        alert("비밀번호가 틀렸습니다.");
+      } catch (e) {
+        alert("서버 연결에 실패했습니다.");
       }
     }
   };
@@ -124,14 +134,12 @@ export default function WikiPage() {
     return doc(db, 'mongna_calendar_data', 'wiki_data');
   };
 
-  // 💡 100% 에러 방어 로직: 섹션 데이터를 항상 올바른 배열로 추출
   const getSafeSections = () => {
     const rawSections = wikiData?.profile?.sections || [];
     return (Array.isArray(rawSections) ? rawSections : Object.values(rawSections))
       .filter((s: any) => s && typeof s === 'object');
   };
 
-  // 💡 100% 에러 방어 로직: 히스토리 데이터를 항상 올바른 배열로 추출
   const getSafeHistory = () => {
     const rawHistory = wikiData?.history || [];
     return (Array.isArray(rawHistory) ? rawHistory : Object.values(rawHistory))
@@ -159,7 +167,7 @@ export default function WikiPage() {
     const newProfile = {
       name: epName.trim() || '몽나_',
       image: epImg.trim(),
-      sections: epSections.filter(s => s.title.trim() !== '') // 빈 제목 방지
+      sections: epSections.filter(s => s.title.trim() !== '')
     };
     try {
       const updatedData = { ...wikiData, profile: newProfile };
@@ -244,7 +252,7 @@ export default function WikiPage() {
   const safeSections = getSafeSections();
   const sortedHistory = getSafeHistory().sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
-  if (!isMounted) return null; // Hydration 에러 방지
+  if (!isMounted) return null;
 
   return (
     <>
