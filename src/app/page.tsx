@@ -30,9 +30,6 @@ export default function HomePage() {
   const [ytVideos, setYtVideos] = useState<any[]>([]);
   const [ytError, setYtError] = useState('');
 
-  // 🌟 SOOP 핫클립 데이터를 담을 변수
-  const [soopClips, setSoopClips] = useState<any[]>([]);
-
   const [inputHeroImg, setInputHeroImg] = useState('');
   const [inputYtChannelId, setInputYtChannelId] = useState('');
   const [inputYtApiKey, setInputYtApiKey] = useState('');
@@ -58,16 +55,6 @@ export default function HomePage() {
     checkLiveStatus();
     const interval = setInterval(checkLiveStatus, 60000); 
     return () => clearInterval(interval);
-  }, []);
-
-  // 💡 화면 켜질 때 핫클립 가져오기 (SOOP API)
-  useEffect(() => {
-    fetch('/api/clips')
-      .then(res => res.json())
-      .then(data => {
-        if (data.clips) setSoopClips(data.clips);
-      })
-      .catch(err => console.error("핫클립 가져오기 실패:", err));
   }, []);
 
   // 💡 브라우저 사이즈 감지
@@ -473,45 +460,6 @@ export default function HomePage() {
                       </a>
                     );
                   })}
-                </div>
-              )}
-            </div>
-
-            {/* 🌟 SOOP 자동 수집 주간 핫클립 섹션 🌟 */}
-            <div style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '22px', fontWeight: 900 }}>🔥 SOOP 주간 핫클립</div>
-                  <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>가장 폼 미친 조회수의 영상들! (자동 갱신)</div>
-                </div>
-              </div>
-              
-              {soopClips.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', background: '#ffffff', borderRadius: '20px', color: '#94a3b8', fontWeight: 'bold', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
-                  클립 데이터를 불러오는 중이거나 아직 영상이 없습니다 💦
-                </div>
-              ) : (
-                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                  {soopClips.map((clip, idx) => (
-                    <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', overflow: 'hidden', transition: 'transform 0.2s' }} className="hover:scale-105">
-                      {idx === 0 && (
-                        <div style={{ position: 'absolute', top: '25px', left: '25px', background: '#ef4444', color: 'white', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 900, zIndex: 10 }}>
-                          👑 조회수 1위
-                        </div>
-                      )}
-                      
-                      <div style={{ position: 'relative' }}>
-                        <img src={clip.thumb} alt="클립 썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
-                        <div style={{ position: 'absolute', bottom: '25px', right: '10px', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 800 }}>
-                          👁️ {clip.views.toLocaleString()}회
-                        </div>
-                      </div>
-                      
-                      <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {clip.title}
-                      </div>
-                    </a>
-                  ))}
                 </div>
               )}
             </div>
