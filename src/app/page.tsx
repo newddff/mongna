@@ -117,10 +117,22 @@ export default function HomePage() {
     };
   }, []);
 
-  // 💡 유튜브 영상 가져오기
+// 💡 유튜브 영상 가져오기 (안전한 백엔드 API 호출)
   useEffect(() => {
     const channelId = (homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw').trim();
-    const apiKey = homeData.ytApiKey;
+
+    fetch(`/api/youtube?channelId=${channelId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.items && data.items.length > 0) {
+          setYtVideos(data.items);
+          setYtError('');
+        } else {
+          setYtError("유튜브 영상을 불러오지 못했습니다.");
+        }
+      })
+      .catch(() => setYtError("서버 오류가 발생했습니다."));
+  }, [homeData.ytChannelId]);
 
     if (!apiKey) {
       setYtError("구글 유튜브 API 키가 입력되지 않았습니다. 설정(⚙️) 창을 열어 키를 붙여넣어 주세요!");
@@ -157,7 +169,7 @@ export default function HomePage() {
       });
   }, [homeData.ytChannelId, homeData.ytApiKey]);
 
-  const toggleAdmin = () => {
+const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
@@ -165,11 +177,20 @@ export default function HomePage() {
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
-      if (pwd === "mongna1234") {
+      if (!pwd) return;
+
+      // 브라우저가 직접 검사하지 않고, 백엔드 서버에 물어봅니다.
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+
+      if (res.ok) {
         setIsAdmin(true);
         if (typeof window !== 'undefined') localStorage.setItem('mongna_home_admin', 'true');
         alert("관리자 인증 성공!");
-      } else if (pwd) {
+      } else {
         alert("비밀번호 오류");
       }
     }
