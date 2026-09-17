@@ -455,7 +455,7 @@
   const rewardRef = doc(db, 'mongna_calendar_data', 'reward_data_v3'); 
   const settingsRef = doc(db, 'mongna_calendar_data', 'reward_settings_v4'); 
 
-  let isAdmin = localStorage.getItem('mongna_home_admin') === 'true';
+  let isAdmin = localStorage.getItem('mongna_secure_admin_v2') === 'true';
   let rewards = [];
   
   let settingsData = { categories: [], menuImages: {}, probImages: {}, priceList: {} }; 
@@ -758,12 +758,12 @@
   window.toggleAdmin = function() {
     if(isAdmin) {
       if(confirm("관리자 모드를 종료하시겠습니까?")) {
-        isAdmin = false; localStorage.removeItem('mongna_home_admin'); updateAdminUI();
+        isAdmin = false; localStorage.removeItem('mongna_secure_admin_v2'); updateAdminUI();
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
       if(pwd === "mongna1234") {
-        isAdmin = true; localStorage.setItem('mongna_home_admin', 'true');
+        isAdmin = true; localStorage.setItem('mongna_secure_admin_v2', 'true');
         alert("관리자 인증 성공!"); updateAdminUI();
       } else if(pwd) { alert("비밀번호 오류"); }
     }

@@ -62,7 +62,7 @@ export default function WikiPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true' || localStorage.getItem('mongna_calendar_admin') === 'true');
+      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true' || localStorage.getItem('mongna_secure_admin_v2') === 'true');
     }
 
     const firebaseConfig = {
@@ -98,8 +98,8 @@ export default function WikiPage() {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('mongna_home_admin');
-          localStorage.removeItem('mongna_calendar_admin');
+          localStorage.removeItem('mongna_secure_admin_v2');
+          localStorage.removeItem('mongna_secure_admin_v2');
         }
       }
     } else {
@@ -107,8 +107,8 @@ export default function WikiPage() {
       if (password === "mongna1234") {
         setIsAdmin(true);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('mongna_home_admin', 'true');
-          localStorage.setItem('mongna_calendar_admin', 'true');
+          localStorage.setItem('mongna_secure_admin_v2', 'true');
+          localStorage.setItem('mongna_secure_admin_v2', 'true');
         }
         alert("인증 성공! 연필 모양 버튼을 눌러 위키를 꾸며보세요.");
       } else if (password !== null) {

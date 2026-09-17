@@ -68,7 +68,7 @@ export default function HomePage() {
   // 💡 파이어베이스 데이터 연동
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_home_admin') === 'true');
+      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true');
     }
 
     const firebaseConfig = {
@@ -138,7 +138,7 @@ export default function HomePage() {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
         setIsAdmin(false);
-        if (typeof window !== 'undefined') localStorage.removeItem('mongna_home_admin');
+        if (typeof window !== 'undefined') localStorage.removeItem('mongna_secure_admin_v2');
       }
     } else {
       const pwd = prompt("관리자 비밀번호 입력:");
@@ -152,7 +152,7 @@ export default function HomePage() {
 
       if (res.ok) {
         setIsAdmin(true);
-        if (typeof window !== 'undefined') localStorage.setItem('mongna_home_admin', 'true');
+        if (typeof window !== 'undefined') localStorage.setItem('mongna_secure_admin_v2', 'true');
         alert("관리자 인증 성공!");
       } else {
         alert("비밀번호 오류");
