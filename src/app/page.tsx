@@ -11,7 +11,7 @@ export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
 
   const [homeData, setHomeData] = useState({
-    heroImg: '', ytChannelId: '', ytApiKey: '', isLive: false,
+    heroImg: '', ytChannelId: '', isLive: false,
     links: [
       { title: '숲 방송국', sub: '생방송 보러가기', icon: '📺', url: 'https://play.sooplive.co.kr/pinktape8' },
       { title: '유튜브', sub: '다시보기 & 하이라이트', icon: '🎬', url: 'https://www.youtube.com/@mongnaaa' },
@@ -32,7 +32,6 @@ export default function HomePage() {
 
   const [inputHeroImg, setInputHeroImg] = useState('');
   const [inputYtChannelId, setInputYtChannelId] = useState('');
-  const [inputYtApiKey, setInputYtApiKey] = useState('');
   const [inputIsLive, setInputIsLive] = useState(false);
   const [inputLinks, setInputLinks] = useState<any[]>([]);
 
@@ -117,7 +116,7 @@ export default function HomePage() {
     };
   }, []);
 
-  // 💡 유튜브 영상 가져오기 (안전한 백엔드 API 호출로 변경됨)
+  // 💡 유튜브 영상 가져오기 (안전한 백엔드 API 호출)
   useEffect(() => {
     const channelId = (homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw').trim();
 
@@ -134,7 +133,7 @@ export default function HomePage() {
       .catch(() => setYtError("서버 오류가 발생했습니다."));
   }, [homeData.ytChannelId]);
 
-  // 💡 관리자 로그인 로직 (안전한 백엔드 API 호출로 변경됨)
+  // 💡 관리자 로그인 로직 (안전한 백엔드 API 호출)
   const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
@@ -164,7 +163,6 @@ export default function HomePage() {
   const openSettings = () => {
     setInputHeroImg(homeData.heroImg || '');
     setInputYtChannelId(homeData.ytChannelId || 'UCtqsg-m0nnzd4o2vkYiP6rw');
-    setInputYtApiKey(homeData.ytApiKey || '');
     setInputIsLive(homeData.isLive || false);
     setInputLinks(JSON.parse(JSON.stringify(homeData.links)));
     setIsModalOpen(true);
@@ -187,7 +185,6 @@ export default function HomePage() {
       isLive: inputIsLive,
       heroImg: inputHeroImg.trim(),
       ytChannelId: inputYtChannelId.trim(),
-      ytApiKey: inputYtApiKey.trim(),
       links: inputLinks
     };
 
@@ -493,14 +490,9 @@ export default function HomePage() {
                 <input type="text" value={inputHeroImg} onChange={e => setInputHeroImg(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: '30px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶️ 유튜브 채널 ID</label>
                 <input type="text" value={inputYtChannelId} onChange={e => setInputYtChannelId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ marginBottom: '30px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>🔑 구글 공식 유튜브 API 키</label>
-                <input type="text" value={inputYtApiKey} onChange={e => setInputYtApiKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
               </div>
 
               <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>🔗 몽나링크 4개 설정</h3>
