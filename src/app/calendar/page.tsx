@@ -878,28 +878,26 @@ export default function CalendarPage() {
 
     <>
 
-      <style dangerouslySetInnerHTML={{
-
+<style dangerouslySetInnerHTML={{
         __html: `
-
         @media (max-width: 768px) {
-
           .nav-container { flex-direction: column !important; height: auto !important; padding: 15px 20px !important; gap: 15px; }
-
           .nav-links { flex-wrap: wrap !important; justify-content: center !important; font-size: 14px !important; gap: 15px !important; }
-
           .top-btn-group { width: 100%; justify-content: center; }
-
           .main-wrapper { padding: 20px 15px !important; border-radius: 20px !important; width: 100% !important; margin: 0 !important; }
-
           .flex-layout { flex-direction: column !important; gap: 30px !important; }
-
           .calendar-area, .sidebar-area { min-width: 100% !important; width: 100% !important; }
-
           .modal-box { width: 95% !important; padding: 25px 20px !important; }
 
+          /* 👇 📱 모바일 디데이 위젯 반응형 최적화 (한 줄에 딱 맞추기) */
+          .dday-card { padding: 18px 20px !important; gap: 14px !important; border-radius: 20px !important; }
+          .dday-icon { min-width: 50px !important; width: 50px !important; height: 50px !important; font-size: 24px !important; border-radius: 16px !important; }
+          .dday-header-row { flex-wrap: nowrap !important; gap: 6px !important; }
+          .dday-title { font-size: 13px !important; }
+          .dday-badge { font-size: 11px !important; padding: 4px 8px !important; }
+          .dday-number { font-size: 26px !important; }
+          .dday-unit { font-size: 14px !important; }
         }
-
       `}} />
 
 
