@@ -3,28 +3,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 
-// 임시 이미지/사운드 주소 (나중에 Firebase에서 불러올 주소들)
-const IMAGES = Array.from({ length: 12 }, (_, i) => `/mong_${i}.png`);
-const SOUNDS = Array.from({ length: 12 }, (_, i) => `/sound_${i}.mp3`);
+// 임시 색상표 (이미지가 없을 때 보여줄 예쁜 색상들)
+const COLORS = [
+  '#f8fafc', '#fecdd3', '#fbcfe8', '#f9a8d4', '#f472b6', 
+  '#ec4899', '#db2777', '#be185d', '#9d174d', '#831843', 
+  '#fbbf24', '#f59e0b', '#d97706'
+];
 
 export default function MongbakGame() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   
-  // 💡 추가된 상태(State)들
-  const [score, setScore] = useState(0); // 점수
-  const [currentLevel, setCurrentLevel] = useState(1); // 현재 손에 들고 있는 공
-  const [nextLevel, setNextLevel] = useState(2); // 다음에 나올 공
+  const [score, setScore] = useState(0);
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [nextLevel, setNextLevel] = useState(2);
 
-  // 효과음 재생 함수 (합쳐져서 '새로 나온 공'의 레벨에 맞는 소리 재생)
   const playMergeSound = (level: number) => {
-    // 나중에 관리자가 지정한 사운드 URL이 들어가게 됩니다.
-    const audio = new Audio(SOUNDS[level] || '/pop.mp3'); 
+    // 임시 사운드 적용
+    const audio = new Audio('/pop.mp3'); 
     audio.volume = 0.5;
     audio.play().catch(() => {});
   };
 
-  // 랜덤으로 1~3단계 공 뽑기 (5번 요청: 낮은 공만 나오게 설정)
   const getRandomLowLevel = () => Math.floor(Math.random() * 3) + 1;
 
   useEffect(() => {
@@ -43,13 +43,13 @@ export default function MongbakGame() {
       }
     });
 
-    const ground = Matter.Bodies.rectangle(200, 600, 400, 50, { isStatic: true, render: { fillStyle: '#94a3b8' } });
-    const leftWall = Matter.Bodies.rectangle(0, 300, 50, 600, { isStatic: true, render: { fillStyle: '#94a3b8' } });
-    const rightWall = Matter.Bodies.rectangle(400, 300, 50, 600, { isStatic: true, render: { fillStyle: '#94a3b8' } });
+    // 벽을 투명하게 해서 더 깔끔하게 보이게 처리
+    const ground = Matter.Bodies.rectangle(200, 600, 400, 50, { isStatic: true, render: { fillStyle: '#cbd5e1' } });
+    const leftWall = Matter.Bodies.rectangle(0, 300, 50, 600, { isStatic: true, render: { fillStyle: 'transparent' } });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 50, 600, { isStatic: true, render: { fillStyle: 'transparent' } });
     
     Matter.World.add(engine.world, [ground, leftWall, rightWall]);
 
-    // 충돌 (합치기) 이벤트
     Matter.Events.on(engine, 'collisionStart', (event) => {
       event.pairs.forEach((collision) => {
         const bodyA = collision.bodyA;
@@ -58,13 +58,11 @@ export default function MongbakGame() {
         if (bodyA.label === bodyB.label && bodyA.label.startsWith('mong_')) {
           const currentLvl = parseInt(bodyA.label.split('_')[1]);
           
-          if (currentLvl < 11) { // 11단계(수박)가 끝
+          if (currentLvl < 11) {
             Matter.World.remove(engine.world, [bodyA, bodyB]);
             
             const nextLvl = currentLvl + 1;
-            
-            // 💡 3번 & 2번 요청: 점수 추가 및 지정된 효과음 재생
-            setScore(prev => prev + (currentLvl * 10)); // 레벨이 높을수록 높은 점수
+            setScore(prev => prev + (currentLvl * 10));
             playMergeSound(nextLvl); 
 
             const newX = (bodyA.position.x + bodyB.position.x) / 2;
@@ -75,8 +73,9 @@ export default function MongbakGame() {
               label: `mong_${nextLvl}`,
               restitution: 0.3,
               render: {
+                fillStyle: COLORS[nextLvl], // 이미지가 없으면 이 색상으로 표시!
                 sprite: {
-                  texture: IMAGES[nextLvl],
+                  texture: `/mong_${nextLvl}.png`,
                   xScale: (radius * 2) / 100,
                   yScale: (radius * 2) / 100
                 }
@@ -92,7 +91,6 @@ export default function MongbakGame() {
     const runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
 
-    // 첫 시작 시 현재 공, 다음 공 세팅
     setCurrentLevel(getRandomLowLevel());
     setNextLevel(getRandomLowLevel());
 
@@ -102,12 +100,16 @@ export default function MongbakGame() {
     };
   }, []);
 
-  // 화면 클릭 시 공 떨어뜨리기
   const handleDrop = (e: React.MouseEvent) => {
     if (!engineRef.current || !sceneRef.current) return;
     
-    const rect = sceneRef.current.getBoundingClientRect();
-    let x = e.clientX - rect.left;
+    // 반응형 캔버스 클릭 위치 정확도 보정
+    const canvas = sceneRef.current.querySelector('canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    
+    let x = (e.clientX - rect.left) * scaleX;
     if (x < 30) x = 30;
     if (x > 370) x = 370;
 
@@ -116,8 +118,9 @@ export default function MongbakGame() {
       label: `mong_${currentLevel}`, 
       restitution: 0.2,
       render: {
+        fillStyle: COLORS[currentLevel], // 이미지가 없으면 색상 표시
         sprite: {
-          texture: IMAGES[currentLevel],
+          texture: `/mong_${currentLevel}.png`,
           xScale: (radius * 2) / 100,
           yScale: (radius * 2) / 100
         }
@@ -126,40 +129,72 @@ export default function MongbakGame() {
 
     Matter.World.add(engineRef.current.world, newMong);
 
-    // 💡 4번 요청: 들고 있던 공을 떨어뜨렸으니, '다음 공'을 '현재 공'으로 가져오고 새 '다음 공' 뽑기
     setCurrentLevel(nextLevel);
     setNextLevel(getRandomLowLevel());
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20px' }}>
-      <h1 style={{ color: '#1e293b', marginBottom: '10px' }}>🍉 몽박 게임 (수박게임)</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', width: '100%', padding: '0 10px' }}>
+      <h1 style={{ color: '#1e293b', marginBottom: '10px', fontSize: '24px' }}>🍉 몽박 게임 (수박게임)</h1>
       
-      {/* 💡 3번 & 4번 요청: 점수 및 미리보기 UI */}
-      <div style={{ display: 'flex', gap: '40px', marginBottom: '15px', alignItems: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e11d48' }}>
+      {/* 상태창 (점수 + 이미지 미리보기 UI) */}
+      <div style={{ display: 'flex', gap: '30px', marginBottom: '15px', alignItems: 'center' }}>
+        <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#e11d48' }}>
           점수: {score}
         </div>
         
-        <div style={{ display: 'flex', gap: '20px', backgroundColor: '#f1f5f9', padding: '10px 20px', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', gap: '15px', backgroundColor: '#f1f5f9', padding: '10px 20px', borderRadius: '12px', alignItems: 'center' }}>
+          
+          {/* 지금 던질 공 미리보기 (그림) */}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>지금 던질 공</div>
-            <div style={{ fontWeight: 'bold' }}>Lv.{currentLevel}</div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>지금 (Lv.{currentLevel})</div>
+            <div style={{ 
+              width: '40px', height: '40px', borderRadius: '50%', backgroundColor: COLORS[currentLevel], margin: '0 auto', overflow: 'hidden', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+            }}>
+              {/* 이미지 못 찾으면 alt 글자 숨기기 처리 */}
+              <img src={`/mong_${currentLevel}.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+            </div>
           </div>
-          <div style={{ width: '2px', backgroundColor: '#cbd5e1' }}></div>
+          
+          <div style={{ width: '2px', height: '30px', backgroundColor: '#cbd5e1' }}></div>
+          
+          {/* 다음 공 미리보기 (그림) */}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>다음 공 (Next)</div>
-            <div style={{ fontWeight: 'bold', color: '#94a3b8' }}>Lv.{nextLevel}</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>다음 (Lv.{nextLevel})</div>
+            <div style={{ 
+              width: '30px', height: '30px', borderRadius: '50%', backgroundColor: COLORS[nextLevel], margin: '0 auto', overflow: 'hidden', opacity: 0.7
+            }}>
+              <img src={`/mong_${nextLevel}.png`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+            </div>
           </div>
+
         </div>
       </div>
       
-      {/* 게임 화면 캔버스 */}
+      {/* 반응형 게임 화면 캔버스 영역 */}
       <div 
         ref={sceneRef} 
         onClick={handleDrop}
-        style={{ cursor: 'crosshair', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+        style={{ 
+          cursor: 'crosshair', 
+          borderRadius: '12px', 
+          overflow: 'hidden', 
+          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+          width: '100%', 
+          maxWidth: '400px', // 데스크톱에서는 너무 커지지 않게 방어
+          aspectRatio: '2/3'  // 모바일에서도 비율 400x600 고정
+        }}
+        // CSS를 통해 캔버스가 부모 div 사이즈에 맞춰지도록 강제 조정
+        className="responsive-canvas"
       ></div>
+
+      {/* 반응형 캔버스를 위한 전역 스타일 */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .responsive-canvas canvas {
+          width: 100% !important;
+          height: 100% !important;
+        }
+      `}} />
     </div>
   );
 }
