@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/firebase'; // 종우님의 firebase 설정 경로에 맞게 수정
+import { db } from '../../../firebase'; // 종우님의 firebase 설정 경로에 맞게 수정
 
 export async function GET() {
   try {
