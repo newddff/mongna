@@ -50,7 +50,6 @@
   
   .num-font { font-family: 'Outfit', sans-serif; }
 
-  /* --- 상단 네비게이션 --- */
   .top-nav {
     position: sticky; top: 0; z-index: 100;
     background: rgba(var(--card-bg), 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -91,7 +90,6 @@
     .nav-menu { display: none; }
   }
 
-  /* --- 메인 콘텐츠 레이아웃 --- */
   .app-container { max-width: 1000px; margin: 0 auto; padding: 30px 20px 100px; display: flex; flex-direction: column; gap: 24px; }
 
   .profile-section { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; background: var(--card-bg); padding: 24px 30px; border-radius: var(--radius-box); box-shadow: var(--shadow-soft); }
@@ -588,13 +586,11 @@
   function calcDc(v){ const c = new Date(v.regDate.replace(' ','T')+'+09:00') < THRESHOLD_DATE ? (v.basicCount||v.count) : v.count; return Number.isFinite(c)?c:0; }
   function fmtDate(s){ const m = String(s||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; }
 
-  // 💡 [핵심 교체] fetchVods 함수 업데이트!
   async function fetchVods() {
     const items = [];
     let page = 1;
     let keepFetching = true;
 
-    // 💡 [우회로 1단계] 파이어베이스(custom_vods)에서 종우님이 저장한 수동 번호 긁어오기
     let customVodIds = new Set();
     try {
       const snap = await getDocs(collection(db, 'custom_vods'));
@@ -621,20 +617,19 @@
         
         const c = r.count || {}, grade = (r.ucc || {}).grade ?? r.grade ?? 0, auth = r.authNo ?? r.auth_no ?? 101;
         
-        // 💡 [우회로 2단계] 수동 번호와 일치하면 19금, 구독전용 족쇄를 완전히 풀어버림!
         const isForced = customVodIds.has(tNo);
 
         const item = { 
           titleNo: tNo, regDate: r.reg_date ?? r.regDate, 
           basicCount: parseInt(c.read_cnt ?? c.readCnt ?? r.read_cnt ?? 0, 10) || 0, 
           count: c.vod_read_cnt ?? c.vodReadCnt ?? 0, 
-          isAgeLimited: isForced ? false : (Number(grade) !== 0), // 👈 무적권한 부여
-          isSubscriptionOnly: isForced ? false : (Number(auth) !== 101), // 👈 무적권한 부여
+          isAgeLimited: isForced ? false : (Number(grade) !== 0),
+          isSubscriptionOnly: isForced ? false : (Number(auth) !== 101),
           title: r.title_name ?? r.title ?? (r.ucc || {}).title ?? '제목없음', 
           thumb: (r.ucc || {}).thumb ?? r.thumb ?? '', 
           vodUrl: `https://vod.sooplive.com/player/${tNo}`, 
           isPerm: false, autoDeleteDate: null, infoState: 'pending',
-          isCustomForced: isForced // 마커
+          isCustomForced: isForced
         };
         
         if (new Date(item.regDate.replace(' ', 'T') + '+09:00') >= REG_DATE_CUTOFF) {
@@ -648,15 +643,14 @@
       if (page > 20) break;
     }
 
-    // 💡 [우회로 3단계] API 목록에 아예 안 나타나는 '숨겨진 영상'은 강제로 리스트업 생성!
     customVodIds.forEach(id => {
       if (!items.find(v => v.titleNo === id)) {
         items.push({
           titleNo: id, 
-          regDate: new Date().toISOString().replace('T', ' ').substring(0, 19), // 최신 날짜로 위장 (상단 노출)
-          basicCount: 0, count: 0, // 조회수 0으로 만들어서 무조건 자동재생 1순위로!
+          regDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+          basicCount: 0, count: 0,
           isAgeLimited: false, isSubscriptionOnly: false,
-          title: '🔧 강제 복구된 VOD (' + id + ')', 
+          title: '[강제 복구된 VOD] ' + id, 
           thumb: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg', 
           vodUrl: `https://vod.sooplive.com/player/${id}`, 
           isPerm: false, autoDeleteDate: null, infoState: 'pending',
@@ -702,7 +696,6 @@
       let dWarn = null; if(v.autoDeleteDate && !v.isPerm) { const dLeft = Math.ceil((new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now())/86400000); dWarn = dLeft<=0 ? '기한초과' : `${dLeft}일 남음`; }
       
       let bg = v.infoState==='pending'?`<span class="tag sub">조회중</span>`:v.isPerm?`<span class="tag save">영구보관 완료</span>`:dWarn?`<span class="tag del">삭제예정 (${dWarn})</span>`:'';
-      // 💡 [우회로 UI 추가] 강제 복구된 영상은 보라색 뱃지로 눈에 띄게!
       if(v.isCustomForced) bg += ' <span class="tag save" style="background:#a855f7; color:#fff;">강제복구됨</span>';
 
       let delta = ''; if(typeof v.viewDelta==='number') delta = v.viewDelta>0?`<span class="v-delta up">+${v.viewDelta}</span>`:v.viewDelta<0?`<span class="v-delta down">${v.viewDelta}</span>`:`<span class="v-delta flat">-</span>`;
