@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 // 파이어베이스 DB 설정 파일을 불러옵니다 (종우님 프로젝트의 실제 firebase 설정 경로에 맞게 수정해주세요!)
-import { db } from '@/firebase'; 
+import { db } from '../../../firebase'; 
 import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 export default function CustomVodAdmin() {
