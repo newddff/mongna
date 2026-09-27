@@ -588,10 +588,22 @@
   function calcDc(v){ const c = new Date(v.regDate.replace(' ','T')+'+09:00') < THRESHOLD_DATE ? (v.basicCount||v.count) : v.count; return Number.isFinite(c)?c:0; }
   function fmtDate(s){ const m = String(s||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; }
 
+  // 💡 [핵심 교체] fetchVods 함수 업데이트!
   async function fetchVods() {
     const items = [];
     let page = 1;
     let keepFetching = true;
+
+    // 💡 [우회로 1단계] 파이어베이스(custom_vods)에서 종우님이 저장한 수동 번호 긁어오기
+    let customVodIds = new Set();
+    try {
+      const snap = await getDocs(collection(db, 'custom_vods'));
+      snap.forEach(doc => { 
+        if (doc.data().vodId) customVodIds.add(String(doc.data().vodId)); 
+      });
+    } catch(e) { 
+      console.error("수동 리스트 로딩 에러:", e); 
+    }
 
     while (keepFetching) {
       if (page > 1) {
@@ -608,16 +620,21 @@
         if (!tNo) continue;
         
         const c = r.count || {}, grade = (r.ucc || {}).grade ?? r.grade ?? 0, auth = r.authNo ?? r.auth_no ?? 101;
+        
+        // 💡 [우회로 2단계] 수동 번호와 일치하면 19금, 구독전용 족쇄를 완전히 풀어버림!
+        const isForced = customVodIds.has(tNo);
+
         const item = { 
           titleNo: tNo, regDate: r.reg_date ?? r.regDate, 
           basicCount: parseInt(c.read_cnt ?? c.readCnt ?? r.read_cnt ?? 0, 10) || 0, 
           count: c.vod_read_cnt ?? c.vodReadCnt ?? 0, 
-          isAgeLimited: Number(grade) !== 0, 
-          isSubscriptionOnly: Number(auth) !== 101, 
+          isAgeLimited: isForced ? false : (Number(grade) !== 0), // 👈 무적권한 부여
+          isSubscriptionOnly: isForced ? false : (Number(auth) !== 101), // 👈 무적권한 부여
           title: r.title_name ?? r.title ?? (r.ucc || {}).title ?? '제목없음', 
           thumb: (r.ucc || {}).thumb ?? r.thumb ?? '', 
           vodUrl: `https://vod.sooplive.com/player/${tNo}`, 
-          isPerm: false, autoDeleteDate: null, infoState: 'pending' 
+          isPerm: false, autoDeleteDate: null, infoState: 'pending',
+          isCustomForced: isForced // 마커
         };
         
         if (new Date(item.regDate.replace(' ', 'T') + '+09:00') >= REG_DATE_CUTOFF) {
@@ -630,6 +647,24 @@
       page++;
       if (page > 20) break;
     }
+
+    // 💡 [우회로 3단계] API 목록에 아예 안 나타나는 '숨겨진 영상'은 강제로 리스트업 생성!
+    customVodIds.forEach(id => {
+      if (!items.find(v => v.titleNo === id)) {
+        items.push({
+          titleNo: id, 
+          regDate: new Date().toISOString().replace('T', ' ').substring(0, 19), // 최신 날짜로 위장 (상단 노출)
+          basicCount: 0, count: 0, // 조회수 0으로 만들어서 무조건 자동재생 1순위로!
+          isAgeLimited: false, isSubscriptionOnly: false,
+          title: '🔧 강제 복구된 VOD (' + id + ')', 
+          thumb: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg', 
+          vodUrl: `https://vod.sooplive.com/player/${id}`, 
+          isPerm: false, autoDeleteDate: null, infoState: 'pending',
+          isCustomForced: true
+        });
+      }
+    });
+
     return items;
   }
 
@@ -653,7 +688,7 @@
   let resultsTab = 'all';
   function render(){
     let filtered = resultsTab==='achieved' ? store.filter(v=>calcDc(v)>=1000) : resultsTab==='subscription' ? store.filter(v=>v.isSubscriptionOnly) : store.filter(v=>{
-      if(v.isSubscriptionOnly||v.isAgeLimited) return false; const dc=calcDc(v), mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)||0;
+      if(v.isSubscriptionOnly||v.isAgeLimited) return false; const dc=calcDc(v), mn=parseInt($('#minCount').value,10)\vert{}\vert{}0, mx=parseInt($('#maxCount').value,10)||0;
       let isDel = false; if(v.autoDeleteDate && !v.isPerm) { const ms = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now(); isDel = ms<=0 || Math.ceil(ms/86400000)<=30; }
       return dc>=mn && dc<=mx && (!$('#deleteSoonOnly').checked || isDel);
     });
@@ -665,7 +700,11 @@
     $('#results').innerHTML = filtered.map((v, i) => {
       const dc = calcDc(v), isPlay = openPlayers.some(p=>p.titleNo===v.titleNo);
       let dWarn = null; if(v.autoDeleteDate && !v.isPerm) { const dLeft = Math.ceil((new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now())/86400000); dWarn = dLeft<=0 ? '기한초과' : `${dLeft}일 남음`; }
+      
       let bg = v.infoState==='pending'?`<span class="tag sub">조회중</span>`:v.isPerm?`<span class="tag save">영구보관 완료</span>`:dWarn?`<span class="tag del">삭제예정 (${dWarn})</span>`:'';
+      // 💡 [우회로 UI 추가] 강제 복구된 영상은 보라색 뱃지로 눈에 띄게!
+      if(v.isCustomForced) bg += ' <span class="tag save" style="background:#a855f7; color:#fff;">강제복구됨</span>';
+
       let delta = ''; if(typeof v.viewDelta==='number') delta = v.viewDelta>0?`<span class="v-delta up">+${v.viewDelta}</span>`:v.viewDelta<0?`<span class="v-delta down">${v.viewDelta}</span>`:`<span class="v-delta flat">-</span>`;
       return `<div class="video-item ${isPlay?'playing':''}"><input type="checkbox" class="v-check manual-cb" data-titleno="${v.titleNo}" data-title="${(v.title||'').replace(/</g,'&lt;')}" ${selectedManualVods.has(v.titleNo)?'checked':''}><div class="v-thumb"><img src="${v.thumb}" loading="lazy"></div><div class="v-info"><h4 class="v-title"><a href="${v.vodUrl}" target="_blank">${(v.title||'').replace(/</g,'&lt;')}</a></h4><div class="v-meta"><span class="v-views num-font ${dc<1000?'low':''}">${dc.toLocaleString()}</span>${delta}<span class="v-date num-font">${fmtDate(v.regDate)}</span>${bg}${v.isSubscriptionOnly?`<span class="tag sub">구독전용</span>`:''}${v.isAgeLimited?`<span class="tag del">19+</span>`:''}${isPlay?`<span class="tag play">재생중</span>`:''}</div></div></div>`;
     }).join('');
@@ -769,7 +808,7 @@
     const n = Math.max(0, Math.min(10, parseInt($('#playCount').value, 10)||0)); if(!n) return;
     let ds = Array.from(selectedManualVods.values()).filter(m=>{ const v=store.find(s=>s.titleNo===m.titleNo); return v&&!v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000; }).slice(0,n);
     if(ds.length<n){
-      const mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)||0, sv=$('#sortOrder').value;
+      const mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)\vert{}\vert{}0, sv=$('#sortOrder').value;
       let pl=store.filter(v=>{ let iD=false; if(v.autoDeleteDate&&!v.isPerm){ const ms=new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now(); iD=ms<=0||Math.ceil(ms/86400000)<=30; } return !v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000&&calcDc(v)>=mn&&calcDc(v)<=mx&&(!$('#deleteSoonOnly').checked||iD); });
       if(sv==='oldest') pl.sort((a,b)=>new Date(a.regDate)-new Date(b.regDate)); else if(sv==='views_asc') pl.sort((a,b)=>calcDc(a)-calcDc(b)); else if(sv==='views_desc') pl.sort((a,b)=>calcDc(b)-calcDc(a)); else pl.sort((a,b)=>new Date(b.regDate)-new Date(a.regDate));
       ds = ds.concat(pl.filter(v=>!selectedManualVods.has(v.titleNo)).slice(0,n-ds.length).map(v=>({titleNo:v.titleNo, title:v.title||'제목없음'})));
