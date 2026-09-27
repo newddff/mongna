@@ -392,6 +392,7 @@
   </div>
 </div>
 
+<!-- 스크립트 정돈 완료: 더 이상 복사 오류(SyntaxError)가 나지 않습니다 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
@@ -404,16 +405,25 @@
     messagingSenderId: "310663611402",
     appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
   };
-  const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig); 
+  const db = getFirestore(app);
   const $ = sel => document.querySelector(sel);
   
   const THEME_KEY = 'mongna-theme-v2';
-  function applyTheme(theme){ 
+  function applyTheme(theme) { 
     document.documentElement.setAttribute('data-theme', theme); 
     $('#themeToggle').textContent = theme === 'light' ? '🌙' : '☀️'; 
   }
-  function initTheme(){ let saved = localStorage.getItem(THEME_KEY); if(!saved) saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; applyTheme(saved); }
-  $('#themeToggle').addEventListener('click', () => { const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem(THEME_KEY, next); });
+  function initTheme() { 
+    let saved = localStorage.getItem(THEME_KEY); 
+    if(!saved) saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; 
+    applyTheme(saved); 
+  }
+  $('#themeToggle').addEventListener('click', () => { 
+    const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; 
+    applyTheme(next); 
+    localStorage.setItem(THEME_KEY, next); 
+  });
   initTheme();
 
   const AUTO_LOGIN_KEY = 'mongna-auto-login';
@@ -424,6 +434,7 @@
   function getKstNow() { return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })); }
   function getPeriodKey(d = getKstNow()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
   function getPrevPeriodKey(d = getKstNow()) { const p = new Date(d.getFullYear(), d.getMonth() - 1, 1); return `${p.getFullYear()}-${String(p.getMonth() + 1).padStart(2, '0')}`; }
+  
   const EMPTY_STATS = { total: 0, revived: 0 };
   const STATS_SYNC_MS = 10 * 1000;
   function formatPoints(pt) { return Number(pt).toLocaleString() + ' P'; }
@@ -432,7 +443,10 @@
   let statAccumulateInterval = null, statSyncInterval = null;
 
   function updateUIWithStats() {
-    if(currentUser) { const displayTotal = (currentUser.stats.total || 0) + pendingStats.total; $('#authBtn').innerHTML = `${currentUser.nickname} <span style="font-weight:400; opacity:0.6; margin:0 4px;">|</span> 🏆 <span class="num-font">${formatPoints(displayTotal)}</span>`; }
+    if(currentUser) { 
+      const displayTotal = (currentUser.stats.total || 0) + pendingStats.total; 
+      $('#authBtn').innerHTML = `${currentUser.nickname} <span style="font-weight:400; opacity:0.6; margin:0 4px;">|</span> 🏆 <span class="num-font">${formatPoints(displayTotal)}</span>`; 
+    }
   }
 
   async function syncStatsToDB() {
@@ -440,42 +454,74 @@
     if (pendingStats.total === 0 && pendingStats.revived === 0 && pendingRevivedEvents.length === 0) return;
     const updateObj = {};
     for (let key in pendingStats) {
-      if (pendingStats[key] > 0) { updateObj[`stats.${key}`] = increment(pendingStats[key]); currentUser.stats[key] = (currentUser.stats[key] || 0) + pendingStats[key]; }
+      if (pendingStats[key] > 0) { 
+        updateObj[`stats.${key}`] = increment(pendingStats[key]); 
+        currentUser.stats[key] = (currentUser.stats[key] || 0) + pendingStats[key]; 
+      }
     }
-    const events = pendingRevivedEvents; pendingStats = { total: 0, revived: 0 }; pendingRevivedEvents = [];
+    const events = pendingRevivedEvents; 
+    pendingStats = { total: 0, revived: 0 }; 
+    pendingRevivedEvents = [];
     try {
       if (Object.keys(updateObj).length > 0) await updateDoc(doc(db, COL_USERS, currentUser.id), updateObj);
-      for (const ev of events) await setDoc(doc(collection(db, COL_RECORDS)), { nickname: currentUser.nickname, userId: currentUser.id, titleNo: ev.titleNo, title: ev.title, periodKey: getPeriodKey(), createdAt: serverTimestamp() });
+      for (const ev of events) {
+        await setDoc(doc(collection(db, COL_RECORDS)), { 
+          nickname: currentUser.nickname, 
+          userId: currentUser.id, 
+          titleNo: ev.titleNo, 
+          title: ev.title, 
+          periodKey: getPeriodKey(), 
+          createdAt: serverTimestamp() 
+        });
+      }
     } catch (e) {}
   }
 
   async function checkAndRolloverMonth() {
     if (!currentUser) return;
     const nowKey = getPeriodKey();
-    if (!currentUser.periodKey) { currentUser.periodKey = nowKey; try { await updateDoc(doc(db, COL_USERS, currentUser.id), { periodKey: nowKey }); } catch (e){} return; }
+    if (!currentUser.periodKey) { 
+      currentUser.periodKey = nowKey; 
+      try { await updateDoc(doc(db, COL_USERS, currentUser.id), { periodKey: nowKey }); } catch (e){} 
+      return; 
+    }
     if (currentUser.periodKey === nowKey) return;
     const prevKey = currentUser.periodKey, snapshot = { ...currentUser.stats };
     try {
       await updateDoc(doc(db, COL_USERS, currentUser.id), { [`history.${prevKey}`]: snapshot, stats: { ...EMPTY_STATS }, periodKey: nowKey });
-      currentUser.stats = { ...EMPTY_STATS }; currentUser.periodKey = nowKey; pendingStats = { total: 0, revived: 0 }; updateUIWithStats();
+      currentUser.stats = { ...EMPTY_STATS }; 
+      currentUser.periodKey = nowKey; 
+      pendingStats = { total: 0, revived: 0 }; 
+      updateUIWithStats();
     } catch (e) {}
   }
 
-  async function upsertLiveViewer() { if (!currentUser) return; try { await setDoc(doc(db, COL_LIVE, currentUser.id), { nickname: currentUser.nickname, updatedAt: serverTimestamp() }); } catch (e) {} }
-  async function removeLiveViewer() { if (!currentUser) return; try { await deleteDoc(doc(db, COL_LIVE, currentUser.id)); } catch (e) {} }
+  async function upsertLiveViewer() { 
+    if (!currentUser) return; 
+    try { await setDoc(doc(db, COL_LIVE, currentUser.id), { nickname: currentUser.nickname, updatedAt: serverTimestamp() }); } catch (e) {} 
+  }
+  
+  async function removeLiveViewer() { 
+    if (!currentUser) return; 
+    try { await deleteDoc(doc(db, COL_LIVE, currentUser.id)); } catch (e) {} 
+  }
 
   function updatePointsTimer() {
     if (openPlayers.length > 0 && currentUser) {
       upsertLiveViewer();
-      if (!statAccumulateInterval) statAccumulateInterval = setInterval(async () => { 
-        if(openPlayers.length === 0 || !currentUser) return; 
-        await checkAndRolloverMonth(); 
-        openPlayers.forEach(() => { pendingStats.total++; }); 
-        updateUIWithStats(); 
-        upsertLiveViewer(); 
-        syncStatsToDB(); 
-      }, 75000);
-      if (!statSyncInterval) statSyncInterval = setInterval(syncStatsToDB, STATS_SYNC_MS);
+      if (!statAccumulateInterval) {
+        statAccumulateInterval = setInterval(async () => { 
+          if(openPlayers.length === 0 || !currentUser) return; 
+          await checkAndRolloverMonth(); 
+          openPlayers.forEach(() => { pendingStats.total++; }); 
+          updateUIWithStats(); 
+          upsertLiveViewer(); 
+          syncStatsToDB(); 
+        }, 75000);
+      }
+      if (!statSyncInterval) {
+        statSyncInterval = setInterval(syncStatsToDB, STATS_SYNC_MS);
+      }
     } else {
       if (statAccumulateInterval) { clearInterval(statAccumulateInterval); statAccumulateInterval = null; }
       if (statSyncInterval) { clearInterval(statSyncInterval); statSyncInterval = null; syncStatsToDB(); }
@@ -484,10 +530,20 @@
   }
 
   const authModal = $('#authModal'), rankingModal = $('#rankingModal');
+  
   $('#authBtn').addEventListener('click', async () => { 
-    if (!currentUser) { authModal.style.display = 'flex'; }
-    else if(confirm("로그아웃 하시겠습니까?")) { await syncStatsToDB(); await removeLiveViewer(); currentUser = null; localStorage.removeItem(AUTO_LOGIN_KEY); $('#authBtn').innerHTML = '로그인 해주세요'; updatePointsTimer(); }
+    if (!currentUser) { 
+      authModal.style.display = 'flex'; 
+    } else if(confirm("로그아웃 하시겠습니까?")) { 
+      await syncStatsToDB(); 
+      await removeLiveViewer(); 
+      currentUser = null; 
+      localStorage.removeItem(AUTO_LOGIN_KEY); 
+      $('#authBtn').innerHTML = '로그인 해주세요'; 
+      updatePointsTimer(); 
+    }
   });
+  
   $('#authModalClose').addEventListener('click', () => authModal.style.display = 'none');
   $('#rankingModalClose').addEventListener('click', () => rankingModal.style.display = 'none');
 
@@ -497,105 +553,197 @@
       if(!isRank) {
         document.querySelectorAll('.auth-switch button:not(.rank-period-btn)').forEach(b => b.classList.remove('on'));
         document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('on'));
-        e.target.classList.add('on'); document.getElementById(e.target.dataset.target).classList.add('on');
+        e.target.classList.add('on'); 
+        document.getElementById(e.target.dataset.target).classList.add('on');
       }
     });
   });
 
   $('#doRegBtn').addEventListener('click', async () => {
-    const nick = $('#regNickname').value.trim(), id = $('#regId').value.trim(), pw = $('#regPw').value.trim();
+    const nick = $('#regNickname').value.trim();
+    const id = $('#regId').value.trim();
+    const pw = $('#regPw').value.trim();
     if (!nick || !id || !pw) return alert("빈칸을 모두 채워주세요.");
+    
     try {
-      const userRef = doc(db, COL_USERS, id), snap = await getDoc(userRef);
+      const userRef = doc(db, COL_USERS, id);
+      const snap = await getDoc(userRef);
       if (snap.exists()) return alert("이미 가입된 아이디입니다.");
+      
       await setDoc(userRef, { nickname: nick, id: id, password: pw, stats: { total: 0, revived: 0 }, periodKey: getPeriodKey(), history: {} });
       alert("환영합니다! 가입이 완료되었습니다.");
-      $('#regNickname').value = ''; $('#regId').value = ''; $('#regPw').value = '';
+      $('#regNickname').value = ''; 
+      $('#regId').value = ''; 
+      $('#regPw').value = '';
       processLogin(id, pw, false);
-    } catch (error) { alert("서버 오류가 발생했습니다."); }
+    } catch (error) { 
+      alert("서버 오류가 발생했습니다."); 
+    }
   });
 
   async function processLogin(id, pw = null, isAutoLogin = false) {
     try {
-      const userRef = doc(db, COL_USERS, id), snap = await getDoc(userRef);
-      if (!snap.exists()) { if (!isAutoLogin) alert("가입되지 않은 아이디입니다."); localStorage.removeItem(AUTO_LOGIN_KEY); return; }
+      const userRef = doc(db, COL_USERS, id);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) { 
+        if (!isAutoLogin) alert("가입되지 않은 아이디입니다."); 
+        localStorage.removeItem(AUTO_LOGIN_KEY); 
+        return; 
+      }
       const userData = snap.data();
       if (!isAutoLogin && userData.password !== pw) return alert("비밀번호가 일치하지 않습니다.");
+      
       const dbStats = userData.stats || {};
-      currentUser = { id: id, nickname: userData.nickname, periodKey: userData.periodKey || null, history: userData.history || {}, stats: { total: dbStats.total || 0, revived: dbStats.revived || 0 } };
-      await checkAndRolloverMonth(); localStorage.setItem(AUTO_LOGIN_KEY, id); updateUIWithStats(); authModal.style.display = 'none'; updatePointsTimer();
-    } catch (error) { if (!isAutoLogin) alert("서버 오류가 발생했습니다."); localStorage.removeItem(AUTO_LOGIN_KEY); }
+      currentUser = { 
+        id: id, 
+        nickname: userData.nickname, 
+        periodKey: userData.periodKey || null, 
+        history: userData.history || {}, 
+        stats: { total: dbStats.total || 0, revived: dbStats.revived || 0 } 
+      };
+      
+      await checkAndRolloverMonth(); 
+      localStorage.setItem(AUTO_LOGIN_KEY, id); 
+      updateUIWithStats(); 
+      authModal.style.display = 'none'; 
+      updatePointsTimer();
+    } catch (error) { 
+      if (!isAutoLogin) alert("서버 오류가 발생했습니다."); 
+      localStorage.removeItem(AUTO_LOGIN_KEY); 
+    }
   }
   
   $('#doLoginBtn').addEventListener('click', () => {
-    const id = $('#loginId').value.trim(), pw = $('#loginPw').value.trim();
-    if (!id || !pw) return alert("정보를 입력해주세요."); processLogin(id, pw, false);
+    const id = $('#loginId').value.trim();
+    const pw = $('#loginPw').value.trim();
+    if (!id || !pw) return alert("정보를 입력해주세요."); 
+    processLogin(id, pw, false);
   });
-  if (localStorage.getItem(AUTO_LOGIN_KEY)) processLogin(localStorage.getItem(AUTO_LOGIN_KEY), null, true);
+  
+  if (localStorage.getItem(AUTO_LOGIN_KEY)) {
+    processLogin(localStorage.getItem(AUTO_LOGIN_KEY), null, true);
+  }
 
   let selectedRankPeriod = 'current', statsCache = {};
   
   function updateMyStatsBox() {
     if (!currentUser) { $('#myStatsBox').style.display = 'none'; return; }
-    let r=0, t=0;
-    if (selectedRankPeriod === 'prev') { const s = (currentUser.history||{})[getPrevPeriodKey()]||{}; r = s.revived||0; t = s.total||0; } 
-    else { r = (currentUser.stats.revived||0) + pendingStats.revived; t = (currentUser.stats.total||0) + pendingStats.total; }
-    $('#myStatsBox').style.display = 'block'; $('#myRevivedCount').textContent = `${Number(r).toLocaleString()}건`; $('#myWatchTime').textContent = formatPoints(t);
+    let r = 0, t = 0;
+    if (selectedRankPeriod === 'prev') { 
+      const s = (currentUser.history||{})[getPrevPeriodKey()]||{}; 
+      r = s.revived||0; 
+      t = s.total||0; 
+    } else { 
+      r = (currentUser.stats.revived||0) + pendingStats.revived; 
+      t = (currentUser.stats.total||0) + pendingStats.total; 
+    }
+    $('#myStatsBox').style.display = 'block'; 
+    $('#myRevivedCount').textContent = `${Number(r).toLocaleString()}건`; 
+    $('#myWatchTime').textContent = formatPoints(t);
   }
 
   async function loadRanking() {
-    const isPrev = selectedRankPeriod === 'prev', key = isPrev ? getPrevPeriodKey() : getPeriodKey();
+    const isPrev = selectedRankPeriod === 'prev';
+    const key = isPrev ? getPrevPeriodKey() : getPeriodKey();
     const now = Date.now(), cacheKey = selectedRankPeriod;
-    if (statsCache[cacheKey] && (now - statsCache[cacheKey].time < 600000)) { $('#rankingList').innerHTML = statsCache[cacheKey].html; return; }
+    
+    if (statsCache[cacheKey] && (now - statsCache[cacheKey].time < 600000)) { 
+      $('#rankingList').innerHTML = statsCache[cacheKey].html; 
+      return; 
+    }
     $('#rankingList').innerHTML = '<div class="empty-msg">데이터를 불러오는 중입니다...</div>';
     try {
       const field = isPrev ? `history.${key}` : 'stats';
       const q = query(collection(db, COL_USERS), orderBy(`${field}.total`, "desc"), limit(10));
-      const snap = await getDocs(q); let html = '', rank = 1;
+      const snap = await getDocs(q); 
+      let html = '', rank = 1;
+      
       snap.forEach(doc => {
-        const s = (isPrev ? (doc.data().history||{})[key] : doc.data().stats) || {}; if ((s.total||0) < 1) return;
-        let icon = rank; if(rank===1)icon='🥇'; if(rank===2)icon='🥈'; if(rank===3)icon='🥉';
-        html += `<div class="rank-row"><div class="r-num num-font">${icon}</div><div class="r-name">${doc.data().nickname}</div><div class="r-score num-font">${Number(s.total).toLocaleString()} <span style="font-size:12px; font-weight:400; color:var(--text-sub); font-family:'Pretendard', sans-serif;">P</span></div></div>`; rank++;
+        const s = (isPrev ? (doc.data().history||{})[key] : doc.data().stats) || {}; 
+        if ((s.total||0) < 1) return;
+        let icon = rank; 
+        if(rank===1) icon='🥇'; 
+        if(rank===2) icon='🥈'; 
+        if(rank===3) icon='🥉';
+        html += `<div class="rank-row"><div class="r-num num-font">${icon}</div><div class="r-name">${doc.data().nickname}</div><div class="r-score num-font">${Number(s.total).toLocaleString()} <span style="font-size:12px; font-weight:400; color:var(--text-sub); font-family:'Pretendard', sans-serif;">P</span></div></div>`; 
+        rank++;
       });
       if (!html) html = `<div class="empty-msg">아직 기록이 없습니다. 첫 번째 영웅이 되어보세요!</div>`;
-      $('#rankingList').innerHTML = html; statsCache[cacheKey] = { time: now, html: html };
-    } catch (e) { $('#rankingList').innerHTML = '<div class="empty-msg">데이터를 불러오지 못했습니다.</div>'; }
+      $('#rankingList').innerHTML = html; 
+      statsCache[cacheKey] = { time: now, html: html };
+    } catch (e) { 
+      $('#rankingList').innerHTML = '<div class="empty-msg">데이터를 불러오지 못했습니다.</div>'; 
+    }
   }
 
   async function loadLiveViewers() {
     $('#liveViewerList').innerHTML = '<div class="empty-msg" style="padding:10px 0;">불러오는 중...</div>';
     try {
-      const snap = await getDocs(collection(db, COL_LIVE)), names = [];
-      snap.forEach(doc => { const d = doc.data(), t = d.updatedAt?.toMillis ? d.updatedAt.toMillis() : 0; if (d.nickname && (Date.now() - t) < 180000) names.push(d.nickname); });
-      $('#liveViewerList').innerHTML = names.length > 0 ? names.map(n => `<span style="background:var(--primary-dim); color:var(--primary); padding:6px 14px; border-radius:99px; font-size:13px; font-weight:600;">📡 ${n}</span>`).join('') : '<div class="empty-msg" style="padding:10px 0;">현재 재생 중인 유저가 없습니다.</div>';
+      const snap = await getDocs(collection(db, COL_LIVE));
+      const names = [];
+      snap.forEach(doc => { 
+        const d = doc.data();
+        const t = d.updatedAt?.toMillis ? d.updatedAt.toMillis() : 0; 
+        if (d.nickname && (Date.now() - t) < 180000) names.push(d.nickname); 
+      });
+      if (names.length > 0) {
+        $('#liveViewerList').innerHTML = names.map(n => `<span style="background:var(--primary-dim); color:var(--primary); padding:6px 14px; border-radius:99px; font-size:13px; font-weight:600;">📡 ${n}</span>`).join('');
+      } else {
+        $('#liveViewerList').innerHTML = '<div class="empty-msg" style="padding:10px 0;">현재 재생 중인 유저가 없습니다.</div>';
+      }
     } catch (e) {}
   }
 
-  $('#rankingBtn').addEventListener('click', () => { rankingModal.style.display = 'flex'; updateMyStatsBox(); loadRanking(); loadLiveViewers(); });
-  ['current', 'prev'].forEach(p => $(`#rankPeriod${p==='current'?'Current':'Prev'}Btn`).addEventListener('click', e => {
-    if (selectedRankPeriod === p) return; selectedRankPeriod = p;
-    $('#rankPeriodCurrentBtn').classList.toggle('on', p === 'current'); $('#rankPeriodPrevBtn').classList.toggle('on', p === 'prev');
-    updateMyStatsBox(); loadRanking();
-  }));
+  $('#rankingBtn').addEventListener('click', () => { 
+    rankingModal.style.display = 'flex'; 
+    updateMyStatsBox(); 
+    loadRanking(); 
+    loadLiveViewers(); 
+  });
+  
+  ['current', 'prev'].forEach(p => {
+    $(`#rankPeriod${p==='current'?'Current':'Prev'}Btn`).addEventListener('click', e => {
+      if (selectedRankPeriod === p) return; 
+      selectedRankPeriod = p;
+      $('#rankPeriodCurrentBtn').classList.toggle('on', p === 'current'); 
+      $('#rankPeriodPrevBtn').classList.toggle('on', p === 'prev');
+      updateMyStatsBox(); 
+      loadRanking();
+    })
+  });
 
   const TARGET_STREAMER_ID = 'pinktape8';
   let store = [], busy = false, selectedManualVods = new Map();
   const THRESHOLD_DATE = new Date('2025-01-14T11:35:00+09:00'), REG_DATE_CUTOFF = new Date('2024-01-01T00:00:00+09:00');
   
-  function setStatus(html, isBusy){ $('#statusText').innerHTML = html; $('#meterDot').className = `dot ${isBusy?'active':''}`; }
-  function calcDc(v){ const c = new Date(v.regDate.replace(' ','T')+'+09:00') < THRESHOLD_DATE ? (v.basicCount||v.count) : v.count; return Number.isFinite(c)?c:0; }
-  function fmtDate(s){ const m = String(s||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; }
+  function setStatus(html, isBusy){ 
+    $('#statusText').innerHTML = html; 
+    $('#meterDot').className = `dot ${isBusy ? 'active' : ''}`; 
+  }
+  
+  function calcDc(v){ 
+    const c = new Date(v.regDate.replace(' ','T')+'+09:00') < THRESHOLD_DATE ? (v.basicCount||v.count) : v.count; 
+    return Number.isFinite(c) ? c : 0; 
+  }
+  
+  function fmtDate(s){ 
+    const m = String(s||'').match(/\d{4}-\d{2}-\d{2}/); 
+    return m ? m[0] : ''; 
+  }
 
   async function fetchVods() {
     const items = [];
     let page = 1;
     let keepFetching = true;
 
+    // 파이어베이스에 저장된 수동 VOD 번호들을 긁어옵니다.
     let customVodIds = new Set();
     try {
       const snap = await getDocs(collection(db, 'custom_vods'));
       snap.forEach(doc => { 
-        if (doc.data().vodId) customVodIds.add(String(doc.data().vodId)); 
+        if (doc.data().vodId) {
+          customVodIds.add(String(doc.data().vodId)); 
+        }
       });
     } catch(e) { 
       console.error("수동 리스트 로딩 에러:", e); 
@@ -606,8 +754,11 @@
         setStatus(`과거 영상 딥 스캔 중... (현재 ${page}페이지 탐색)`, true);
       }
       
-      const res = await fetch(`https://chapi.sooplive.com/api/${TARGET_STREAMER_ID}/vods/review?per_page=100&page=${page}`, {headers:{'Accept':'application/json'}});
-      const data = (await res.json())?.data || [];
+      const res = await fetch(`https://chapi.sooplive.com/api/${TARGET_STREAMER_ID}/vods/review?per_page=100&page=${page}`, {
+        headers:{'Accept':'application/json'}
+      });
+      const resData = await res.json();
+      const data = resData?.data || [];
       
       if (data.length === 0) break;
 
@@ -615,12 +766,16 @@
         const tNo = String(r.title_no ?? r.titleNo ?? ''); 
         if (!tNo) continue;
         
-        const c = r.count || {}, grade = (r.ucc || {}).grade ?? r.grade ?? 0, auth = r.authNo ?? r.auth_no ?? 101;
+        const c = r.count || {};
+        const grade = (r.ucc || {}).grade ?? r.grade ?? 0;
+        const auth = r.authNo ?? r.auth_no ?? 101;
         
+        // 💡 수동 번호와 일치하면 19금, 구독전용 무적권한을 부여합니다.
         const isForced = customVodIds.has(tNo);
 
         const item = { 
-          titleNo: tNo, regDate: r.reg_date ?? r.regDate, 
+          titleNo: tNo, 
+          regDate: r.reg_date ?? r.regDate, 
           basicCount: parseInt(c.read_cnt ?? c.readCnt ?? r.read_cnt ?? 0, 10) || 0, 
           count: c.vod_read_cnt ?? c.vodReadCnt ?? 0, 
           isAgeLimited: isForced ? false : (Number(grade) !== 0),
@@ -628,7 +783,9 @@
           title: r.title_name ?? r.title ?? (r.ucc || {}).title ?? '제목없음', 
           thumb: (r.ucc || {}).thumb ?? r.thumb ?? '', 
           vodUrl: `https://vod.sooplive.com/player/${tNo}`, 
-          isPerm: false, autoDeleteDate: null, infoState: 'pending',
+          isPerm: false, 
+          autoDeleteDate: null, 
+          infoState: 'pending',
           isCustomForced: isForced
         };
         
@@ -643,17 +800,22 @@
       if (page > 20) break;
     }
 
+    // 아예 목록에 나오지도 않는 유령 영상을 강제로 생성해서 띄웁니다.
     customVodIds.forEach(id => {
       if (!items.find(v => v.titleNo === id)) {
         items.push({
           titleNo: id, 
           regDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
-          basicCount: 0, count: 0,
-          isAgeLimited: false, isSubscriptionOnly: false,
+          basicCount: 0, 
+          count: 0,
+          isAgeLimited: false, 
+          isSubscriptionOnly: false,
           title: '[강제 복구된 VOD] ' + id, 
           thumb: 'https://stimg.afreecatv.com/LOGO/pi/pinktape8/pinktape8.jpg', 
           vodUrl: `https://vod.sooplive.com/player/${id}`, 
-          isPerm: false, autoDeleteDate: null, infoState: 'pending',
+          isPerm: false, 
+          autoDeleteDate: null, 
+          infoState: 'pending',
           isCustomForced: true
         });
       }
@@ -663,16 +825,44 @@
   }
 
   async function fetchInfoBatch(vods){
-    const pxs = [u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`, u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
+    const pxs = [
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`, 
+      u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    ];
     let idx = 0;
+    
     await Promise.all(Array.from({length: 10}, async () => {
-      while(idx < vods.length){
+      while (idx < vods.length) {
         const v = vods[idx++];
         try {
-          let res, p = new URLSearchParams({nTitleNo:v.titleNo});
-          for(const b of [u=>u, ...pxs]){ try{ res = await fetch(b('https://api.m.sooplive.com/station/video/a/view'),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()}); if(res.ok)break; }catch(e){} }
-          if(res){ const j=await res.json(); if(j?.result===1){ const d=j.data?.vod||j.data; v.autoDeleteDate=d.auto_delete_date??null; v.isPerm=d.permanence==='Y'; v.infoState='done'; }else v.infoState='error'; }else v.infoState='error';
-        } catch(e){ v.infoState='error'; }
+          let res;
+          let p = new URLSearchParams({ nTitleNo: v.titleNo });
+          for (const b of [u=>u, ...pxs]) { 
+            try { 
+              res = await fetch(b('https://api.m.sooplive.com/station/video/a/view'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: p.toString()
+              }); 
+              if (res.ok) break; 
+            } catch(e) {} 
+          }
+          if (res) { 
+            const j = await res.json(); 
+            if (j?.result === 1) { 
+              const d = j.data?.vod || j.data; 
+              v.autoDeleteDate = d.auto_delete_date ?? null; 
+              v.isPerm = d.permanence === 'Y'; 
+              v.infoState = 'done'; 
+            } else {
+              v.infoState = 'error'; 
+            }
+          } else {
+            v.infoState = 'error'; 
+          }
+        } catch(e) { 
+          v.infoState = 'error'; 
+        }
         setStatus(`영구보관 상태 확인 중... <b>${idx} / ${vods.length}</b>`, true); 
         render(); 
       }
@@ -680,80 +870,237 @@
   }
 
   let resultsTab = 'all';
+  
+  // 에러가 났던 렌더링 부분을 안전하고 깔끔하게 풀어서 작성했습니다.
   function render(){
-    let filtered = resultsTab==='achieved' ? store.filter(v=>calcDc(v)>=1000) : resultsTab==='subscription' ? store.filter(v=>v.isSubscriptionOnly) : store.filter(v=>{
-      if(v.isSubscriptionOnly||v.isAgeLimited) return false; const dc=calcDc(v), mn=parseInt($('#minCount').value,10)\vert{}\vert{}0, mx=parseInt($('#maxCount').value,10)||0;
-      let isDel = false; if(v.autoDeleteDate && !v.isPerm) { const ms = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now(); isDel = ms<=0 || Math.ceil(ms/86400000)<=30; }
-      return dc>=mn && dc<=mx && (!$('#deleteSoonOnly').checked || isDel);
-    });
+    let filtered = [];
+    
+    if (resultsTab === 'achieved') {
+      filtered = store.filter(v => calcDc(v) >= 1000);
+    } else if (resultsTab === 'subscription') {
+      filtered = store.filter(v => v.isSubscriptionOnly);
+    } else {
+      filtered = store.filter(v => {
+        if (v.isSubscriptionOnly || v.isAgeLimited) return false; 
+        const dc = calcDc(v);
+        const mn = parseInt($('#minCount').value, 10) || 0;
+        const mx = parseInt($('#maxCount').value, 10) || 0;
+        let isDel = false; 
+        
+        if (v.autoDeleteDate && !v.isPerm) { 
+          const ms = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now(); 
+          isDel = ms <= 0 || Math.ceil(ms/86400000) <= 30; 
+        }
+        return dc >= mn && dc <= mx && (!$('#deleteSoonOnly').checked || isDel);
+      });
+    }
+
     const sv = $('#listSortOrder').value;
-    if(sv==='oldest') filtered.sort((a,b)=>new Date(a.regDate)-new Date(b.regDate)); else if(sv==='views_asc') filtered.sort((a,b)=>calcDc(a)-calcDc(b)); else if(sv==='views_desc') filtered.sort((a,b)=>calcDc(b)-calcDc(a)); else filtered.sort((a,b)=>new Date(b.regDate)-new Date(a.regDate));
+    if (sv === 'oldest') {
+      filtered.sort((a,b) => new Date(a.regDate) - new Date(b.regDate)); 
+    } else if (sv === 'views_asc') {
+      filtered.sort((a,b) => calcDc(a) - calcDc(b)); 
+    } else if (sv === 'views_desc') {
+      filtered.sort((a,b) => calcDc(b) - calcDc(a)); 
+    } else {
+      filtered.sort((a,b) => new Date(b.regDate) - new Date(a.regDate));
+    }
     
     $('#resultsCount').textContent = filtered.length;
-    if(!filtered.length){ $('#results').innerHTML = `<div class="empty-msg">조건에 맞는 영상이 없습니다.</div>`; return; }
-    $('#results').innerHTML = filtered.map((v, i) => {
-      const dc = calcDc(v), isPlay = openPlayers.some(p=>p.titleNo===v.titleNo);
-      let dWarn = null; if(v.autoDeleteDate && !v.isPerm) { const dLeft = Math.ceil((new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now())/86400000); dWarn = dLeft<=0 ? '기한초과' : `${dLeft}일 남음`; }
+    
+    if (!filtered.length) { 
+      $('#results').innerHTML = `<div class="empty-msg">조건에 맞는 영상이 없습니다.</div>`; 
+      return; 
+    }
+
+    let finalHtml = '';
+    filtered.forEach((v) => {
+      const dc = calcDc(v);
+      const isPlay = openPlayers.some(p => p.titleNo === v.titleNo);
+      let dWarn = null; 
       
-      let bg = v.infoState==='pending'?`<span class="tag sub">조회중</span>`:v.isPerm?`<span class="tag save">영구보관 완료</span>`:dWarn?`<span class="tag del">삭제예정 (${dWarn})</span>`:'';
-      if(v.isCustomForced) bg += ' <span class="tag save" style="background:#a855f7; color:#fff;">강제복구됨</span>';
+      if (v.autoDeleteDate && !v.isPerm) { 
+        const msLeft = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now();
+        const dLeft = Math.ceil(msLeft / 86400000); 
+        dWarn = dLeft <= 0 ? '기한초과' : `${dLeft}일 남음`; 
+      }
+      
+      // 보기 좋게 뱃지 태그들을 분리 조립
+      let bgHtml = '';
+      if (v.infoState === 'pending') {
+        bgHtml = '<span class="tag sub">조회중</span>';
+      } else if (v.isPerm) {
+        bgHtml = '<span class="tag save">영구보관 완료</span>';
+      } else if (dWarn) {
+        bgHtml = '<span class="tag del">삭제예정 (' + dWarn + ')</span>';
+      }
 
-      let delta = ''; if(typeof v.viewDelta==='number') delta = v.viewDelta>0?`<span class="v-delta up">+${v.viewDelta}</span>`:v.viewDelta<0?`<span class="v-delta down">${v.viewDelta}</span>`:`<span class="v-delta flat">-</span>`;
-      return `<div class="video-item ${isPlay?'playing':''}"><input type="checkbox" class="v-check manual-cb" data-titleno="${v.titleNo}" data-title="${(v.title||'').replace(/</g,'&lt;')}" ${selectedManualVods.has(v.titleNo)?'checked':''}><div class="v-thumb"><img src="${v.thumb}" loading="lazy"></div><div class="v-info"><h4 class="v-title"><a href="${v.vodUrl}" target="_blank">${(v.title||'').replace(/</g,'&lt;')}</a></h4><div class="v-meta"><span class="v-views num-font ${dc<1000?'low':''}">${dc.toLocaleString()}</span>${delta}<span class="v-date num-font">${fmtDate(v.regDate)}</span>${bg}${v.isSubscriptionOnly?`<span class="tag sub">구독전용</span>`:''}${v.isAgeLimited?`<span class="tag del">19+</span>`:''}${isPlay?`<span class="tag play">재생중</span>`:''}</div></div></div>`;
-    }).join('');
+      if (v.isCustomForced) {
+        bgHtml += ' <span class="tag save" style="background:#a855f7; color:#fff;">강제복구됨</span>';
+      }
+
+      let deltaHtml = '<span class="v-delta flat">-</span>';
+      if (typeof v.viewDelta === 'number') {
+        if (v.viewDelta > 0) {
+          deltaHtml = '<span class="v-delta up">+' + v.viewDelta + '</span>';
+        } else if (v.viewDelta < 0) {
+          deltaHtml = '<span class="v-delta down">' + v.viewDelta + '</span>';
+        }
+      }
+      
+      const safeTitle = (v.title || '').replace(/</g, '&lt;');
+      const isChecked = selectedManualVods.has(v.titleNo) ? 'checked' : '';
+      const playClass = isPlay ? 'playing' : '';
+      const viewsClass = dc < 1000 ? 'low' : '';
+      
+      const subTag = v.isSubscriptionOnly ? '<span class="tag sub">구독전용</span>' : '';
+      const ageTag = v.isAgeLimited ? '<span class="tag del">19+</span>' : '';
+      const playTag = isPlay ? '<span class="tag play">재생중</span>' : '';
+
+      finalHtml += `
+        <div class="video-item ${playClass}">
+          <input type="checkbox" class="v-check manual-cb" data-titleno="${v.titleNo}" data-title="${safeTitle}" ${isChecked}>
+          <div class="v-thumb">
+            <img src="${v.thumb}" loading="lazy">
+          </div>
+          <div class="v-info">
+            <h4 class="v-title">
+              <a href="${v.vodUrl}" target="_blank">${safeTitle}</a>
+            </h4>
+            <div class="v-meta">
+              <span class="v-views num-font ${viewsClass}">${dc.toLocaleString()}</span>
+              ${deltaHtml}
+              <span class="v-date num-font">${fmtDate(v.regDate)}</span>
+              ${bgHtml}
+              ${subTag}
+              ${ageTag}
+              ${playTag}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    $('#results').innerHTML = finalHtml;
   }
-  $('#results').addEventListener('change', e => { if(e.target.classList.contains('manual-cb')) { if(e.target.checked) selectedManualVods.set(e.target.dataset.titleno, {titleNo:e.target.dataset.titleno, title:e.target.dataset.title}); else selectedManualVods.delete(e.target.dataset.titleno); } });
+  
+  $('#results').addEventListener('change', e => { 
+    if (e.target.classList.contains('manual-cb')) { 
+      const tNo = e.target.dataset.titleno;
+      if (e.target.checked) {
+        selectedManualVods.set(tNo, { titleNo: tNo, title: e.target.dataset.title }); 
+      } else {
+        selectedManualVods.delete(tNo); 
+      }
+    } 
+  });
 
-  let rfTimer=null, cdTimer=null, nxRf=null;
+  let rfTimer = null, cdTimer = null, nxRf = null;
+  
   function updateCd(){ 
-    if(!nxRf) { $('#refreshTimer').style.display = 'none'; return; } 
-    const ms=nxRf-Date.now(); 
+    if(!nxRf) { 
+      $('#refreshTimer').style.display = 'none'; 
+      return; 
+    } 
+    const ms = nxRf - Date.now(); 
     $('#refreshTimer').style.display = 'inline-block';
-    if(ms<=0){ if(!busy) setStatus('데이터를 <b>자동 갱신 중</b>입니다...', true); return; } 
+    
+    if(ms <= 0){ 
+      if(!busy) setStatus('데이터를 <b>자동 갱신 중</b>입니다...', true); 
+      return; 
+    } 
     const mm = String(Math.floor(Math.ceil(ms/1000)/60)).padStart(2,'0');
     const ss = String(Math.ceil(ms/1000)%60).padStart(2,'0');
-    if(!busy) setStatus(`다음 갱신까지 <b>${mm}:${ss}</b> 남았습니다.`, false); 
+    
+    if(!busy) {
+      setStatus(`다음 갱신까지 <b>${mm}:${ss}</b> 남았습니다.`, false); 
+    }
   }
-  function startRf(){ if(rfTimer) clearTimeout(rfTimer); nxRf=Date.now()+60000; rfTimer=setTimeout(async()=>{ await doRf(); startRf(); },60000); if(cdTimer) clearInterval(cdTimer); cdTimer=setInterval(updateCd,1000); $('#refreshBtn').disabled=false; updateCd(); }
-  function stopRf(){ if(rfTimer) clearTimeout(rfTimer); if(cdTimer) clearInterval(cdTimer); nxRf=null; $('#refreshBtn').disabled=true; $('#refreshTimer').style.display='none';}
+  
+  function startRf(){ 
+    if(rfTimer) clearTimeout(rfTimer); 
+    nxRf = Date.now() + 60000; 
+    rfTimer = setTimeout(async() => { await doRf(); startRf(); }, 60000); 
+    if(cdTimer) clearInterval(cdTimer); 
+    cdTimer = setInterval(updateCd, 1000); 
+    $('#refreshBtn').disabled = false; 
+    updateCd(); 
+  }
+  
+  function stopRf(){ 
+    if(rfTimer) clearTimeout(rfTimer); 
+    if(cdTimer) clearInterval(cdTimer); 
+    nxRf = null; 
+    $('#refreshBtn').disabled = true; 
+    $('#refreshTimer').style.display = 'none';
+  }
 
   async function doRf(){
-    if(busy||!store.length) return; 
-    busy=true; $('#refreshBtn').disabled=true; $('#refreshBtn').classList.add('spinning');
+    if(busy || !store.length) return; 
+    busy = true; 
+    $('#refreshBtn').disabled = true; 
+    $('#refreshBtn').classList.add('spinning');
     setStatus('데이터를 <b>자동 갱신 중</b>입니다...', true);
-    try{
-      const fMap = new Map((await fetchVods()).map(v=>[v.titleNo, v]));
-      store.forEach(v=>{
-        const f=fMap.get(v.titleNo); if(f){ const pDc=calcDc(v); v.count=f.count; v.basicCount=f.basicCount; const nDc=calcDc(v); v.viewDelta=nDc-pDc;
-          if(currentUser&&pDc<1000&&nDc>=1000&&openPlayers.some(p=>p.titleNo===v.titleNo)){ pendingStats.revived++; pendingRevivedEvents.push({titleNo:v.titleNo, title:v.title}); updateUIWithStats(); }
+    
+    try {
+      const freshVods = await fetchVods();
+      const fMap = new Map(freshVods.map(v => [v.titleNo, v]));
+      
+      store.forEach(v => {
+        const f = fMap.get(v.titleNo); 
+        if (f) { 
+          const pDc = calcDc(v); 
+          v.count = f.count; 
+          v.basicCount = f.basicCount; 
+          const nDc = calcDc(v); 
+          v.viewDelta = nDc - pDc;
+          
+          if (currentUser && pDc < 1000 && nDc >= 1000 && openPlayers.some(p => p.titleNo === v.titleNo)) { 
+            pendingStats.revived++; 
+            pendingRevivedEvents.push({titleNo: v.titleNo, title: v.title}); 
+            updateUIWithStats(); 
+          }
         }
       });
       render(); 
-    }catch(e){}finally{ $('#refreshBtn').classList.remove('spinning'); $('#refreshBtn').disabled=!store.length; busy=false; }
+    } catch(e) {} 
+    finally { 
+      $('#refreshBtn').classList.remove('spinning'); 
+      $('#refreshBtn').disabled = !store.length; 
+      busy = false; 
+    }
   }
 
-  $('#fetchBtn').addEventListener('click', async()=>{
-    if(busy) return; busy=true; $('#fetchBtn').disabled=true; stopRf(); $('#results').innerHTML=''; store=[]; render();
-    try{ 
+  $('#fetchBtn').addEventListener('click', async () => {
+    if (busy) return; 
+    busy = true; 
+    $('#fetchBtn').disabled = true; 
+    stopRf(); 
+    $('#results').innerHTML = ''; 
+    store = []; 
+    render();
+    
+    try { 
       setStatus(`VOD 목록을 빠르게 가져오는 중...`, true); 
       store = await fetchVods(); 
       render(); 
       startRf(); 
+      
       fetchInfoBatch(store).then(() => {
         setStatus(`가장 최신 데이터입니다. (${new Date().toLocaleTimeString()})`, false); 
-        $('#fetchBtn').disabled=false; 
-        busy=false; 
+        $('#fetchBtn').disabled = false; 
+        busy = false; 
       });
-    }catch(err){ 
-      $('#results').innerHTML=`<div class="empty-msg">오류 발생: ${err}</div>`; 
+    } catch (err) { 
+      $('#results').innerHTML = `<div class="empty-msg">오류 발생: ${err}</div>`; 
       setStatus('조회 실패', false); 
-      $('#fetchBtn').disabled=false; 
-      busy=false; 
+      $('#fetchBtn').disabled = false; 
+      busy = false; 
     }
   });
 
-  const pSec=$('#playerSection'), pGrid=$('#playerGrid');
-  let openPlayers=[], activeTimers=[];
+  const pSec = $('#playerSection'), pGrid = $('#playerGrid');
+  let openPlayers = [], activeTimers = [];
 
   function clearAllTimers() {
     activeTimers.forEach(t => clearTimeout(t));
@@ -766,59 +1113,119 @@
     
     clearAllTimers();
 
-    pGrid.innerHTML = openPlayers.map(p=>`<div class="vid-box"><button class="vid-close" data-titleno="${p.titleNo}" style="background:rgba(193,172,215,0.8);">✕</button><div style="position:relative;width:100%;padding-top:56.25%;"><iframe id="iframe-${p.titleNo}" src="https://vod.sooplive.com/player/${p.titleNo}/embed?showChat=false&autoPlay=true&mutePlay=true&quality=540p&_r=${Date.now()}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div><div class="player-title">${p.title}</div></div>`).join('');
+    let gridHtml = '';
+    openPlayers.forEach(p => {
+      gridHtml += `
+        <div class="vid-box">
+          <button class="vid-close" data-titleno="${p.titleNo}" style="background:rgba(193,172,215,0.8);">✕</button>
+          <div style="position:relative;width:100%;padding-top:56.25%;">
+            <iframe id="iframe-${p.titleNo}" src="https://vod.sooplive.com/player/${p.titleNo}/embed?showChat=false&autoPlay=true&mutePlay=true&quality=540p&_r=${Date.now()}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
+          </div>
+          <div class="player-title">${p.title}</div>
+        </div>
+      `;
+    });
+    pGrid.innerHTML = gridHtml;
     
-    if(openPlayers.length > 0) {
+    if (openPlayers.length > 0) {
       function playCycle() {
         activeTimers = [];
-
         const skipTimer = setTimeout(() => {
           pGrid.querySelectorAll('iframe').forEach(f => {
             f.src = f.src.split('&_r=')[0] + '&_r=' + Date.now();
           });
-
           const mainTimer = setTimeout(() => {
             pGrid.querySelectorAll('iframe').forEach(f => {
               f.src = f.src.split('&_r=')[0] + '&_r=' + Date.now();
             });
-            
             playCycle(); 
           }, 60000);
-          
           activeTimers.push(mainTimer);
         }, 15000);
-        
         activeTimers.push(skipTimer);
       }
-
       playCycle();
     }
     
     updatePointsTimer();
   }
 
-  $('#startBatchPlayBtn').addEventListener('click', ()=>{
-    const n = Math.max(0, Math.min(10, parseInt($('#playCount').value, 10)||0)); if(!n) return;
-    let ds = Array.from(selectedManualVods.values()).filter(m=>{ const v=store.find(s=>s.titleNo===m.titleNo); return v&&!v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000; }).slice(0,n);
-    if(ds.length<n){
-      const mn=parseInt($('#minCount').value,10)||0, mx=parseInt($('#maxCount').value,10)\vert{}\vert{}0, sv=$('#sortOrder').value;
-      let pl=store.filter(v=>{ let iD=false; if(v.autoDeleteDate&&!v.isPerm){ const ms=new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime()-Date.now(); iD=ms<=0||Math.ceil(ms/86400000)<=30; } return !v.isSubscriptionOnly&&!v.isAgeLimited&&calcDc(v)<1000&&calcDc(v)>=mn&&calcDc(v)<=mx&&(!$('#deleteSoonOnly').checked||iD); });
-      if(sv==='oldest') pl.sort((a,b)=>new Date(a.regDate)-new Date(b.regDate)); else if(sv==='views_asc') pl.sort((a,b)=>calcDc(a)-calcDc(b)); else if(sv==='views_desc') pl.sort((a,b)=>calcDc(b)-calcDc(a)); else pl.sort((a,b)=>new Date(b.regDate)-new Date(a.regDate));
-      ds = ds.concat(pl.filter(v=>!selectedManualVods.has(v.titleNo)).slice(0,n-ds.length).map(v=>({titleNo:v.titleNo, title:v.title||'제목없음'})));
+  $('#startBatchPlayBtn').addEventListener('click', () => {
+    const n = Math.max(0, Math.min(10, parseInt($('#playCount').value, 10)||0)); 
+    if(!n) return;
+    
+    let ds = Array.from(selectedManualVods.values()).filter(m => { 
+      const v = store.find(s => s.titleNo === m.titleNo); 
+      return v && !v.isSubscriptionOnly && !v.isAgeLimited && calcDc(v) < 1000; 
+    }).slice(0, n);
+    
+    if (ds.length < n) {
+      const mn = parseInt($('#minCount').value, 10) || 0;
+      const mx = parseInt($('#maxCount').value, 10) || 0;
+      const sv = $('#sortOrder').value;
+      
+      let pl = store.filter(v => { 
+        let iD = false; 
+        if (v.autoDeleteDate && !v.isPerm) { 
+          const ms = new Date(v.autoDeleteDate.replace(' ','T')+'+09:00').getTime() - Date.now(); 
+          iD = ms <= 0 || Math.ceil(ms/86400000) <= 30; 
+        } 
+        return !v.isSubscriptionOnly && !v.isAgeLimited && calcDc(v) < 1000 && calcDc(v) >= mn && calcDc(v) <= mx && (!$('#deleteSoonOnly').checked || iD); 
+      });
+      
+      if (sv === 'oldest') {
+        pl.sort((a,b) => new Date(a.regDate) - new Date(b.regDate)); 
+      } else if (sv === 'views_asc') {
+        pl.sort((a,b) => calcDc(a) - calcDc(b)); 
+      } else if (sv === 'views_desc') {
+        pl.sort((a,b) => calcDc(b) - calcDc(a)); 
+      } else {
+        pl.sort((a,b) => new Date(b.regDate) - new Date(a.regDate));
+      }
+      
+      ds = ds.concat(pl.filter(v => !selectedManualVods.has(v.titleNo)).slice(0, n - ds.length).map(v => ({titleNo: v.titleNo, title: v.title || '제목없음'})));
     }
-    if(!ds.length) return alert("재생 조건에 맞는 영상이 없습니다."); openPlayers=ds; renderP(); selectedManualVods.clear(); render();
+    
+    if (!ds.length) return alert("재생 조건에 맞는 영상이 없습니다."); 
+    openPlayers = ds; 
+    renderP(); 
+    selectedManualVods.clear(); 
+    render();
   });
 
-  $('#playerCloseAll').addEventListener('click', ()=>{ openPlayers=[]; renderP(); render(); });
-  pGrid.addEventListener('click', e=>{ if(e.target.classList.contains('vid-close')){ openPlayers=openPlayers.filter(p=>p.titleNo!==e.target.dataset.titleno); renderP(); render(); } });
+  $('#playerCloseAll').addEventListener('click', () => { 
+    openPlayers = []; 
+    renderP(); 
+    render(); 
+  });
+  
+  pGrid.addEventListener('click', e => { 
+    if (e.target.classList.contains('vid-close')) { 
+      openPlayers = openPlayers.filter(p => p.titleNo !== e.target.dataset.titleno); 
+      renderP(); 
+      render(); 
+    } 
+  });
 
-  $('#refreshBtn').addEventListener('click', async()=>{ if(!$('#refreshBtn').disabled&&!busy){ await doRf(); startRf(); } });
+  $('#refreshBtn').addEventListener('click', async () => { 
+    if (!$('#refreshBtn').disabled && !busy) { 
+      await doRf(); 
+      startRf(); 
+    } 
+  });
   
   $('#minCount').addEventListener('input', render);
   $('#maxCount').addEventListener('input', render);
   $('#deleteSoonOnly').addEventListener('change', render);
   $('#listSortOrder').addEventListener('change', render);
-  $('#resultsTabGroup').addEventListener('click', e=>{ if(e.target.classList.contains('tab')){ resultsTab=e.target.dataset.tab; $('#resultsTabGroup').querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b===e.target)); render(); } });
+  
+  $('#resultsTabGroup').addEventListener('click', e => { 
+    if (e.target.classList.contains('tab')) { 
+      resultsTab = e.target.dataset.tab; 
+      $('#resultsTabGroup').querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === e.target)); 
+      render(); 
+    } 
+  });
 </script>
 </body>
 </html>
