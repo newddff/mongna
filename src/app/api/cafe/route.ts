@@ -1,9 +1,9 @@
-// src/pages/api/cafe.ts (또는 pages/api/cafe.ts)
-import type { NextApiRequest, NextApiResponse } from 'next';
+// src/app/api/cafe/route.ts
+import { NextResponse } from 'next/server';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export async function GET() {
   const CLUB_ID = '31747136';
-  const MENU_IDS = ['13', '14'];
+  const MENU_IDS = ['13', '14']; // 13번, 14번 게시판
 
   try {
     let allArticles: any[] = [];
@@ -14,15 +14,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/json, text/plain, */*',
-          // 💡 1. 봇 차단을 뚫기 위한 강력한 스마트폰 브라우저 위장
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          // 💡 2. "나 네이버 카페 메인 홈페이지에서 클릭해서 들어온 거야"라고 속이는 핵심 키
           'Referer': 'https://m.cafe.naver.com/', 
           'Origin': 'https://m.cafe.naver.com'
-        }
+        },
+        cache: 'no-store'
       });
 
-      // 💡 만약 네이버가 또 막는다면, 정확히 어떤 이유로 막았는지 잡아내기 위한 코드
       if (!response.ok) {
         throw new Error(`Naver API Error: ${response.status} ${response.statusText}`);
       }
@@ -43,16 +41,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // 최신순 정렬
     allArticles.sort((a, b) => b.timestamp - a.timestamp);
-    return res.status(200).json({ success: true, data: allArticles });
+    
+    // 성공 시 글 목록 데이터 반환
+    return NextResponse.json({ success: true, data: allArticles });
 
   } catch (error: any) {
     console.error("카페 데이터 연동 에러:", error);
-    // 💡 에러 발생 시 숨기지 않고 화면에 원인을 낱낱이 출력!
-    return res.status(500).json({ 
+    return NextResponse.json({ 
       success: false, 
       error: '카페 데이터를 가져오지 못했습니다.',
-      detail: error.message || String(error) // 무엇이 문제인지 디버깅용
-    });
+      detail: error.message || String(error)
+    }, { status: 500 });
   }
 }
