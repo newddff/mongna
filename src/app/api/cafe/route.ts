@@ -2,49 +2,71 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const CLUB_ID = '31747136';
-  const MENU_IDS = ['13', '14']; 
-
-  const GOOGLE_PROXY_URL = 'https://script.google.com/macros/s/AKfycbzy0tN8u9h6g7LMS9KEeRDsX8pHuqYQ5S88cISb9lUPTIHvTNV3e7q9Oc8vrdTXdZLr/exec';
+  // 💡 종우님 카페(f-e)의 공식 RSS 주소 (우회 서버 필요 없음!)
+  const RSS_URL = 'https://cafe.rss.naver.com/f-e';
 
   try {
+    // 네이버가 봇 차단을 하지 않는 공식 채널이므로 다이렉트 접속
+    const response = await fetch(RSS_URL, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`RSS 연결 실패: HTTP ${response.status}`);
+    }
+
+    const xmlData = await response.text();
     let allArticles: any[] = [];
 
-    for (const menuId of MENU_IDS) {
-      const targetUrl = `https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=${CLUB_ID}&search.menuid=${menuId}&search.page=1&search.perPage=20`;
-      
-      const response = await fetch(`${GOOGLE_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`, { 
-        cache: 'no-store' 
-      });
+    // 정규식 도우미 함수: XML 태그 안의 텍스트와 특수기호(CDATA)를 깔끔하게 발라냅니다.
+    const extractTag = (xml: string, tag: string) => {
+      const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`);
+      const match = xml.match(regex);
+      return match ? match[1].replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim() : '';
+    };
 
-      // 💡 바로 JSON으로 바꾸지 않고, 도대체 어떤 텍스트(HTML)가 왔는지 먼저 받아봅니다.
-      const textData = await response.text();
+    // <item> (게시글) 단위로 쪼개기
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
 
-      // 만약 받아온 데이터가 정상적인 JSON('{', '[') 형태가 아니라면? 
-      if (!textData.trim().startsWith('{') && !textData.trim().startsWith('[')) {
-        // 에러를 발생시키면서, 서버가 던져준 HTML 웹페이지의 첫 300글자를 화면에 그대로 출력합니다!
-        throw new Error(`서버가 데이터를 주지 않고 웹페이지를 반환했습니다. 원인 텍스트: ${textData.substring(0, 300)}`);
-      }
+    while ((match = itemRegex.exec(xmlData)) !== null) {
+      const itemXml = match[1];
+      const title = extractTag(itemXml, 'title');
+      const link = extractTag(itemXml, 'link');
+      const author = extractTag(itemXml, 'author');
+      const pubDate = extractTag(itemXml, 'pubDate');
+      const category = extractTag(itemXml, 'category');
 
-      // 정상적인 경우에만 JSON으로 변환
-      const data = JSON.parse(textData);
-      
-      if (data?.message?.result?.articleList) {
-        const articles = data.message.result.articleList.map((item: any) => ({
-          articleId: item.articleId,
-          title: item.subject,
-          writer: item.writerNickname,
-          timestamp: item.writeDateTimestamp,
-          category: item.menuName, 
-          url: `https://cafe.naver.com/ArticleRead.nhn?clubid=${CLUB_ID}&articleid=${item.articleId}`
-        }));
-        
-        allArticles = [...allArticles, ...articles];
+      if (title && link) {
+        // 주소 끝자리에서 게시글 고유번호(articleId) 추출
+        const urlParts = link.split('/');
+        const articleId = urlParts[urlParts.length - 1].split('?')[0];
+
+        allArticles.push({
+          articleId,
+          title,
+          writer: author || '익명',
+          // RSS의 시간 형식을 자바스크립트 숫자로 변환
+          timestamp: pubDate ? new Date(pubDate).getTime() : Date.now(),
+          category: category || '전체',
+          url: link
+        });
       }
     }
 
-    allArticles.sort((a, b) => b.timestamp - a.timestamp);
-    return NextResponse.json({ success: true, data: allArticles });
+    // 💡 13번, 14번 게시판의 '실제 카페 메뉴 이름'을 적어주세요. (예: 공지사항, 방송후기 등)
+    const TARGET_CATEGORIES = ['공지사항', '자유게시판']; 
+    
+    // 타겟 게시판만 필터링 (전체 글을 보려면 아래 코드를 지우고 allArticles를 반환하면 됩니다)
+    const filteredArticles = allArticles.filter(article => 
+      TARGET_CATEGORIES.includes(article.category)
+    );
+
+    // 최신순 정렬
+    filteredArticles.sort((a, b) => b.timestamp - a.timestamp);
+
+    return NextResponse.json({ success: true, data: filteredArticles });
 
   } catch (error: any) {
     console.error("카페 데이터 연동 에러:", error);
