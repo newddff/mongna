@@ -1,40 +1,41 @@
-// src/app/api/cafe/route.ts
-import { NextResponse } from 'next/server';
+// src/pages/api/cafe.ts (또는 pages/api/cafe.ts)
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export async function GET() {
-  // 몽나님 카페 고유 ID 및 게시판 ID
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const CLUB_ID = '31747136';
-  const MENU_IDS = ['13', '14']; // 13번, 14번 게시판 동시에 가져오기
+  const MENU_IDS = ['13', '14'];
 
   try {
     let allArticles: any[] = [];
 
-    // 각 게시판별로 네이버 비밀 API 찔러보기
     for (const menuId of MENU_IDS) {
       const url = `https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=${CLUB_ID}&search.menuid=${menuId}&search.page=1&search.perPage=20`;
       
       const response = await fetch(url, {
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' // 봇 차단 방지용 위장
-        },
-        // Next.js 캐시 방지 (항상 최신 글을 가져오도록 설정)
-        cache: 'no-store' 
+          'Accept': 'application/json, text/plain, */*',
+          // 💡 1. 봇 차단을 뚫기 위한 강력한 스마트폰 브라우저 위장
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          // 💡 2. "나 네이버 카페 메인 홈페이지에서 클릭해서 들어온 거야"라고 속이는 핵심 키
+          'Referer': 'https://m.cafe.naver.com/', 
+          'Origin': 'https://m.cafe.naver.com'
+        }
       });
+
+      // 💡 만약 네이버가 또 막는다면, 정확히 어떤 이유로 막았는지 잡아내기 위한 코드
+      if (!response.ok) {
+        throw new Error(`Naver API Error: ${response.status} ${response.statusText}`);
+      }
 
       const data = await response.json();
       
-      // 네이버가 응답을 제대로 줬다면 데이터 정제하기
       if (data?.message?.result?.articleList) {
         const articles = data.message.result.articleList.map((item: any) => ({
           articleId: item.articleId,
           title: item.subject,
           writer: item.writerNickname,
-          // 네이버는 timestamp(숫자)로 시간을 주므로 그대로 저장
           timestamp: item.writeDateTimestamp,
-          // 카테고리 (필터링 탭에 쓰일 이름)
           category: item.menuName, 
-          // 클릭 시 이동할 네이버 카페 본문 링크
           url: `https://cafe.naver.com/ArticleRead.nhn?clubid=${CLUB_ID}&articleid=${item.articleId}`
         }));
         
@@ -42,16 +43,16 @@ export async function GET() {
       }
     }
 
-    // 두 게시판의 글을 합친 뒤, '최신순(시간 역순)'으로 정렬
     allArticles.sort((a, b) => b.timestamp - a.timestamp);
+    return res.status(200).json({ success: true, data: allArticles });
 
-    return NextResponse.json({ success: true, data: allArticles });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error("카페 데이터 연동 에러:", error);
-    return NextResponse.json(
-      { success: false, error: '카페 데이터를 가져오지 못했습니다.' }, 
-      { status: 500 }
-    );
+    // 💡 에러 발생 시 숨기지 않고 화면에 원인을 낱낱이 출력!
+    return res.status(500).json({ 
+      success: false, 
+      error: '카페 데이터를 가져오지 못했습니다.',
+      detail: error.message || String(error) // 무엇이 문제인지 디버깅용
+    });
   }
 }
