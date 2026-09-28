@@ -9,29 +9,28 @@ export async function GET() {
     let allArticles: any[] = [];
 
     for (const menuId of MENU_IDS) {
-      const url = `https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=${CLUB_ID}&search.menuid=${menuId}&search.page=1&search.perPage=20`;
+      // 💡 1. 네이버가 Vercel IP를 차단하지 못하도록 '우회 서버(allorigins)'를 징검다리로 씁니다.
+      const targetUrl = `https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=${CLUB_ID}&search.menuid=${menuId}&search.page=1&search.perPage=20`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://m.cafe.naver.com/', 
-          'Origin': 'https://m.cafe.naver.com'
-        },
-        cache: 'no-store'
-      });
+      const response = await fetch(proxyUrl, { cache: 'no-store' });
 
       if (!response.ok) {
-        throw new Error(`Naver API Error: ${response.status} ${response.statusText}`);
+        throw new Error(`Proxy API Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const proxyData = await response.json();
+      
+      // 💡 2. 우회 서버가 가져온 텍스트(contents)를 다시 JSON 객체로 변환
+      if (!proxyData.contents) continue;
+      const data = JSON.parse(proxyData.contents);
       
       if (data?.message?.result?.articleList) {
         const articles = data.message.result.articleList.map((item: any) => ({
           articleId: item.articleId,
           title: item.subject,
           writer: item.writerNickname,
+          // 네이버에서 주는 시간값을 그대로 킵
           timestamp: item.writeDateTimestamp,
           category: item.menuName, 
           url: `https://cafe.naver.com/ArticleRead.nhn?clubid=${CLUB_ID}&articleid=${item.articleId}`
@@ -44,7 +43,7 @@ export async function GET() {
     // 최신순 정렬
     allArticles.sort((a, b) => b.timestamp - a.timestamp);
     
-    // 성공 시 글 목록 데이터 반환
+    // 성공 시 데이터 반환
     return NextResponse.json({ success: true, data: allArticles });
 
   } catch (error: any) {
