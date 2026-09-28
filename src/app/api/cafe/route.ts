@@ -5,49 +5,25 @@ export async function GET() {
   const CLUB_ID = '31747136';
   const MENU_IDS = ['13', '14']; // 13번, 14번 게시판
 
+  // 💡 종우님 전용 구글 프록시 무적 주소 장착 완료!
+  const GOOGLE_PROXY_URL = 'https://script.google.com/macros/s/AKfycbzy0tN8u9h6g7LMS9KEeRDsX8pHuqYQ5S88cISb9lUPTIHvTNV3e7q9Oc8vrdTXdZLr/exec';
+
   try {
     let allArticles: any[] = [];
-    
-    // 💡 VOD 플레이어에서 성공했던 검증된 2중 프록시(우회) 로직 적용
-    const proxies = [
-      (u: string) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-    ];
 
     for (const menuId of MENU_IDS) {
       const targetUrl = `https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=${CLUB_ID}&search.menuid=${menuId}&search.page=1&search.perPage=20`;
       
-      let data = null;
-      let lastError = "";
+      const response = await fetch(`${GOOGLE_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`, { 
+        cache: 'no-store' 
+      });
 
-      // 첫 번째 프록시가 실패하면 두 번째 프록시로 자동 재시도
-      for (const getProxyUrl of proxies) {
-        try {
-          const response = await fetch(getProxyUrl(targetUrl), {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Referer': 'https://m.cafe.naver.com/',
-              'Origin': 'https://m.cafe.naver.com'
-            },
-            cache: 'no-store'
-          });
-
-          if (response.ok) {
-            data = await response.json();
-            break; // 성공하면 반복문 탈출!
-          } else {
-            lastError = `Status: ${response.status}`;
-          }
-        } catch (e: any) {
-          lastError = e.message;
-        }
+      if (!response.ok) {
+        throw new Error(`Google Proxy Error: ${response.status}`);
       }
 
-      if (!data) {
-        throw new Error(`모든 프록시 서버 연결 실패. (${lastError})`);
-      }
+      const data = await response.json();
       
-      // 네이버 데이터 정제
       if (data?.message?.result?.articleList) {
         const articles = data.message.result.articleList.map((item: any) => ({
           articleId: item.articleId,
@@ -62,10 +38,7 @@ export async function GET() {
       }
     }
 
-    // 최신순 정렬
     allArticles.sort((a, b) => b.timestamp - a.timestamp);
-    
-    // 성공 시 데이터 반환
     return NextResponse.json({ success: true, data: allArticles });
 
   } catch (error: any) {
