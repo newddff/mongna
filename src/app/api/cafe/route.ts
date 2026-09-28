@@ -56,7 +56,7 @@ export async function GET() {
     }
 
     // 💡 13번, 14번 게시판의 '실제 카페 메뉴 이름'을 적어주세요. (예: 공지사항, 방송후기 등)
-    const TARGET_CATEGORIES = ['공지사항', '자유게시판']; 
+    const TARGET_CATEGORIES = ['몽이봤', '자유게시판']; 
     
     // 타겟 게시판만 필터링 (전체 글을 보려면 아래 코드를 지우고 allArticles를 반환하면 됩니다)
     const filteredArticles = allArticles.filter(article => 
