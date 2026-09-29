@@ -2,132 +2,68 @@
 
 import { useState } from 'react';
 
-export default function Minigames() {
-  const [activeGame, setActiveGame] = useState('cannon');
+export default function MinigameHub() {
+  const [activeGame, setActiveGame] = useState(null);
+
+  // 무지개색을 빼고, 몽나님의 라벤더 테마에 맞춰 통일감 있는 보라색 포인트로 정돈했습니다.
+  const games = [
+    { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '벌칙이나 리액션을 입력하고 시원하게 대포를 쏴서 랜덤으로 뽑아요.' },
+    { id: 'ladder', icon: '🪜', title: '사다리타기', desc: '최대 24명 · 대각선 사다리, 아래에서 위로 모두 동시에 출발!' },
+    { id: 'pinball', icon: '🎱', title: '핀볼 (준비중)', desc: '통통 튀는 구슬 장애물 레이스로 당첨자를 가려보세요.' },
+    { id: 'roulette', icon: '🎯', title: '룰렛 돌리기 (준비중)', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 돌려 결과를 확인해요.' },
+    { id: 'apple', icon: '🍎', title: '수박게임 (준비중)', desc: '과일을 자유롭게 떨어뜨려 합치고 가장 큰 과일을 만들어요.' },
+    { id: 'dice', icon: '🎲', title: '주사위 굴리기 (준비중)', desc: '주사위를 굴려 운명의 숫자를 확인해보세요.' },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#2d2422] text-gray-200 p-8 font-sans">
-      {/* 상단 헤더 */}
-      <div className="max-w-4xl mx-auto flex items-center justify-between mb-8 pb-4 border-b border-[#4a3f3c]">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            🎮 몽나 오락실
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">방송 벌칙, 메뉴 선정은 여기서!</p>
-        </div>
-      </div>
-
-      {/* 게임 선택 탭 */}
-      <div className="max-w-4xl mx-auto flex space-x-4 mb-8 bg-[#3a2e2b] p-2 rounded-xl">
-        <button
-          onClick={() => setActiveGame('cannon')}
-          className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-            activeGame === 'cannon' ? 'bg-orange-600 text-white shadow-lg scale-[1.02]' : 'hover:bg-[#453734] text-gray-400'
-          }`}
-        >
-          💥 대포 뽑기
-        </button>
-        <button
-          onClick={() => setActiveGame('ladder')}
-          className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-            activeGame === 'ladder' ? 'bg-orange-600 text-white shadow-lg scale-[1.02]' : 'hover:bg-[#453734] text-gray-400'
-          }`}
-        >
-          🪜 사다리 타기
-        </button>
-        <button
-          onClick={() => setActiveGame('pinball')}
-          className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-            activeGame === 'pinball' ? 'bg-orange-600 text-white shadow-lg scale-[1.02]' : 'hover:bg-[#453734] text-gray-400'
-          }`}
-        >
-          🎱 핀볼 (준비중)
-        </button>
-      </div>
-
-      {/* 게임 화면 영역 */}
-      <div className="max-w-4xl mx-auto bg-[#1a1413] rounded-2xl border border-[#4a3f3c] p-8 shadow-2xl min-h-[500px]">
-        {activeGame === 'cannon' && <CannonGame />}
-        {activeGame === 'ladder' && <div className="text-center text-gray-500 mt-20">사다리 타기 로직 개발 중... 🛠️</div>}
-        {activeGame === 'pinball' && <div className="text-center text-gray-500 mt-20">핀볼 엔진 개발 중... 🛠️</div>}
-      </div>
-    </div>
-  );
-}
-
-// 💥 대포 뽑기 컴포넌트
-function CannonGame() {
-  const [items, setItems] = useState('치킨\n피자\n햄버거\n벌칙: 애교\n꽝');
-  const [isFiring, setIsFiring] = useState(false);
-  const [result, setResult] = useState(null);
-
-  const handleFire = () => {
-    const itemList = items.split('\n').filter(item => item.trim() !== '');
-    if (itemList.length === 0) {
-      alert('뽑을 항목을 입력해주세요!');
-      return;
-    }
-
-    setIsFiring(true);
-    setResult(null);
-
-    // 대포 쏘는 애니메이션 시간 (1.5초 후 결과 발표)
-    setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * itemList.length);
-      setResult(itemList[randomIndex]);
-      setIsFiring(false);
-    }, 1500);
-  };
-
-  return (
-    <div className="flex flex-col items-center">
-      <h2 className="text-2xl font-bold mb-6 text-orange-400">대포 룰렛 뽑기</h2>
-      
-      <div className="flex w-full gap-8">
-        {/* 왼쪽: 항목 입력란 */}
-        <div className="w-1/3">
-          <label className="block text-sm font-medium text-gray-400 mb-2">
-            후보 입력 (줄바꿈으로 구분)
-          </label>
-          <textarea
-            value={items}
-            onChange={(e) => setItems(e.target.value)}
-            className="w-full h-48 bg-[#2d2422] border border-[#4a3f3c] rounded-xl p-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-            placeholder="항목을 입력하세요..."
-          />
+    // 캘린더와 동일한 라벤더 배경색
+    <div className="min-h-screen bg-[#d4c4e9] text-gray-800 p-6 md:p-12 font-sans">
+      <div className="max-w-6xl mx-auto">
+        
+        {/* 상단 헤더 */}
+        <div className="flex items-center space-x-4 mb-10 pb-4 border-b border-white/40">
+           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl shadow-sm">
+             🎮 몽나 오락실
+           </h1>
+           <span className="text-sm text-purple-800 font-medium bg-white/50 px-3 py-1 rounded-full">
+             방송 벌칙, 메뉴 선정은 여기서!
+           </span>
         </div>
 
-        {/* 오른쪽: 대포 발사 및 결과 화면 */}
-        <div className="w-2/3 flex flex-col items-center justify-center bg-[#2d2422] rounded-xl border border-[#4a3f3c] relative overflow-hidden">
-          
-          {/* 대포 & 결과 애니메이션 영역 */}
-          <div className="h-48 flex items-center justify-center w-full relative">
-            {isFiring ? (
-              <div className="text-6xl animate-bounce">💣🔥</div>
-            ) : result ? (
-              <div className="animate-in zoom-in spin-in-12 duration-500 text-center">
-                <div className="text-5xl mb-2">🎉</div>
-                <div className="text-3xl font-black text-white bg-orange-600 px-6 py-2 rounded-full shadow-[0_0_20px_rgba(234,88,12,0.5)]">
-                  {result}
+        {/* 3열 카드 그리드 레이아웃 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {games.map((game) => (
+            <div 
+              key={game.id}
+              onClick={() => alert(`'${game.title}' 개발 중입니다! 뚝딱뚝딱 🛠️`)}
+              className="bg-white border border-transparent rounded-3xl p-6 flex flex-col justify-between hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group min-h-[220px] shadow-sm"
+            >
+              <div>
+                {/* 아이콘 배경을 라벤더(보라색) 톤으로 통일 */}
+                <div className="mb-5 w-14 h-14 flex items-center justify-center rounded-2xl text-2xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110 duration-300">
+                  {game.icon}
                 </div>
+                {/* 게임 제목 */}
+                <h3 className="text-xl font-bold text-gray-800 mb-2 tracking-tight">
+                  {game.title}
+                </h3>
+                {/* 게임 설명 */}
+                <p className="text-sm text-gray-500 leading-relaxed break-keep font-medium">
+                  {game.desc}
+                </p>
               </div>
-            ) : (
-              <div className="text-6xl text-gray-600">🎯</div>
-            )}
-          </div>
-
-          <button
-            onClick={handleFire}
-            disabled={isFiring}
-            className={`w-3/4 mb-6 py-4 rounded-xl font-black text-xl transition-all ${
-              isFiring 
-                ? 'bg-gray-600 cursor-not-allowed opacity-50' 
-                : 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 active:scale-95 shadow-[0_5px_0_rgb(153,27,27)]'
-            }`}
-          >
-            {isFiring ? '발사 중...!!' : 'FIRE !! 발사 !!'}
-          </button>
+              
+              {/* 하단 바로가기 텍스트도 보라색으로 통일 */}
+              <div className="mt-6 text-[14px] font-bold flex items-center text-purple-600">
+                <span>바로가기</span> 
+                <span className="ml-1 opacity-80 group-hover:translate-x-1.5 transition-transform duration-300">
+                  →
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
+
       </div>
     </div>
   );
