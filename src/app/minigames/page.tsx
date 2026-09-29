@@ -3,9 +3,6 @@
 import { useState } from 'react';
 
 export default function MinigameHub() {
-  const [activeGame, setActiveGame] = useState(null);
-
-  // 무지개색을 빼고, 몽나님의 라벤더 테마에 맞춰 통일감 있는 보라색 포인트로 정돈했습니다.
   const games = [
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '벌칙이나 리액션을 입력하고 시원하게 대포를 쏴서 랜덤으로 뽑아요.' },
     { id: 'ladder', icon: '🪜', title: '사다리타기', desc: '최대 24명 · 대각선 사다리, 아래에서 위로 모두 동시에 출발!' },
@@ -16,54 +13,140 @@ export default function MinigameHub() {
   ];
 
   return (
-    // 캘린더와 동일한 라벤더 배경색
-    <div className="min-h-screen bg-[#d4c4e9] text-gray-800 p-6 md:p-12 font-sans">
-      <div className="max-w-6xl mx-auto">
-        
+    <div className="arcade-container">
+      {/* 💡 Tailwind 없이도 완벽하게 동작하는 순수 CSS 스타일 정의 */}
+      <style>{`
+        .arcade-container {
+          min-height: 100vh;
+          background-color: #d4c4e9;
+          color: #333333;
+          padding: 40px 24px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          box-sizing: border-box;
+        }
+        .arcade-inner {
+          max-width: 1080px;
+          margin: 0 auto;
+        }
+        .arcade-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 36px;
+          padding-bottom: 16px;
+          border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+        }
+        .arcade-title {
+          font-size: 22px;
+          font-weight: 800;
+          color: #2d3748;
+          background: #ffffff;
+          padding: 10px 22px;
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          margin: 0;
+        }
+        .arcade-subtitle {
+          font-size: 14px;
+          color: #553c9a;
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.65);
+          padding: 7px 16px;
+          border-radius: 9999px;
+        }
+        .game-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+          gap: 22px;
+        }
+        .game-card {
+          background-color: #ffffff;
+          border-radius: 24px;
+          padding: 26px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: 210px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+          cursor: pointer;
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+          border: 2px solid transparent;
+          box-sizing: border-box;
+        }
+        .game-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(107, 70, 193, 0.12);
+          border-color: #c4b5fd;
+        }
+        .game-icon-box {
+          width: 52px;
+          height: 52px;
+          background-color: #f3e8ff;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 26px;
+          margin-bottom: 16px;
+        }
+        .game-name {
+          font-size: 19px;
+          font-weight: 700;
+          color: #1a202c;
+          margin: 0 0 8px 0;
+        }
+        .game-desc {
+          font-size: 14px;
+          color: #718096;
+          line-height: 1.5;
+          margin: 0;
+          word-break: keep-all;
+        }
+        .game-link {
+          margin-top: 20px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #7c3aed;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: gap 0.2s ease;
+        }
+        .game-card:hover .game-link {
+          gap: 8px;
+        }
+      `}</style>
+
+      <div className="arcade-inner">
         {/* 상단 헤더 */}
-        <div className="flex items-center space-x-4 mb-10 pb-4 border-b border-white/40">
-           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl shadow-sm">
-             🎮 몽나 오락실
-           </h1>
-           <span className="text-sm text-purple-800 font-medium bg-white/50 px-3 py-1 rounded-full">
-             방송 벌칙, 메뉴 선정은 여기서!
-           </span>
+        <div className="arcade-header">
+          <h1 className="arcade-title">🎮 몽나 오락실</h1>
+          <span className="arcade-subtitle">방송 벌칙, 메뉴 선정은 여기서!</span>
         </div>
 
-        {/* 3열 카드 그리드 레이아웃 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 게임 카드 그리드 */}
+        <div className="game-grid">
           {games.map((game) => (
             <div 
               key={game.id}
-              onClick={() => alert(`'${game.title}' 개발 중입니다! 뚝딱뚝딱 🛠️`)}
-              className="bg-white border border-transparent rounded-3xl p-6 flex flex-col justify-between hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group min-h-[220px] shadow-sm"
+              className="game-card"
+              onClick={() => alert(`'${game.title}' 개발 중입니다! 🛠️`)}
             >
               <div>
-                {/* 아이콘 배경을 라벤더(보라색) 톤으로 통일 */}
-                <div className="mb-5 w-14 h-14 flex items-center justify-center rounded-2xl text-2xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110 duration-300">
+                <div className="game-icon-box">
                   {game.icon}
                 </div>
-                {/* 게임 제목 */}
-                <h3 className="text-xl font-bold text-gray-800 mb-2 tracking-tight">
-                  {game.title}
-                </h3>
-                {/* 게임 설명 */}
-                <p className="text-sm text-gray-500 leading-relaxed break-keep font-medium">
-                  {game.desc}
-                </p>
+                <h3 className="game-name">{game.title}</h3>
+                <p className="game-desc">{game.desc}</p>
               </div>
-              
-              {/* 하단 바로가기 텍스트도 보라색으로 통일 */}
-              <div className="mt-6 text-[14px] font-bold flex items-center text-purple-600">
-                <span>바로가기</span> 
-                <span className="ml-1 opacity-80 group-hover:translate-x-1.5 transition-transform duration-300">
-                  →
-                </span>
+
+              <div className="game-link">
+                <span>바로가기</span>
+                <span>→</span>
               </div>
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );
