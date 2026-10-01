@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function MinigameHub() {
-  // 현재 선택된 게임 상태 (null이면 로비, 'cannon'이면 대포 뽑기, 'ladder'이면 사다리 타기)
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
   const games = [
+    { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '출발선을 선택하면 귀여운 달구가 사다리를 타고 쪼르르 내려가요!', ready: true },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '벌칙이나 리액션을 입력하고 시원하게 대포를 쏴서 랜덤으로 뽑아요.', ready: true },
-    { id: 'ladder', icon: '🪜', title: '사다리타기', desc: '최대 6명 · 출발선을 클릭하면 사다리를 타고 내려가 결과를 확인해요!', ready: true },
     { id: 'dice', icon: '🎲', title: '주사위 굴리기 (준비중)', desc: '주사위를 굴려 운명의 숫자를 확인해보세요.', ready: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기 (준비중)', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 돌려 결과를 확인해요.', ready: false },
     { id: 'apple', icon: '🍎', title: '수박게임 (준비중)', desc: '과일을 자유롭게 떨어뜨려 합치고 가장 큰 과일을 만들어요.', ready: false },
@@ -124,14 +123,13 @@ export default function MinigameHub() {
           align-items: center;
           gap: 4px;
         }
-        /* 공통 게임 보드 래퍼 */
         .board-wrapper {
           background: #ffffff;
           border-radius: 28px;
           padding: 32px;
           box-shadow: 0 10px 30px rgba(0,0,0,0.06);
         }
-        /* 대포 게임 스타일 */
+        /* 대포 게임 */
         .cannon-box {
           display: flex;
           flex-direction: column;
@@ -171,7 +169,7 @@ export default function MinigameHub() {
         <div className="arcade-header">
           <h1 className="arcade-title">
             {activeGame ? (
-              activeGame === 'cannon' ? '💥 대포 뽑기' : '🪜 사다리타기'
+              activeGame === 'cannon' ? '💥 대포 뽑기' : '🪜 달구 사다리타기'
             ) : (
               '🎮 몽나 오락실'
             )}
@@ -183,7 +181,7 @@ export default function MinigameHub() {
           )}
         </div>
 
-        {/* 1. 로비 화면 (카드가 나열되는 기본 화면) */}
+        {/* 1. 로비 화면 */}
         {!activeGame && (
           <div className="game-grid">
             {games.map((game) => (
@@ -212,10 +210,10 @@ export default function MinigameHub() {
           </div>
         )}
 
-        {/* 2. 대포 뽑기 게임 실행 화면 */}
+        {/* 2. 대포 뽑기 게임 */}
         {activeGame === 'cannon' && <CannonPlayground />}
 
-        {/* 3. 사다리타기 게임 실행 화면 */}
+        {/* 3. 달구 사다리타기 게임 */}
         {activeGame === 'ladder' && <LadderPlayground />}
       </div>
     </div>
@@ -223,10 +221,347 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   💥 1. 대포 뽑기 컴포넌트
+   🪜 1. 달구 사다리타기 (몽나 캐릭터 + 내려가는 달구 애니메이션 탑재)
+   ========================================================================= */
+function LadderPlayground() {
+  const colXs = [60, 180, 300, 420];
+  const startY = 30;
+  const endY = 270;
+
+  // 가로 연결선 (col: 0 -> 0과 1 연결, 1 -> 1과 2 연결, 2 -> 2와 3 연결)
+  const [bridges] = useState([
+    { col: 0, y: 70 },
+    { col: 2, y: 90 },
+    { col: 1, y: 125 },
+    { col: 0, y: 165 },
+    { col: 2, y: 195 },
+    { col: 1, y: 230 },
+  ]);
+
+  const [goals, setGoals] = useState(['치킨 🍗', '꽝 💨', '애교 1회 💖', '노방종 1시간 ⏰']);
+  const [selectedCol, setSelectedCol] = useState<number | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
+  const [dalguPos, setDalguPos] = useState<{ x: number; y: number } | null>(null);
+  const [trailPath, setTrailPath] = useState<string>('');
+  const [finalResult, setFinalResult] = useState<{ mongnaNum: number; goal: string } | null>(null);
+
+  // 사다리 경로(경유지 점들) 계산 로직
+  const calculatePath = (startCol: number) => {
+    let currentCol = startCol;
+    let currentY = startY;
+    const points = [{ x: colXs[currentCol], y: currentY }];
+
+    // y높이 순으로 가로 다리 정렬
+    const sortedBridges = [...bridges].sort((a, b) => a.y - b.y);
+
+    for (const b of sortedBridges) {
+      if (b.y > currentY) {
+        if (b.col === currentCol) {
+          // 오른쪽으로 이동
+          points.push({ x: colXs[currentCol], y: b.y });
+          currentCol = currentCol + 1;
+          points.push({ x: colXs[currentCol], y: b.y });
+          currentY = b.y;
+        } else if (b.col === currentCol - 1) {
+          // 왼쪽으로 이동
+          points.push({ x: colXs[currentCol], y: b.y });
+          currentCol = currentCol - 1;
+          points.push({ x: colXs[currentCol], y: b.y });
+          currentY = b.y;
+        }
+      }
+    }
+
+    points.push({ x: colXs[currentCol], y: endY });
+    return { points, endCol: currentCol };
+  };
+
+  // 몽나 출발 버튼 클릭 시 달구 이동 애니메이션 시작
+  const startLadder = (colIndex: number) => {
+    if (isMoving) return;
+
+    setSelectedCol(colIndex);
+    setIsMoving(true);
+    setFinalResult(null);
+
+    const { points, endCol } = calculatePath(colIndex);
+
+    // 구간별 거리 계산
+    const segmentLengths: number[] = [];
+    let totalDist = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const dist = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+      segmentLengths.push(dist);
+      totalDist += dist;
+    }
+
+    const duration = 2800; // 달구가 내려가는 시간 (2.8초)
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const currentDist = progress * totalDist;
+
+      // 현재 진행 거리에 해당하는 좌표 구하기
+      let accumulated = 0;
+      let currX = points[0].x;
+      let currY = points[0].y;
+      let activePathStr = `M ${points[0].x} ${points[0].y}`;
+
+      for (let i = 0; i < segmentLengths.length; i++) {
+        const segLen = segmentLengths[i];
+        if (accumulated + segLen >= currentDist || i === segmentLengths.length - 1) {
+          const segProgress = segLen === 0 ? 0 : (currentDist - accumulated) / segLen;
+          currX = points[i].x + (points[i + 1].x - points[i].x) * segProgress;
+          currY = points[i].y + (points[i + 1].y - points[i].y) * segProgress;
+          activePathStr += ` L ${currX} ${currY}`;
+          break;
+        } else {
+          accumulated += segLen;
+          activePathStr += ` L ${points[i + 1].x} ${points[i + 1].y}`;
+        }
+      }
+
+      setDalguPos({ x: currX, y: currY });
+      setTrailPath(activePathStr);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setIsMoving(false);
+        setFinalResult({
+          mongnaNum: colIndex + 1,
+          goal: goals[endCol]
+        });
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
+  return (
+    <div className="board-wrapper">
+      <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#4a5568', margin: '0 0 6px 0' }}>
+          출발할 몽나 캐릭터를 클릭하세요!
+        </h2>
+        <p style={{ fontSize: '14px', color: '#718096', margin: 0 }}>
+          선택한 몽나 자리에서 달구가 출발해 사다리를 타고 당첨 결과를 찾아갑니다 🐾
+        </p>
+      </div>
+
+      <div style={{
+        maxWidth: '540px',
+        margin: '0 auto',
+        padding: '26px 16px',
+        background: '#fdfbfe',
+        borderRadius: '26px',
+        border: '2px solid #ede9fe',
+        position: 'relative'
+      }}>
+        {/* 상단: 몽나 캐릭터 출발 버튼 4개 */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '14px' }}>
+          {[0, 1, 2, 3].map((idx) => (
+            <button
+              key={idx}
+              disabled={isMoving}
+              onClick={() => startLadder(idx)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                background: selectedCol === idx ? '#ede9fe' : '#ffffff',
+                border: selectedCol === idx ? '2px solid #805ad5' : '2px solid #e9d8fd',
+                borderRadius: '18px',
+                padding: '10px 14px',
+                cursor: isMoving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                transform: selectedCol === idx ? 'scale(1.05)' : 'none',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.03)'
+              }}
+            >
+              {/* 몽나 캐릭터 이미지 (public/mongna.png 없으면 기본 보라 요정 그래픽 표시) */}
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                backgroundColor: '#e9d8fd',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                fontSize: '22px'
+              }}>
+                <img
+                  src="/mongna.png"
+                  alt={`몽나 ${idx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    // 이미지 없을 시 대체 텍스트/이모지
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.parentElement) {
+                      e.currentTarget.parentElement.innerText = '👑';
+                    }
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#553c9a' }}>
+                {idx + 1}번 몽나
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* 사다리 판 (SVG) */}
+        <div style={{ position: 'relative', width: '100%', height: '300px' }}>
+          <svg width="100%" height="100%" viewBox="0 0 480 300" style={{ overflow: 'visible' }}>
+            {/* 기본 세로선 4줄 */}
+            {colXs.map((x, i) => (
+              <line key={i} x1={x} y1={startY} x2={x} y2={endY} stroke="#d8b4fe" strokeWidth="5" strokeLinecap="round" />
+            ))}
+
+            {/* 기본 가로 다리선들 */}
+            {bridges.map((b, i) => (
+              <line
+                key={i}
+                x1={colXs[b.col]}
+                y1={b.y}
+                x2={colXs[b.col + 1]}
+                y2={b.y}
+                stroke="#c084fc"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            ))}
+
+            {/* 달구가 지나간 길을 빛나게 표시하는 선 (Trail) */}
+            {trailPath && (
+              <path
+                d={trailPath}
+                fill="none"
+                stroke="#ec4899"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ filter: 'drop-shadow(0 0 6px rgba(236,72,153,0.6))' }}
+              />
+            )}
+          </svg>
+
+          {/* 🐾 사다리를 타고 내려가는 '달구' 캐릭터 */}
+          {dalguPos && (
+            <div style={{
+              position: 'absolute',
+              left: `${(dalguPos.x / 480) * 100}%`,
+              top: `${(dalguPos.y / 300) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              transition: 'transform 0.05s linear',
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
+              {/* 말풍선 */}
+              <div style={{
+                background: '#ec4899',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '10px',
+                marginBottom: '4px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}>
+                {isMoving ? '달구 달리는 중!' : '도착! 🎉'}
+              </div>
+
+              {/* 달구 캐릭터 (public/dalgu.png 없으면 귀여운 팬마스코트 그래픽 표시) */}
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                border: '3px solid #ec4899',
+                boxShadow: '0 4px 12px rgba(236,72,153,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                fontSize: '20px'
+              }}>
+                <img
+                  src="/dalgu.png"
+                  alt="달구"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.parentElement) {
+                      e.currentTarget.parentElement.innerText = '🐹';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 하단: 결과 칸 4개 */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '16px' }}>
+          {goals.map((g, idx) => (
+            <div
+              key={idx}
+              style={{
+                width: '94px',
+                textAlign: 'center',
+                padding: '10px 4px',
+                background: '#ede9fe',
+                borderRadius: '14px',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#6b21a8',
+                border: '2px solid #ddd6fe',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              }}
+            >
+              {g}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 최종 도착 결과 배너 */}
+      {finalResult && (
+        <div style={{
+          marginTop: '26px',
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, #fdf4ff, #fae8ff)',
+          padding: '20px',
+          borderRadius: '20px',
+          border: '2px solid #f0abfc',
+          boxShadow: '0 6px 16px rgba(217, 70, 239, 0.12)'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '6px' }}>🎊</div>
+          <span style={{ fontSize: '18px', fontWeight: 800, color: '#86198f' }}>
+            [{finalResult.mongnaNum}번 몽나]에서 출발한 달구의 당첨 결과는? 👉{' '}
+            <strong style={{ fontSize: '22px', color: '#c026d3', textDecoration: 'underline' }}>
+              {finalResult.goal}
+            </strong>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   💥 2. 대포 뽑기 컴포넌트
    ========================================================================= */
 function CannonPlayground() {
-  const [candidates, setCandidates] = useState('치킨 먹방\n피자 먹방\n애교 벌칙\n노래 1곡\n노방종 1시간\n꽝 (통과!)');
+  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n노방종 1시간 🔥\n꽝 (통과!) 💨');
   const [isFiring, setIsFiring] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -240,7 +575,6 @@ function CannonPlayground() {
     setIsFiring(true);
     setResult(null);
 
-    // 대포 장전 & 발사 텀 (1.2초)
     setTimeout(() => {
       const picked = list[Math.floor(Math.random() * list.length)];
       setResult(picked);
@@ -251,7 +585,6 @@ function CannonPlayground() {
   return (
     <div className="board-wrapper">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-        {/* 입력란 */}
         <div>
           <label style={{ display: 'block', fontWeight: 700, marginBottom: '10px', color: '#4a5568' }}>
             후보 항목 입력 (줄바꿈으로 구분)
@@ -276,21 +609,20 @@ function CannonPlayground() {
           />
         </div>
 
-        {/* 발사대 및 결과창 */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div className="cannon-box">
             {isFiring ? (
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '64px', animation: 'spin 0.6s infinite linear' }}>💣</div>
+                <div style={{ fontSize: '64px' }}>💣🔥</div>
                 <div style={{ marginTop: '16px', fontSize: '20px', fontWeight: 800, color: '#805ad5' }}>
-                  대포 장전 중... 조준 완료!!
+                  대포 조준 중... 발사 준비 완료!!
                 </div>
               </div>
             ) : result ? (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '50px', marginBottom: '8px' }}>🎉</div>
                 <div style={{
-                  fontSize: '28px',
+                  fontSize: '26px',
                   fontWeight: 900,
                   color: '#ffffff',
                   background: '#805ad5',
@@ -315,127 +647,6 @@ function CannonPlayground() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* =========================================================================
-   🪜 2. 사다리타기 컴포넌트
-   ========================================================================= */
-function LadderPlayground() {
-  const [playerCount, setPlayerCount] = useState(4);
-  const [players, setPlayers] = useState(['몽나', '시청자1', '시청자2', '시청자3']);
-  const [goals, setGoals] = useState(['당첨 🎉', '꽝 💨', '벌칙 😈', '커피 쿠폰 ☕']);
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
-  const [finalResult, setFinalResult] = useState<{ player: string; goal: string } | null>(null);
-
-  // 사다리 가로줄 구조 생성 (4레벨 고정 사다리 예시 매핑)
-  const ladderMapping = [2, 0, 3, 1]; // 0번선택->2번도착, 1번->0번도착, 2번->3번도착, 3번->1번도착
-
-  const handleSelect = (idx: number) => {
-    setSelectedPlayer(idx);
-    const dest = ladderMapping[idx] % goals.length;
-    setFinalResult({
-      player: players[idx] || `참가자${idx + 1}`,
-      goal: goals[dest] || '결과'
-    });
-  };
-
-  return (
-    <div className="board-wrapper">
-      <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: '15px', color: '#718096', margin: 0 }}>
-          출발하고 싶은 <strong>참가자 이름 버튼</strong>을 클릭하면 결과가 즉시 공개됩니다!
-        </p>
-      </div>
-
-      {/* 사다리 영역 */}
-      <div style={{
-        maxWidth: '560px',
-        margin: '0 auto',
-        padding: '24px',
-        background: '#fdfbfe',
-        borderRadius: '24px',
-        border: '2px solid #ede9fe'
-      }}>
-        {/* 상단 참가자 버튼들 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          {players.slice(0, playerCount).map((p, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSelect(idx)}
-              style={{
-                background: selectedPlayer === idx ? '#7c3aed' : '#ffffff',
-                color: selectedPlayer === idx ? '#ffffff' : '#4a5568',
-                border: '2px solid #c4b5fd',
-                borderRadius: '12px',
-                padding: '10px 16px',
-                fontWeight: 800,
-                fontSize: '15px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                transition: 'all 0.2s'
-              }}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-
-        {/* 사다리 시각화 그래픽 (SVG) */}
-        <div style={{ width: '100%', height: '220px', display: 'flex', justifyContent: 'center' }}>
-          <svg width="100%" height="100%" viewBox="0 0 400 200" style={{ stroke: '#c4b5fd', strokeWidth: 4, strokeLinecap: 'round' }}>
-            {/* 4개의 세로줄 */}
-            <line x1="40" y1="10" x2="40" y2="190" />
-            <line x1="140" y1="10" x2="140" y2="190" />
-            <line x1="240" y1="10" x2="240" y2="190" />
-            <line x1="340" y1="10" x2="340" y2="190" />
-
-            {/* 가로 사다리 연결선들 */}
-            <line x1="40" y1="50" x2="140" y2="50" stroke="#a78bfa" strokeWidth="3" />
-            <line x1="140" y1="90" x2="240" y2="90" stroke="#a78bfa" strokeWidth="3" />
-            <line x1="240" y1="130" x2="340" y2="130" stroke="#a78bfa" strokeWidth="3" />
-            <line x1="40" y1="150" x2="140" y2="150" stroke="#a78bfa" strokeWidth="3" />
-          </svg>
-        </div>
-
-        {/* 하단 당첨 결과 칸 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-          {goals.slice(0, playerCount).map((g, idx) => (
-            <div
-              key={idx}
-              style={{
-                width: '80px',
-                textAlign: 'center',
-                padding: '8px 4px',
-                background: '#ede9fe',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#5b21b6'
-              }}
-            >
-              {g}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 결과 발표 배너 */}
-      {finalResult && (
-        <div style={{
-          marginTop: '28px',
-          textAlign: 'center',
-          background: '#ede9fe',
-          padding: '18px',
-          borderRadius: '18px',
-          border: '2px solid #ddd6fe'
-        }}>
-          <span style={{ fontSize: '18px', fontWeight: 800, color: '#5b21b6' }}>
-            🎊 [{finalResult.player}]님의 사다리 결과는 👉 <strong>{finalResult.goal}</strong> 입니다!
-          </span>
-        </div>
-      )}
     </div>
   );
 }
