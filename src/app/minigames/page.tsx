@@ -1,15 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const router = useRouter();
 
   const games = [
-    { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true },
-    { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true },
-    { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true },
+    { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
+    { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
+    { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
+    { id: 'chat', icon: '💬', title: '시청자 참여 (1 vs N)', desc: 'SOOP 채팅과 연동하여 다수결 투표 및 게임을 진행합니다.', ready: true, isLink: true, path: '/minigames/chat' },
   ];
+
+  const handleCardClick = (g: any) => {
+    if (!g.ready) {
+      alert('준비중입니다!');
+      return;
+    }
+    if (g.isLink) {
+      router.push(g.path);
+    } else {
+      setActiveGame(g.id);
+    }
+  };
 
   return (
     <div className="arcade-container">
@@ -59,7 +74,7 @@ export default function MinigameHub() {
         {!activeGame && (
           <div className="game-grid">
             {games.map((g) => (
-              <div key={g.id} className="game-card" onClick={() => g.ready ? setActiveGame(g.id) : alert('준비중입니다!')}>
+              <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>
                 <div><div className="game-icon-box">{g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
                 <div className="game-link"><span>{g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
               </div>
@@ -79,7 +94,6 @@ export default function MinigameHub() {
    🎯 룰렛 돌리기
    ========================================================================= */
 function RoulettePlayground() {
-  // 예시 텍스트를 완전히 비웠습니다 ('')
   const [candidates, setCandidates] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
@@ -226,10 +240,7 @@ function RoulettePlayground() {
 function CannonPlayground() {
   const [mode, setMode] = useState<'number' | 'text'>('number');
   const [maxNumber, setMaxNumber] = useState<number | ''>(50);
-  
-  // 예시 텍스트를 완전히 비웠습니다 ('')
   const [candidates, setCandidates] = useState('');
-  
   const [isFiring, setIsFiring] = useState(false);
   const [result, setResult] = useState<string | number | null>(null);
 
