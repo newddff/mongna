@@ -7,7 +7,7 @@ export default function MinigameHub() {
 
   const games = [
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true },
-    { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '벌칙이나 리액션을 입력하고 시원하게 대포를 쏴서 랜덤으로 뽑아요.', ready: true },
+    { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true },
     { id: 'dice', icon: '🎲', title: '주사위 굴리기 (준비중)', desc: '주사위를 굴려 운명의 숫자를 확인해보세요.', ready: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기 (준비중)', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 돌려 결과를 확인해요.', ready: false },
   ];
@@ -73,21 +73,17 @@ export default function MinigameHub() {
         
         .board-wrapper { background: #ffffff; border-radius: 28px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
         
-        /* 알약 인풋 */
         .pill-input { width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 13px; font-weight: 700; text-align: center; color: #4a5568; outline: none; transition: all 0.2s; background: #ffffff; }
         .pill-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
 
-        /* 마스코트 이미지와 사다리 레이아웃 */
         .ladder-layout { display: flex; flex-direction: column; gap: 30px; align-items: center; }
         .ladder-mascot { width: 260px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
         .ladder-mascot img { width: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(139, 92, 246, 0.15)); }
         .ladder-content { flex: 1; width: 100%; min-width: 0; }
         
-        @keyframes float { 
-          0% { transform: translateY(0px); } 
-          50% { transform: translateY(-12px); } 
-          100% { transform: translateY(0px); } 
-        }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0px); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-2deg); } 75% { transform: translateX(5px) rotate(2deg); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         
         @media (min-width: 950px) {
           .ladder-layout { flex-direction: row; align-items: center; }
@@ -123,15 +119,164 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   🪜 올인원 사다리타기 (가로선 숨기기 기능 탑재)
+   💥 대포 뽑기 (숫자 뽑기 + 일러스트 레이아웃)
+   ========================================================================= */
+function CannonPlayground() {
+  const [mode, setMode] = useState<'number' | 'text'>('number');
+  
+  // 숫자 뽑기 상태
+  const [maxNumber, setMaxNumber] = useState<number | ''>(50);
+  
+  // 텍스트 뽑기 상태
+  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n꽝 (통과!) 💨');
+  
+  // 공통 상태
+  const [isFiring, setIsFiring] = useState(false);
+  const [result, setResult] = useState<string | number | null>(null);
+
+  const handleShoot = () => {
+    setIsFiring(true); 
+    setResult(null);
+
+    setTimeout(() => {
+      if (mode === 'number') {
+        const max = typeof maxNumber === 'number' ? maxNumber : 50;
+        setResult(Math.floor(Math.random() * max) + 1);
+      } else {
+        const list = candidates.split('\n').map(s => s.trim()).filter(Boolean);
+        if (list.length === 0) {
+          alert('후보를 1개 이상 입력하세요!');
+          setIsFiring(false);
+          return;
+        }
+        setResult(list[Math.floor(Math.random() * list.length)]);
+      }
+      setIsFiring(false);
+    }, 1500); // 1.5초간 긴장감 있는 대포 발사 대기
+  };
+
+  return (
+    <div className="board-wrapper">
+      
+      {/* 모드 선택 탭 */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '30px' }}>
+        <button 
+          onClick={() => { setMode('number'); setResult(null); }}
+          style={{ padding: '10px 24px', borderRadius: '20px', fontWeight: 800, fontSize: '15px', border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: mode === 'number' ? '#8b5cf6' : '#f3f4f6', color: mode === 'number' ? '#ffffff' : '#6b7280', boxShadow: mode === 'number' ? '0 4px 12px rgba(139,92,246,0.3)' : 'none' }}
+        >
+          🔢 번호 뽑기
+        </button>
+        <button 
+          onClick={() => { setMode('text'); setResult(null); }}
+          style={{ padding: '10px 24px', borderRadius: '20px', fontWeight: 800, fontSize: '15px', border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: mode === 'text' ? '#8b5cf6' : '#f3f4f6', color: mode === 'text' ? '#ffffff' : '#6b7280', boxShadow: mode === 'text' ? '0 4px 12px rgba(139,92,246,0.3)' : 'none' }}
+        >
+          📝 목록 뽑기
+        </button>
+      </div>
+
+      <div className="ladder-layout" style={{ alignItems: 'stretch' }}>
+        
+        {/* 왼쪽: 대포 쏘는 몽나/달구 일러스트 */}
+        <div style={{ flex: '1', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <img 
+            src="/cannon-mascot.png" 
+            alt="대포 쏘는 몽나" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '420px', 
+              objectFit: 'contain', 
+              filter: 'drop-shadow(0 10px 15px rgba(139, 92, 246, 0.15))',
+              animation: isFiring ? 'shake 0.4s infinite' : 'float 3s ease-in-out infinite' 
+            }} 
+            onError={(e) => e.currentTarget.style.display = 'none'} 
+          />
+        </div>
+
+        {/* 오른쪽: 조작부 및 결과 출력 UI */}
+        <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          <div style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f6fc', borderRadius: '24px', padding: '40px 24px', border: '2px dashed #c4b5fd', minHeight: '260px' }}>
+            
+            {/* 1. 발사 중 애니메이션 */}
+            {isFiring ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '72px', animation: 'bounce 0.5s infinite' }}>💣🔥</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#8b5cf6', marginTop: '16px' }}>대포 장전 중...!!</div>
+              </div>
+            ) 
+            
+            /* 2. 결과 발표 화면 */
+            : result ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '18px', color: '#6b7280', fontWeight: 700, marginBottom: '12px' }}>당첨 결과</div>
+                <div style={{ fontSize: mode === 'number' ? '64px' : '32px', fontWeight: 900, color: '#ffffff', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', display: 'inline-block', padding: '16px 40px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(236,72,153,0.3)', wordBreak: 'keep-all' }}>
+                  {result}{mode === 'number' && '번'}
+                </div>
+              </div>
+            ) 
+            
+            /* 3. 대기 화면 (입력부) */
+            : (
+              <div style={{ width: '100%', textAlign: 'center' }}>
+                
+                {/* 숫자 뽑기 모드 UI */}
+                {mode === 'number' && (
+                  <div>
+                    <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#4a5568', marginBottom: '24px' }}>
+                      마지막 번호가 몇 번인가요?
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                      <input 
+                        type="number" 
+                        value={maxNumber} 
+                        onChange={(e) => setMaxNumber(e.target.value ? Number(e.target.value) : '')} 
+                        min="1"
+                        style={{ width: '120px', fontSize: '28px', fontWeight: 800, textAlign: 'center', padding: '12px', borderRadius: '16px', border: '3px solid #c4b5fd', outline: 'none', color: '#5b21b6', background: '#ffffff' }} 
+                      />
+                      <span style={{ fontSize: '24px', fontWeight: 800, color: '#4a5568' }}>번</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 텍스트 목록 뽑기 모드 UI */}
+                {mode === 'text' && (
+                  <div style={{ width: '100%' }}>
+                    <label style={{ display: 'block', fontWeight: 800, fontSize: '18px', marginBottom: '12px', color: '#4a5568' }}>
+                      후보 항목 입력 (줄바꿈 구분)
+                    </label>
+                    <textarea 
+                      value={candidates} 
+                      onChange={(e) => setCandidates(e.target.value)} 
+                      style={{ width: '100%', height: '180px', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '15px', resize: 'none', outline: 'none', fontWeight: 600, color: '#4a5568' }} 
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <button 
+            onClick={handleShoot} 
+            disabled={isFiring || (mode === 'number' && (!maxNumber || maxNumber < 1))} 
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', color: '#fff', border: 'none', padding: '18px 40px', borderRadius: '20px', fontSize: '20px', fontWeight: 900, cursor: isFiring ? 'not-allowed' : 'pointer', width: '100%', boxShadow: '0 6px 16px rgba(139,92,246,0.3)', transition: 'transform 0.1s' }}
+          >
+            {isFiring ? '발사 중...!!' : result ? '🔄 다시 쏘기' : '💥 대포 쏘기'}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   🪜 올인원 사다리타기 (가로선 숨기기 기능 탑재 - 변경 없음)
    ========================================================================= */
 function LadderPlayground() {
   const [colCount, setColCount] = useState<number>(4);
   const [players, setPlayers] = useState<string[]>(['몽나', '시청자1', '시청자2', '시청자3']);
   const [rewards, setRewards] = useState<string[]>(['결과1', '결과2', '결과3', '결과4']);
   const [bridges, setBridges] = useState<{col: number, y: number}[]>([]);
-  
-  // 가로선 숨기기 상태 (기본값: false - 가려짐)
   const [showBridges, setShowBridges] = useState<boolean>(false);
   
   const [isMoving, setIsMoving] = useState(false);
@@ -258,12 +403,10 @@ function LadderPlayground() {
     <div className="board-wrapper">
       <div className="ladder-layout">
         
-        {/* 마스코트 일러스트 영역 */}
         <div className="ladder-mascot">
           <img src="/ladder-mascot.png" alt="사다리 몽나와 달구" onError={(e) => e.currentTarget.style.display = 'none'} />
         </div>
 
-        {/* 사다리 컨텐츠 영역 */}
         <div className="ladder-content">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '30px', padding: '6px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
@@ -274,12 +417,9 @@ function LadderPlayground() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button onClick={handleStartRandom} disabled={isMoving} style={{ background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '24px', padding: '10px 24px', fontSize: '15px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(139,92,246,0.3)', transition: 'transform 0.1s' }}>▷ START</button>
-              
-              {/* ✨ 사다리 선 숨기기/보이기 토글 버튼 추가 */}
               <button onClick={() => setShowBridges(prev => !prev)} disabled={isMoving} title="가로선 보이기/숨기기" style={{ background: '#fff', color: showBridges ? '#8b5cf6' : '#9ca3af', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
                 {showBridges ? '👀' : '🙈'}
               </button>
-
               <button onClick={handleShuffle} disabled={isMoving} title="사다리 섞기" style={{ background: '#fff', color: '#8b5cf6', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>🔀</button>
               <button onClick={handleReset} disabled={isMoving} title="초기화" style={{ background: '#fff', color: '#ef4444', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>↺</button>
             </div>
@@ -303,15 +443,10 @@ function LadderPlayground() {
 
               <div style={{ position: 'absolute', top: '110px', width: '100%', height: '320px', zIndex: 10 }}>
                 <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
-                  {/* 세로선은 그대로 노출 */}
                   {colXs.map((x, i) => ( <line key={`v${i}`} x1={x} y1={startY} x2={x} y2={endY} stroke="#e2e8f0" strokeWidth="4" strokeLinecap="round" /> ))}
-                  
-                  {/* ✨ 가로선은 showBridges가 true일 때만 노출 */}
                   {showBridges && bridges.map((b, i) => ( 
                     <line key={`h${i}`} x1={colXs[b.col]} y1={b.y} x2={colXs[b.col+1]} y2={b.y} stroke="#c4b5fd" strokeWidth="5" strokeLinecap="round" /> 
                   ))}
-                  
-                  {/* 달구 이동 궤적은 항상 표시 */}
                   {trailPath && ( <path d={trailPath} fill="none" stroke="#f472b6" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px rgba(244,114,182,0.6))' }} /> )}
                 </svg>
 
@@ -345,44 +480,6 @@ function LadderPlayground() {
           </span>
         </div>
       )}
-    </div>
-  );
-}
-
-/* =========================================================================
-   💥 대포 뽑기
-   ========================================================================= */
-function CannonPlayground() {
-  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n꽝 (통과!) 💨');
-  const [isFiring, setIsFiring] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-
-  const handleShoot = () => {
-    const list = candidates.split('\n').map(s => s.trim()).filter(Boolean);
-    if (list.length === 0) return alert('후보를 1개 이상 입력하세요!');
-    setIsFiring(true); setResult(null);
-    setTimeout(() => { setResult(list[Math.floor(Math.random() * list.length)]); setIsFiring(false); }, 1200);
-  };
-
-  return (
-    <div className="board-wrapper">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-        <div>
-          <label style={{ display: 'block', fontWeight: 700, marginBottom: '10px', color: '#4a5568' }}>후보 항목 입력 (줄바꿈 구분)</label>
-          <textarea value={candidates} onChange={(e) => setCandidates(e.target.value)} disabled={isFiring}
-            style={{ width: '100%', height: '240px', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '15px', resize: 'none', outline: 'none' }} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8f6fc', borderRadius: '20px', padding: '40px 20px', border: '2px dashed #d6bcfa', minHeight: '220px' }}>
-            {isFiring ? <div style={{ fontSize: '64px', textAlign: 'center' }}>💣🔥<div style={{ fontSize: '18px', fontWeight: 800, color: '#805ad5', marginTop: '10px' }}>장전 중...</div></div> 
-            : result ? <div style={{ textAlign: 'center' }}><div style={{ fontSize: '50px' }}>🎉</div><div style={{ fontSize: '24px', fontWeight: 900, color: '#fff', background: '#805ad5', padding: '10px 24px', borderRadius: '99px', marginTop: '10px' }}>{result}</div></div> 
-            : <div style={{ textAlign: 'center', color: '#a0aec0' }}><div style={{ fontSize: '56px' }}>🎯</div><div style={{ fontWeight: 600, marginTop: '10px' }}>버튼을 눌러 발사!</div></div>}
-          </div>
-          <button onClick={handleShoot} disabled={isFiring} style={{ background: 'linear-gradient(135deg, #805ad5, #d53f8c)', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '18px', fontSize: '18px', fontWeight: 800, cursor: 'pointer', width: '100%', marginTop: '20px' }}>
-            {isFiring ? '발사 중...!!' : '💥 대포 쏘기 (랜덤 뽑기)'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
