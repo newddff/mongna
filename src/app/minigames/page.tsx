@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
-  // 주사위를 빼고 룰렛을 활성화했습니다.
   const games = [
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true },
@@ -15,14 +14,7 @@ export default function MinigameHub() {
   return (
     <div className="arcade-container">
       <style>{`
-        .arcade-container {
-          min-height: 100vh;
-          background-color: #f3f0f8;
-          color: #2d3748;
-          padding: 30px 20px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          box-sizing: border-box;
-        }
+        .arcade-container { min-height: 100vh; background-color: #f3f0f8; color: #2d3748; padding: 30px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; }
         .arcade-inner { max-width: 1150px; margin: 0 auto; }
         .arcade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid rgba(139, 92, 246, 0.2); }
         .arcade-title { font-size: 22px; font-weight: 800; color: #2d3748; background: #ffffff; padding: 10px 22px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); margin: 0; }
@@ -84,19 +76,39 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   🎯 룰렛 돌리기 (완전 신규)
+   🎯 룰렛 돌리기 (*숫자 중복 기능 추가)
    ========================================================================= */
 function RoulettePlayground() {
-  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n노방종 1시간 🔥\n벌칙 애교 💖\n시청자 미션 🎮\n꽝 💨');
+  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n꽝 💨 * 3\n벌칙 애교 💖 * 2');
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<string | null>(null);
 
-  const list = candidates.split('\n').map(s => s.trim()).filter(Boolean);
+  // 입력된 텍스트를 분석해서 '*숫자'가 있으면 그만큼 늘려주는 로직
+  const parseCandidates = (text: string) => {
+    const rawList = text.split('\n').map(s => s.trim()).filter(Boolean);
+    const parsedList: string[] = [];
+    
+    rawList.forEach(item => {
+      // '항목 * 숫자' 패턴 찾기 (예: 몽나바보*2)
+      const match = item.match(/^(.*?)\s*\*\s*(\d+)$/);
+      if (match) {
+        const name = match[1].trim();
+        const count = Math.min(Math.max(parseInt(match[2], 10), 1), 100); // 비정상적인 숫자 폭탄 방지 (최대 100개)
+        for (let i = 0; i < count; i++) {
+          parsedList.push(name);
+        }
+      } else {
+        parsedList.push(item);
+      }
+    });
+    return parsedList;
+  };
+
+  const list = parseCandidates(candidates);
   const sliceAngle = list.length > 0 ? 360 / list.length : 0;
   const colors = ['#fdf4ff', '#e0e7ff', '#dcfce7', '#fef9c3', '#ffedd5', '#ffe4e6', '#f3e8ff', '#ccfbf1'];
 
-  // CSS conic-gradient로 룰렛 배경 그리기
   let gradient = 'conic-gradient(';
   list.forEach((_, i) => {
     const start = i * sliceAngle;
@@ -107,31 +119,25 @@ function RoulettePlayground() {
   gradient += ')';
 
   const handleSpin = () => {
-    if (list.length < 2) return alert('후보를 2개 이상 입력하세요!');
+    if (list.length < 2) return alert('룰렛 칸이 2개 이상이 되도록 입력해주세요!');
     if (isSpinning) return;
 
     setIsSpinning(true);
     setResult(null);
 
     const winIndex = Math.floor(Math.random() * list.length);
-    
-    // 당첨될 조각의 중앙 각도
     const centerAngle = (winIndex * sliceAngle) + (sliceAngle / 2);
     
-    // 최소 5바퀴(1800도)는 돌고 당첨 위치로 맞추기
     const baseSpin = 360 * 5;
     const targetRotation = (360 - centerAngle); 
     
-    // 연속해서 돌릴 때 역주행하지 않도록 모듈러 연산 적용
     const currentMod = rotation % 360;
     let delta = targetRotation - currentMod;
     if (delta < 0) delta += 360;
     
     const nextRotation = rotation + baseSpin + delta;
-
     setRotation(nextRotation);
 
-    // CSS transition 지속시간(3.5초) 후 결과 발표
     setTimeout(() => {
       setResult(list[winIndex]);
       setIsSpinning(false);
@@ -141,8 +147,6 @@ function RoulettePlayground() {
   return (
     <div className="board-wrapper">
       <div className="game-layout">
-        
-        {/* 마스코트 일러스트 영역 */}
         <div className="mascot-area">
           <img 
             src="/roulette-mascot.png" 
@@ -154,16 +158,16 @@ function RoulettePlayground() {
           />
         </div>
 
-        {/* 룰렛 게임 컨텐츠 영역 */}
         <div className="content-area" style={{ display: 'flex', gap: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          
-          {/* 왼쪽: 항목 입력칸 */}
           <div style={{ flex: '1', minWidth: '220px', maxWidth: '300px' }}>
-            <label style={{ display: 'block', fontWeight: 800, marginBottom: '10px', color: '#4a5568' }}>룰렛 항목 입력 (줄바꿈 구분)</label>
+            <label style={{ display: 'block', fontWeight: 800, marginBottom: '10px', color: '#4a5568' }}>
+              룰렛 항목 입력 <span style={{ fontSize: '13px', color: '#8b5cf6' }}>(항목*숫자로 중복가능)</span>
+            </label>
             <textarea 
               value={candidates} 
               onChange={(e) => setCandidates(e.target.value)} 
               disabled={isSpinning}
+              placeholder="예시:&#13;&#10;몽나바보*2&#13;&#10;꽝*3"
               style={{ width: '100%', height: '240px', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '15px', resize: 'none', outline: 'none', fontWeight: 600 }} 
             />
             <button 
@@ -175,22 +179,17 @@ function RoulettePlayground() {
             </button>
           </div>
 
-          {/* 오른쪽: 룰렛 시각화 영역 */}
           <div style={{ position: 'relative', width: '320px', height: '320px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            
-            {/* 룰렛 핀 (역삼각형) */}
             <div style={{ position: 'absolute', top: '-10px', zIndex: 10, width: 0, height: 0, borderLeft: '16px solid transparent', borderRight: '16px solid transparent', borderTop: '28px solid #ef4444', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}></div>
             
-            {/* 룰렛 본체 */}
             <div style={{ 
               width: '100%', height: '100%', borderRadius: '50%', background: list.length > 0 ? gradient : '#e2e8f0', 
               boxShadow: '0 8px 24px rgba(0,0,0,0.1), inset 0 0 0 6px #ffffff, inset 0 0 0 10px #c4b5fd',
               transform: `rotate(${rotation}deg)`, 
-              transition: 'transform 3.5s cubic-bezier(0.1, 0.7, 0.1, 1)', // 점점 느려지는 물리엔진 느낌
+              transition: 'transform 3.5s cubic-bezier(0.1, 0.7, 0.1, 1)',
               position: 'relative', overflow: 'hidden'
             }}>
               {list.map((item, i) => {
-                // 0도는 12시 방향. HTML transform은 0도가 3시 방향이므로 -90 적용
                 const cssAngle = (i * sliceAngle) + (sliceAngle / 2) - 90;
                 return (
                   <div key={i} style={{ 
@@ -205,10 +204,8 @@ function RoulettePlayground() {
               })}
             </div>
             
-            {/* 룰렛 중심축 고정핀 */}
             <div style={{ position: 'absolute', width: '24px', height: '24px', background: '#ffffff', borderRadius: '50%', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', border: '4px solid #c4b5fd' }}></div>
 
-            {/* 당첨 팝업 */}
             {result && (
               <div style={{ position: 'absolute', zIndex: 20, background: '#ffffff', padding: '16px 24px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(139,92,246,0.3)', border: '3px solid #8b5cf6', animation: 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', textAlign: 'center' }}>
                 <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
@@ -225,7 +222,7 @@ function RoulettePlayground() {
 
 
 /* =========================================================================
-   💥 대포 뽑기 (이전과 동일)
+   💥 대포 뽑기 & 🪜 사다리타기 (이전과 동일)
    ========================================================================= */
 function CannonPlayground() {
   const [mode, setMode] = useState<'number' | 'text'>('number');
@@ -275,9 +272,6 @@ function CannonPlayground() {
   );
 }
 
-/* =========================================================================
-   🪜 올인원 사다리타기 (이전과 동일)
-   ========================================================================= */
 function LadderPlayground() {
   const [colCount, setColCount] = useState<number>(4);
   const [players, setPlayers] = useState<string[]>(['몽나', '시청자1', '시청자2', '시청자3']);
