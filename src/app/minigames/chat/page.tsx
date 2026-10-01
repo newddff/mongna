@@ -21,14 +21,18 @@ export default function ChatSyncPage() {
   const [votes, setVotes] = useState<{ [key: number]: number }>({ 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0 });
   const [timeLeft, setTimeLeft] = useState(10); 
 
+  // ✨ 실제 연동을 위한 웹소켓 Ref 및 상태 동기화 Ref
+  const wsRef = useRef<WebSocket | null>(null);
   const testIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // 💥 버그 수정: 최신 투표수와 보드판을 타이머와 분리하기 위해 Ref 사용
   const votesRef = useRef(votes);
   const boardRef = useRef(board);
+  const turnRef = useRef(turn);
   useEffect(() => { votesRef.current = votes; }, [votes]);
   useEffect(() => { boardRef.current = board; }, [board]);
+  useEffect(() => { turnRef.current = turn; }, [turn]);
 
+  // 승리 조건 검사
   const checkWin = (newBoard: Player[][], player: Player) => {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -78,7 +82,7 @@ export default function ChatSyncPage() {
     dropPiece(colIndex, 'streamer');
   };
 
-  // 💥 버그 수정: 채팅 업데이트와 무관하게 1초마다 정확히 깎이는 순수 타이머
+  // 타이머 (1초씩 차감)
   useEffect(() => {
     let timerId: NodeJS.Timeout;
     if (turn === 'viewers' && !winner && timeLeft > 0) {
@@ -87,7 +91,7 @@ export default function ChatSyncPage() {
     return () => clearTimeout(timerId);
   }, [turn, winner, timeLeft]);
 
-  // 💥 버그 수정: 0초가 되었을 때만 딱 한 번 실행되어 최다 득표수에 돌을 떨굼
+  // 타이머 0초 도달 시 1등에게 돌 떨구기
   useEffect(() => {
     if (turn === 'viewers' && timeLeft === 0 && !winner) {
       let maxVote = -1;
@@ -105,34 +109,60 @@ export default function ChatSyncPage() {
     }
   }, [timeLeft, turn, winner]);
 
-  const startTestMode = () => {
-    setIsConnected(true);
-    setChatLogs([{ id: 'system', nickname: '시스템', text: '테스트 모드: 1~7번 채팅이 쏟아집니다!' }]);
-    
-    const fakeNicknames = ['달구1호', '몽나바라기', '채팅빌런', '고수', '뉴비'];
-    
-    testIntervalRef.current = setInterval(() => {
-      setTurn((currentTurn) => {
-        if (currentTurn === 'viewers') {
-          const randomNum = Math.floor(Math.random() * 7) + 1;
-          const randomNick = fakeNicknames[Math.floor(Math.random() * fakeNicknames.length)];
-          const newChat = { id: Date.now().toString() + Math.random(), nickname: randomNick, text: randomNum.toString() };
-          
-          setChatLogs(prev => [newChat, ...prev].slice(0, 15));
-          setVotes(prev => ({ ...prev, [randomNum]: prev[randomNum] + 1 }));
+  // ✨ 진짜 봇(웹소켓) 연동 함수
+  const connectToBot = () => {
+    if (wsRef.current) wsRef.current.close();
+
+    try {
+      // 종우님 봇이 켜져 있는 로컬호스트 8080 포트로 접속 시도
+      const ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = () => {
+        setIsConnected(true);
+        setChatLogs(prev => [{ id: Date.now().toString(), nickname: '시스템', text: '🟢 봇과 연동 완료! 진짜 채팅을 기다립니다.' }, ...prev]);
+      };
+
+      // 봇이 채팅을 보내줄 때마다 실행되는 함수!
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const text = data.text.trim();
+          const num = parseInt(text);
+
+          // 화면에 채팅 로그 띄우기
+          setChatLogs(prev => [{ id: Date.now().toString() + Math.random(), nickname: data.nickname, text: text }, ...prev].slice(0, 15));
+
+          // 시청자 턴이고, 채팅이 1~7 사이 숫자면 투표 1 올려주기
+          if (turnRef.current === 'viewers' && num >= 1 && num <= 7) {
+            setVotes(prev => ({ ...prev, [num]: prev[num] + 1 }));
+          }
+        } catch (error) {
+          console.error("데이터 파싱 에러", error);
         }
-        return currentTurn;
-      });
-    }, 400); 
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        setChatLogs(prev => [{ id: Date.now().toString(), nickname: '시스템', text: '🔴 봇과의 연결이 끊어졌습니다.' }, ...prev]);
+      };
+
+      wsRef.current = ws;
+    } catch (error) {
+      alert('봇 서버에 연결할 수 없습니다. 봇을 켰는지 확인해주세요!');
+    }
   };
 
   const stopConnection = () => {
-    setIsConnected(false);
+    if (wsRef.current) wsRef.current.close();
     if (testIntervalRef.current) clearInterval(testIntervalRef.current);
+    setIsConnected(false);
   };
 
   useEffect(() => {
-    return () => { if (testIntervalRef.current) clearInterval(testIntervalRef.current); };
+    return () => { 
+      if (testIntervalRef.current) clearInterval(testIntervalRef.current); 
+      if (wsRef.current) wsRef.current.close();
+    };
   }, []);
 
   const resetGame = () => {
@@ -159,22 +189,16 @@ export default function ChatSyncPage() {
           
           <div style={{ flex: '1', minWidth: '300px', maxWidth: '350px' }}>
             <div style={{ background: '#ffffff', padding: '24px', borderRadius: '24px', border: '3px solid #1e293b', boxShadow: '4px 4px 0px #1e293b' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: '#1e293b' }}>채팅 연결 (봇 연동용)</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: '#1e293b' }}>봇 서버 연결</h2>
               
               <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                <input type="text" value={bjId} onChange={(e) => setBjId(e.target.value)} disabled={isConnected} placeholder="SOOP 아이디 입력" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '2px solid #cbd5e1', outline: 'none', fontWeight: 700 }} />
+                <input type="text" value={bjId} onChange={(e) => setBjId(e.target.value)} disabled={isConnected} placeholder="SOOP 봇 준비 완료?" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '2px solid #cbd5e1', outline: 'none', fontWeight: 700 }} />
                 {!isConnected ? (
-                  <button onClick={() => alert('추후 Firebase에서 데이터를 읽어오도록 연결됩니다!')} style={{ background: '#facc15', border: '2px solid #1e293b', borderRadius: '10px', padding: '0 16px', fontWeight: 800, cursor: 'pointer', boxShadow: '2px 2px 0px #1e293b' }}>DB연결</button>
+                  <button onClick={connectToBot} style={{ background: '#facc15', border: '2px solid #1e293b', borderRadius: '10px', padding: '0 16px', fontWeight: 800, cursor: 'pointer', boxShadow: '2px 2px 0px #1e293b' }}>봇 연결</button>
                 ) : (
                   <button onClick={stopConnection} style={{ background: '#ef4444', border: '2px solid #1e293b', borderRadius: '10px', padding: '0 16px', fontWeight: 800, color: '#fff', cursor: 'pointer' }}>중지</button>
                 )}
               </div>
-
-              {!isConnected && (
-                <button onClick={startTestMode} style={{ width: '100%', marginTop: '16px', background: '#e2e8f0', border: '2px solid #1e293b', padding: '12px', borderRadius: '10px', fontWeight: 800, color: '#1e293b', cursor: 'pointer', boxShadow: '2px 2px 0px #1e293b' }}>
-                  🧪 가짜 시청자로 테스트 시작
-                </button>
-              )}
             </div>
 
             <div style={{ marginTop: '20px', background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '20px', padding: '16px', height: '400px', overflowY: 'auto' }}>
