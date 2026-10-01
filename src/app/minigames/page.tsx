@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
   const games = [
-    { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '인원수 조절, 보상 커스텀, 무한 리트라이가 가능한 갓-겜!', ready: true },
+    { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '벌칙이나 리액션을 입력하고 시원하게 대포를 쏴서 랜덤으로 뽑아요.', ready: true },
     { id: 'dice', icon: '🎲', title: '주사위 굴리기 (준비중)', desc: '주사위를 굴려 운명의 숫자를 확인해보세요.', ready: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기 (준비중)', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 돌려 결과를 확인해요.', ready: false },
@@ -17,14 +17,14 @@ export default function MinigameHub() {
       <style>{`
         .arcade-container {
           min-height: 100vh;
-          background-color: #d4c4e9;
+          background-color: #f3f0f8;
           color: #2d3748;
           padding: 30px 20px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           box-sizing: border-box;
         }
         .arcade-inner {
-          max-width: 1080px;
+          max-width: 1150px; /* 마스코트가 들어가도록 너비를 조금 더 늘렸습니다 */
           margin: 0 auto;
         }
         .arcade-header {
@@ -33,7 +33,7 @@ export default function MinigameHub() {
           justify-content: space-between;
           margin-bottom: 30px;
           padding-bottom: 16px;
-          border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+          border-bottom: 2px solid rgba(139, 92, 246, 0.2);
         }
         .arcade-title {
           font-size: 22px;
@@ -52,12 +52,12 @@ export default function MinigameHub() {
           border-radius: 14px;
           font-size: 14px;
           font-weight: 700;
-          color: #553c9a;
+          color: #7c3aed;
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
           transition: all 0.2s;
         }
-        .back-btn:hover { background: #f7f3fd; transform: translateY(-2px); }
+        .back-btn:hover { background: #f5f3ff; transform: translateY(-2px); }
         .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; }
         .game-card {
           background-color: #ffffff; border-radius: 24px; padding: 26px;
@@ -65,20 +65,34 @@ export default function MinigameHub() {
           min-height: 210px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
           cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent;
         }
-        .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(107, 70, 193, 0.12); border-color: #c4b5fd; }
-        .game-icon-box { width: 52px; height: 52px; background-color: #f3e8ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
+        .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
+        .game-icon-box { width: 52px; height: 52px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
         .game-name { font-size: 19px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
         .game-desc { font-size: 14px; color: #718096; line-height: 1.5; margin: 0; word-break: keep-all; }
-        .game-link { margin-top: 20px; font-size: 14px; font-weight: 700; color: #7c3aed; display: flex; align-items: center; gap: 4px; }
+        .game-link { margin-top: 20px; font-size: 14px; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 4px; }
         
-        .board-wrapper { background: #ffffff; border-radius: 28px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
-        .btn-primary { background: linear-gradient(135deg, #805ad5, #d53f8c); color: #fff; border: none; padding: 12px 24px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(128,90,213,0.3); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(128,90,213,0.4); }
-        .btn-secondary { background: #edf2f7; color: #4a5568; border: none; padding: 12px 24px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .board-wrapper { background: #ffffff; border-radius: 28px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
         
-        input.reward-input { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; text-align: center; outline: none; transition: border-color 0.2s; font-weight: 700; color: #4a5568; }
-        input.reward-input:focus { border-color: #805ad5; }
+        /* 알약 인풋 */
+        .pill-input { width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 13px; font-weight: 700; text-align: center; color: #4a5568; outline: none; transition: all 0.2s; background: #ffffff; }
+        .pill-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
+
+        /* 마스코트 이미지와 사다리를 양옆으로 배치하는 레이아웃 */
+        .ladder-layout { display: flex; flex-direction: column; gap: 30px; align-items: center; }
+        .ladder-mascot { width: 260px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
+        .ladder-mascot img { width: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(139, 92, 246, 0.15)); }
+        .ladder-content { flex: 1; width: 100%; min-width: 0; }
+        
+        @keyframes float { 
+          0% { transform: translateY(0px); } 
+          50% { transform: translateY(-12px); } 
+          100% { transform: translateY(0px); } 
+        }
+        
+        /* PC 화면에서는 가로로 배치 (왼쪽: 일러스트, 오른쪽: 사다리) */
+        @media (min-width: 950px) {
+          .ladder-layout { flex-direction: row; align-items: center; }
+        }
       `}</style>
 
       <div className="arcade-inner">
@@ -110,47 +124,37 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   🪜 동적 사다리타기 (자유 설정 + 무한 리트라이 + 에셋 적용)
+   🪜 올인원 사다리타기 (마스코트 일러스트 배치 적용)
    ========================================================================= */
 function LadderPlayground() {
-  const [mode, setMode] = useState<'setup' | 'play'>('setup');
   const [colCount, setColCount] = useState<number>(4);
-  const [rewards, setRewards] = useState<string[]>(['치킨 🍗', '꽝 💨', '벌칙 😈', '커피 ☕']);
-  
-  // 사다리 선 데이터
+  const [players, setPlayers] = useState<string[]>(['몽나', '시청자1', '시청자2', '시청자3']);
+  const [rewards, setRewards] = useState<string[]>(['결과1', '결과2', '결과3', '결과4']);
   const [bridges, setBridges] = useState<{col: number, y: number}[]>([]);
   
-  // 애니메이션 상태
-  const [selectedCol, setSelectedCol] = useState<number | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const [dalguPos, setDalguPos] = useState<{ x: number; y: number } | null>(null);
   const [trailPath, setTrailPath] = useState<string>('');
-  const [finalResult, setFinalResult] = useState<{ mongnaNum: number; goal: string } | null>(null);
+  const [finalResult, setFinalResult] = useState<{ player: string; goal: string } | null>(null);
 
-  // SVG 좌표계
-  const svgWidth = colCount * 100;
-  const colXs = Array.from({ length: colCount }, (_, i) => i * 100 + 50);
-  const startY = 30;
+  const colWidth = 100; 
+  const svgWidth = colCount * colWidth;
+  const colXs = Array.from({ length: colCount }, (_, i) => i * colWidth + (colWidth / 2));
+  const startY = 0;
   const endY = 320;
 
-  // 인원수 변경 시 보상 배열 맞추기
   useEffect(() => {
-    setRewards(prev => {
-      const newArr = [...prev];
-      while (newArr.length < colCount) newArr.push('');
-      return newArr.slice(0, colCount);
-    });
+    setPlayers(prev => Array.from({ length: colCount }, (_, i) => prev[i] || `이름${i+1}`));
+    setRewards(prev => Array.from({ length: colCount }, (_, i) => prev[i] || `결과${i+1}`));
+    generateBridges(colCount);
   }, [colCount]);
 
-  // 무작위 사다리 선 생성 함수
-  const generateBridges = () => {
-    const ySlots = [70, 110, 150, 190, 230, 270]; // 사다리가 그어질 수 있는 Y축 높이들
+  const generateBridges = (count: number) => {
+    const ySlots = [40, 80, 120, 160, 200, 240, 280];
     const newBridges: {col: number, y: number}[] = [];
-    
     ySlots.forEach(y => {
-      for (let c = 0; c < colCount - 1; c++) {
-        // 40% 확률로 가로선을 긋되, 연속된 가로선(사다리 충돌) 방지를 위해 c++
-        if (Math.random() < 0.4) {
+      for (let c = 0; c < count - 1; c++) {
+        if (Math.random() < 0.45) {
           newBridges.push({ col: c, y });
           c++; 
         }
@@ -159,38 +163,29 @@ function LadderPlayground() {
     setBridges(newBridges);
   };
 
-  // 게임 시작 버튼
-  const handleStartGame = () => {
-    generateBridges();
-    setMode('play');
-    setSelectedCol(null);
-    setFinalResult(null);
-    setTrailPath('');
-    setDalguPos(null);
-  };
-
-  // 같은 보상으로 사다리 선만 다시 섞기 (리트라이)
-  const handleRedraw = () => {
+  const handleShuffle = () => { if (!isMoving) generateBridges(colCount); };
+  const handleReset = () => {
     if (isMoving) return;
-    generateBridges();
-    setSelectedCol(null);
+    setPlayers(Array.from({ length: colCount }, (_, i) => `이름${i+1}`));
+    setRewards(Array.from({ length: colCount }, (_, i) => `결과${i+1}`));
+    generateBridges(colCount);
     setFinalResult(null);
     setTrailPath('');
-    setDalguPos(null);
+  };
+  
+  const handleStartRandom = () => {
+    if (isMoving) return;
+    startLadder(Math.floor(Math.random() * colCount));
   };
 
-  // 사다리 경로 계산 및 애니메이션
   const startLadder = (startCol: number) => {
     if (isMoving) return;
-    setSelectedCol(startCol);
     setIsMoving(true);
     setFinalResult(null);
 
     let currentCol = startCol;
     let currentY = startY;
     const points = [{ x: colXs[currentCol], y: currentY }];
-    
-    // y좌표 기준으로 정렬 후 탐색
     const sorted = [...bridges].sort((a, b) => a.y - b.y);
 
     for (const b of sorted) {
@@ -210,7 +205,6 @@ function LadderPlayground() {
     }
     points.push({ x: colXs[currentCol], y: endY });
 
-    // 애니메이션 실행
     let totalDist = 0;
     const segmentLengths = [];
     for (let i = 0; i < points.length - 1; i++) {
@@ -219,7 +213,7 @@ function LadderPlayground() {
       totalDist += dist;
     }
 
-    const duration = 2500;
+    const duration = 2800;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -252,7 +246,7 @@ function LadderPlayground() {
         requestAnimationFrame(animate);
       } else {
         setIsMoving(false);
-        setFinalResult({ mongnaNum: startCol + 1, goal: rewards[currentCol] || '결과 없음' });
+        setFinalResult({ player: players[startCol], goal: rewards[currentCol] });
       }
     };
     requestAnimationFrame(animate);
@@ -260,152 +254,80 @@ function LadderPlayground() {
 
   return (
     <div className="board-wrapper">
-      {/* ⚙️ 세팅 모드 화면 */}
-      {mode === 'setup' && (
-        <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px', color: '#4a5568' }}>⚙️ 사다리 게임 설정</h2>
-          
-          <div style={{ background: '#f7fafc', padding: '24px', borderRadius: '20px', marginBottom: '24px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#718096' }}>참가자 수 (사다리 개수)</h3>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-              <button className="btn-secondary" onClick={() => setColCount(p => Math.max(2, p - 1))}>-</button>
-              <span style={{ fontSize: '28px', fontWeight: 900, color: '#805ad5', width: '40px' }}>{colCount}</span>
-              <button className="btn-secondary" onClick={() => setColCount(p => Math.min(8, p + 1))}>+</button>
-            </div>
-          </div>
-
-          <div style={{ background: '#f7fafc', padding: '24px', borderRadius: '20px', marginBottom: '30px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#718096' }}>하단 보상/벌칙 입력</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              {rewards.map((r, i) => (
-                <input
-                  key={i}
-                  type="text"
-                  placeholder={`${i + 1}번 보상`}
-                  value={r}
-                  onChange={(e) => {
-                    const newRewards = [...rewards];
-                    newRewards[i] = e.target.value;
-                    setRewards(newRewards);
-                  }}
-                  className="reward-input"
-                />
-              ))}
-            </div>
-          </div>
-
-          <button className="btn-primary" onClick={handleStartGame} style={{ width: '100%', fontSize: '18px', padding: '16px' }}>
-            🚀 설정 완료! 사다리 타기 시작
-          </button>
+      <div className="ladder-layout">
+        
+        {/* ✨ 추가된 부분: 왼쪽 귀여운 마스코트 일러스트 영역 */}
+        <div className="ladder-mascot">
+          <img src="/ladder-mascot.png" alt="사다리 몽나와 달구" onError={(e) => e.currentTarget.style.display = 'none'} />
         </div>
-      )}
 
-      {/* 🎮 게임 플레이 화면 */}
-      {mode === 'play' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#4a5568', margin: '0 0 4px 0' }}>출발할 몽나를 클릭하세요!</h2>
-              <p style={{ fontSize: '13px', color: '#a0aec0', margin: 0 }}>마음에 안들면 우측 버튼으로 새 판을 깔 수 있습니다.</p>
+        {/* 기존 게임 컨텐츠 (오른쪽 영역) */}
+        <div className="ladder-content">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '30px', padding: '6px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+              <button disabled={isMoving || colCount <= 2} onClick={() => setColCount(p => p - 1)} style={{ background:'none', border:'none', color:'#8b5cf6', fontWeight:800, cursor:'pointer', padding:'4px 8px' }}>&lt;</button>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#4a5568', margin: '0 16px' }}>참가자 {colCount}명</span>
+              <button disabled={isMoving || colCount >= 8} onClick={() => setColCount(p => p + 1)} style={{ background:'none', border:'none', color:'#8b5cf6', fontWeight:800, cursor:'pointer', padding:'4px 8px' }}>&gt;</button>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="btn-secondary" onClick={handleRedraw} disabled={isMoving}>
-                🔄 사다리 선 다시 섞기
-              </button>
-              <button className="btn-secondary" onClick={() => setMode('setup')} disabled={isMoving}>
-                ⚙️ 보상 재설정
-              </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button onClick={handleStartRandom} disabled={isMoving} style={{ background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '24px', padding: '10px 24px', fontSize: '15px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(139,92,246,0.3)', transition: 'transform 0.1s' }}>▷ START</button>
+              <button onClick={handleShuffle} disabled={isMoving} title="사다리 섞기" style={{ background: '#fff', color: '#8b5cf6', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>🔀</button>
+              <button onClick={handleReset} disabled={isMoving} title="초기화" style={{ background: '#fff', color: '#ef4444', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>↺</button>
             </div>
           </div>
 
-          <div style={{
-            width: '100%', overflowX: 'auto', background: '#fdfbfe', 
-            borderRadius: '26px', border: '2px solid #ede9fe', padding: '24px'
-          }}>
-            <div style={{ minWidth: `${svgWidth}px`, position: 'relative', margin: '0 auto' }}>
+          <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '20px' }}>
+            <div style={{ minWidth: `${svgWidth}px`, position: 'relative', margin: '0 auto', height: '480px' }}>
               
-              {/* 상단 몽나 토큰 출발 버튼들 */}
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', width: '100%', position: 'absolute', top: 0, zIndex: 20 }}>
                 {colXs.map((_, idx) => (
-                  <div key={idx} style={{ width: '100px', display: 'flex', justifyContent: 'center' }}>
-                    <button
-                      disabled={isMoving}
-                      onClick={() => startLadder(idx)}
-                      style={{
-                        background: 'transparent', border: 'none', cursor: isMoving ? 'not-allowed' : 'pointer',
-                        transform: selectedCol === idx ? 'scale(1.15) translateY(-5px)' : 'scale(1)',
-                        transition: 'all 0.2s', filter: selectedCol === idx ? 'drop-shadow(0 4px 10px rgba(128,90,213,0.4))' : 'none'
-                      }}
-                    >
-                      <img src="/mongna.png" alt={`출발 ${idx+1}`} style={{ width: '64px', height: '64px', objectFit: 'cover' }}
-                        onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerText='👑'; }}
+                  <div key={idx} style={{ width: `${colWidth}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <button disabled={isMoving} onClick={() => startLadder(idx)} style={{ background: 'transparent', border: 'none', cursor: isMoving ? 'not-allowed' : 'pointer', transition: 'transform 0.2s', padding: 0 }}>
+                      <img src="/mongna.png" alt={`참가자${idx+1}`} style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                        onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML=`<div style="width:56px;height:56px;border-radius:50%;background:#f3e8ff;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #d8b4fe;">👑</div>`; }}
                       />
                     </button>
+                    <input type="text" value={players[idx]} onChange={(e) => { const n = [...players]; n[idx] = e.target.value; setPlayers(n); }} disabled={isMoving} className="pill-input" placeholder="이름" />
                   </div>
                 ))}
               </div>
 
-              {/* SVG 사다리 선 */}
-              <div style={{ position: 'relative', height: '350px' }}>
-                <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} 350`} style={{ overflow: 'visible' }}>
-                  {/* 세로선 */}
-                  {colXs.map((x, i) => (
-                    <line key={`v${i}`} x1={x} y1={startY} x2={x} y2={endY} stroke="#e9d8fd" strokeWidth="6" strokeLinecap="round" />
-                  ))}
-                  {/* 가로선 (다리) */}
-                  {bridges.map((b, i) => (
-                    <line key={`h${i}`} x1={colXs[b.col]} y1={b.y} x2={colXs[b.col+1]} y2={b.y} stroke="#d6bcfa" strokeWidth="6" strokeLinecap="round" />
-                  ))}
-                  {/* 달구 이동 궤적 */}
-                  {trailPath && (
-                    <path d={trailPath} fill="none" stroke="#ec4899" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"
-                      style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.6))' }} />
-                  )}
+              <div style={{ position: 'absolute', top: '110px', width: '100%', height: '320px', zIndex: 10 }}>
+                <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+                  {colXs.map((x, i) => ( <line key={`v${i}`} x1={x} y1={startY} x2={x} y2={endY} stroke="#e2e8f0" strokeWidth="4" strokeLinecap="round" /> ))}
+                  {bridges.map((b, i) => ( <line key={`h${i}`} x1={colXs[b.col]} y1={b.y} x2={colXs[b.col+1]} y2={b.y} stroke="#c4b5fd" strokeWidth="5" strokeLinecap="round" /> ))}
+                  {trailPath && ( <path d={trailPath} fill="none" stroke="#f472b6" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px rgba(244,114,182,0.6))' }} /> )}
                 </svg>
 
-                {/* 내려가는 달구 토큰 */}
                 {dalguPos && (
-                  <div style={{
-                    position: 'absolute', left: `${(dalguPos.x / svgWidth) * 100}%`, top: `${(dalguPos.y / 350) * 100}%`,
-                    transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 10
-                  }}>
-                    <img src="/dalgu.png" alt="달구" style={{ width: '56px', height: '56px', filter: 'drop-shadow(0 6px 12px rgba(236,72,153,0.5))' }}
-                      onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerText='🐹'; }}
+                  <div style={{ position: 'absolute', left: `${dalguPos.x}px`, top: `${dalguPos.y}px`, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 30 }}>
+                    <img src="/dalgu.png" alt="달구" style={{ width: '50px', height: '50px', filter: 'drop-shadow(0 4px 8px rgba(244,114,182,0.5))' }}
+                      onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML=`<div style="font-size:32px;">🐹</div>`; }}
                     />
                   </div>
                 )}
               </div>
 
-              {/* 하단 보상 칸 */}
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px' }}>
-                {rewards.map((r, idx) => (
-                  <div key={idx} style={{
-                    width: '90px', textAlign: 'center', padding: '12px 6px', background: '#f3e8ff',
-                    borderRadius: '12px', fontSize: '14px', fontWeight: 800, color: '#5b21b6', wordBreak: 'keep-all'
-                  }}>
-                    {r || `보상 ${idx+1}`}
+              <div style={{ display: 'flex', width: '100%', position: 'absolute', top: '440px', zIndex: 20 }}>
+                {colXs.map((_, idx) => (
+                  <div key={idx} style={{ width: `${colWidth}px`, display: 'flex', justifyContent: 'center' }}>
+                    <input type="text" value={rewards[idx]} onChange={(e) => { const n = [...rewards]; n[idx] = e.target.value; setRewards(n); }} disabled={isMoving} className="pill-input" style={{ borderColor: '#e9d8fd', color: '#6b21a8' }} placeholder="결과" />
                   </div>
                 ))}
               </div>
 
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* 최종 당첨 결과 팝업 */}
-          {finalResult && (
-            <div style={{
-              marginTop: '20px', textAlign: 'center', background: 'linear-gradient(135deg, #fdf4ff, #fae8ff)',
-              padding: '24px', borderRadius: '20px', border: '2px solid #f0abfc', boxShadow: '0 6px 16px rgba(217, 70, 239, 0.12)',
-              animation: 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            }}>
-              <style>{`@keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎉🎊</div>
-              <span style={{ fontSize: '18px', fontWeight: 800, color: '#86198f' }}>
-                [{finalResult.mongnaNum}번 몽나]의 당첨 결과는? 👉{' '}
-                <strong style={{ fontSize: '24px', color: '#c026d3', textDecoration: 'underline' }}>{finalResult.goal}</strong>
-              </span>
-            </div>
-          )}
+      {finalResult && (
+        <div style={{ marginTop: '10px', textAlign: 'center', background: '#fdfa8c', padding: '20px', borderRadius: '20px', boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)', animation: 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+          <style>{`@keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+          <span style={{ fontSize: '18px', fontWeight: 800, color: '#b45309' }}>
+            [{finalResult.player}]님의 결과 👉 <strong style={{ fontSize: '24px', color: '#ea580c', textDecoration: 'underline' }}>{finalResult.goal}</strong>
+          </span>
         </div>
       )}
     </div>
@@ -413,10 +335,10 @@ function LadderPlayground() {
 }
 
 /* =========================================================================
-   💥 대포 뽑기 (이전과 동일)
+   💥 대포 뽑기
    ========================================================================= */
 function CannonPlayground() {
-  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n노방종 1시간 🔥\n꽝 (통과!) 💨');
+  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n꽝 (통과!) 💨');
   const [isFiring, setIsFiring] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -441,7 +363,7 @@ function CannonPlayground() {
             : result ? <div style={{ textAlign: 'center' }}><div style={{ fontSize: '50px' }}>🎉</div><div style={{ fontSize: '24px', fontWeight: 900, color: '#fff', background: '#805ad5', padding: '10px 24px', borderRadius: '99px', marginTop: '10px' }}>{result}</div></div> 
             : <div style={{ textAlign: 'center', color: '#a0aec0' }}><div style={{ fontSize: '56px' }}>🎯</div><div style={{ fontWeight: 600, marginTop: '10px' }}>버튼을 눌러 발사!</div></div>}
           </div>
-          <button className="btn-primary" onClick={handleShoot} disabled={isFiring} style={{ width: '100%', marginTop: '20px' }}>
+          <button onClick={handleShoot} disabled={isFiring} style={{ background: 'linear-gradient(135deg, #805ad5, #d53f8c)', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '18px', fontSize: '18px', fontWeight: 800, cursor: 'pointer', width: '100%', marginTop: '20px' }}>
             {isFiring ? '발사 중...!!' : '💥 대포 쏘기 (랜덤 뽑기)'}
           </button>
         </div>
