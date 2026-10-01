@@ -24,7 +24,7 @@ export default function MinigameHub() {
           box-sizing: border-box;
         }
         .arcade-inner {
-          max-width: 1150px; /* 마스코트가 들어가도록 너비를 조금 더 늘렸습니다 */
+          max-width: 1150px;
           margin: 0 auto;
         }
         .arcade-header {
@@ -77,7 +77,7 @@ export default function MinigameHub() {
         .pill-input { width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 13px; font-weight: 700; text-align: center; color: #4a5568; outline: none; transition: all 0.2s; background: #ffffff; }
         .pill-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
 
-        /* 마스코트 이미지와 사다리를 양옆으로 배치하는 레이아웃 */
+        /* 마스코트 이미지와 사다리 레이아웃 */
         .ladder-layout { display: flex; flex-direction: column; gap: 30px; align-items: center; }
         .ladder-mascot { width: 260px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
         .ladder-mascot img { width: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(139, 92, 246, 0.15)); }
@@ -89,7 +89,6 @@ export default function MinigameHub() {
           100% { transform: translateY(0px); } 
         }
         
-        /* PC 화면에서는 가로로 배치 (왼쪽: 일러스트, 오른쪽: 사다리) */
         @media (min-width: 950px) {
           .ladder-layout { flex-direction: row; align-items: center; }
         }
@@ -124,13 +123,16 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   🪜 올인원 사다리타기 (마스코트 일러스트 배치 적용)
+   🪜 올인원 사다리타기 (가로선 숨기기 기능 탑재)
    ========================================================================= */
 function LadderPlayground() {
   const [colCount, setColCount] = useState<number>(4);
   const [players, setPlayers] = useState<string[]>(['몽나', '시청자1', '시청자2', '시청자3']);
   const [rewards, setRewards] = useState<string[]>(['결과1', '결과2', '결과3', '결과4']);
   const [bridges, setBridges] = useState<{col: number, y: number}[]>([]);
+  
+  // 가로선 숨기기 상태 (기본값: false - 가려짐)
+  const [showBridges, setShowBridges] = useState<boolean>(false);
   
   const [isMoving, setIsMoving] = useState(false);
   const [dalguPos, setDalguPos] = useState<{ x: number; y: number } | null>(null);
@@ -256,12 +258,12 @@ function LadderPlayground() {
     <div className="board-wrapper">
       <div className="ladder-layout">
         
-        {/* ✨ 추가된 부분: 왼쪽 귀여운 마스코트 일러스트 영역 */}
+        {/* 마스코트 일러스트 영역 */}
         <div className="ladder-mascot">
           <img src="/ladder-mascot.png" alt="사다리 몽나와 달구" onError={(e) => e.currentTarget.style.display = 'none'} />
         </div>
 
-        {/* 기존 게임 컨텐츠 (오른쪽 영역) */}
+        {/* 사다리 컨텐츠 영역 */}
         <div className="ladder-content">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '30px', padding: '6px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
@@ -272,6 +274,12 @@ function LadderPlayground() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button onClick={handleStartRandom} disabled={isMoving} style={{ background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '24px', padding: '10px 24px', fontSize: '15px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(139,92,246,0.3)', transition: 'transform 0.1s' }}>▷ START</button>
+              
+              {/* ✨ 사다리 선 숨기기/보이기 토글 버튼 추가 */}
+              <button onClick={() => setShowBridges(prev => !prev)} disabled={isMoving} title="가로선 보이기/숨기기" style={{ background: '#fff', color: showBridges ? '#8b5cf6' : '#9ca3af', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                {showBridges ? '👀' : '🙈'}
+              </button>
+
               <button onClick={handleShuffle} disabled={isMoving} title="사다리 섞기" style={{ background: '#fff', color: '#8b5cf6', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>🔀</button>
               <button onClick={handleReset} disabled={isMoving} title="초기화" style={{ background: '#fff', color: '#ef4444', border: '1px solid #e2e8f0', borderRadius: '50%', width: '42px', height: '42px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>↺</button>
             </div>
@@ -295,8 +303,15 @@ function LadderPlayground() {
 
               <div style={{ position: 'absolute', top: '110px', width: '100%', height: '320px', zIndex: 10 }}>
                 <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+                  {/* 세로선은 그대로 노출 */}
                   {colXs.map((x, i) => ( <line key={`v${i}`} x1={x} y1={startY} x2={x} y2={endY} stroke="#e2e8f0" strokeWidth="4" strokeLinecap="round" /> ))}
-                  {bridges.map((b, i) => ( <line key={`h${i}`} x1={colXs[b.col]} y1={b.y} x2={colXs[b.col+1]} y2={b.y} stroke="#c4b5fd" strokeWidth="5" strokeLinecap="round" /> ))}
+                  
+                  {/* ✨ 가로선은 showBridges가 true일 때만 노출 */}
+                  {showBridges && bridges.map((b, i) => ( 
+                    <line key={`h${i}`} x1={colXs[b.col]} y1={b.y} x2={colXs[b.col+1]} y2={b.y} stroke="#c4b5fd" strokeWidth="5" strokeLinecap="round" /> 
+                  ))}
+                  
+                  {/* 달구 이동 궤적은 항상 표시 */}
                   {trailPath && ( <path d={trailPath} fill="none" stroke="#f472b6" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px rgba(244,114,182,0.6))' }} /> )}
                 </svg>
 
