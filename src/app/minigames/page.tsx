@@ -76,25 +76,24 @@ export default function MinigameHub() {
 }
 
 /* =========================================================================
-   🎯 룰렛 돌리기 (*숫자 중복 기능 추가)
+   🎯 룰렛 돌리기
    ========================================================================= */
 function RoulettePlayground() {
-  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n꽝 💨 * 3\n벌칙 애교 💖 * 2');
+  // 예시 텍스트를 완전히 비웠습니다 ('')
+  const [candidates, setCandidates] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<string | null>(null);
 
-  // 입력된 텍스트를 분석해서 '*숫자'가 있으면 그만큼 늘려주는 로직
   const parseCandidates = (text: string) => {
     const rawList = text.split('\n').map(s => s.trim()).filter(Boolean);
     const parsedList: string[] = [];
     
     rawList.forEach(item => {
-      // '항목 * 숫자' 패턴 찾기 (예: 몽나바보*2)
       const match = item.match(/^(.*?)\s*\*\s*(\d+)$/);
       if (match) {
         const name = match[1].trim();
-        const count = Math.min(Math.max(parseInt(match[2], 10), 1), 100); // 비정상적인 숫자 폭탄 방지 (최대 100개)
+        const count = Math.min(Math.max(parseInt(match[2], 10), 1), 100);
         for (let i = 0; i < count; i++) {
           parsedList.push(name);
         }
@@ -222,12 +221,15 @@ function RoulettePlayground() {
 
 
 /* =========================================================================
-   💥 대포 뽑기 & 🪜 사다리타기 (이전과 동일)
+   💥 대포 뽑기
    ========================================================================= */
 function CannonPlayground() {
   const [mode, setMode] = useState<'number' | 'text'>('number');
   const [maxNumber, setMaxNumber] = useState<number | ''>(50);
-  const [candidates, setCandidates] = useState('치킨 먹방 🍗\n피자 먹방 🍕\n애교 벌칙 💖\n노래 1곡 🎤\n꽝 (통과!) 💨');
+  
+  // 예시 텍스트를 완전히 비웠습니다 ('')
+  const [candidates, setCandidates] = useState('');
+  
   const [isFiring, setIsFiring] = useState(false);
   const [result, setResult] = useState<string | number | null>(null);
 
@@ -262,7 +264,7 @@ function CannonPlayground() {
             : result ? <div style={{ textAlign: 'center' }}><div style={{ fontSize: '18px', color: '#6b7280', fontWeight: 700, marginBottom: '12px' }}>당첨 결과</div><div style={{ fontSize: mode === 'number' ? '64px' : '32px', fontWeight: 900, color: '#ffffff', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', display: 'inline-block', padding: '16px 40px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(236,72,153,0.3)' }}>{result}{mode === 'number' && '번'}</div></div> 
             : <div style={{ width: '100%', textAlign: 'center' }}>
                 {mode === 'number' && ( <div><h2 style={{ fontSize: '24px', fontWeight: 800, color: '#4a5568', marginBottom: '24px' }}>마지막 번호가 몇 번인가요?</h2><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}><input type="number" value={maxNumber} onChange={(e) => setMaxNumber(e.target.value ? Number(e.target.value) : '')} min="1" style={{ width: '120px', fontSize: '28px', fontWeight: 800, textAlign: 'center', padding: '12px', borderRadius: '16px', border: '3px solid #c4b5fd', outline: 'none', color: '#5b21b6' }} /><span style={{ fontSize: '24px', fontWeight: 800, color: '#4a5568' }}>번</span></div></div> )}
-                {mode === 'text' && ( <div style={{ width: '100%' }}><label style={{ display: 'block', fontWeight: 800, fontSize: '18px', marginBottom: '12px', color: '#4a5568' }}>후보 항목 입력</label><textarea value={candidates} onChange={(e) => setCandidates(e.target.value)} style={{ width: '100%', height: '180px', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '15px', resize: 'none', outline: 'none' }} /></div> )}
+                {mode === 'text' && ( <div style={{ width: '100%' }}><label style={{ display: 'block', fontWeight: 800, fontSize: '18px', marginBottom: '12px', color: '#4a5568' }}>후보 항목 입력 (줄바꿈 구분)</label><textarea value={candidates} onChange={(e) => setCandidates(e.target.value)} placeholder="예시:&#13;&#10;치킨 먹방&#13;&#10;벌칙 애교" style={{ width: '100%', height: '180px', padding: '16px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '15px', resize: 'none', outline: 'none' }} /></div> )}
               </div>}
           </div>
           <button onClick={handleShoot} disabled={isFiring || (mode === 'number' && (!maxNumber || maxNumber < 1))} style={{ background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', color: '#fff', border: 'none', padding: '18px 40px', borderRadius: '20px', fontSize: '20px', fontWeight: 900, cursor: isFiring ? 'not-allowed' : 'pointer', width: '100%', boxShadow: '0 6px 16px rgba(139,92,246,0.3)', transition: 'transform 0.1s' }}>{isFiring ? '발사 중...!!' : result ? '🔄 다시 쏘기' : '💥 대포 쏘기'}</button>
@@ -272,6 +274,9 @@ function CannonPlayground() {
   );
 }
 
+/* =========================================================================
+   🪜 올인원 사다리타기
+   ========================================================================= */
 function LadderPlayground() {
   const [colCount, setColCount] = useState<number>(4);
   const [players, setPlayers] = useState<string[]>(['몽나', '시청자1', '시청자2', '시청자3']);
