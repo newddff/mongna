@@ -6,83 +6,56 @@ export async function GET() {
   try {
     const soopId = 'pinktape8';
     const headers = { 'User-Agent': 'Mozilla/5.0' };
-    const urls = [
-      `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=50`,
-      `https://chapi.sooplive.co.kr/api/${soopId}/vods?page=1&per_page=50&type=user_clip`
-    ];
-
-    let rawItems: any[] = [];
-    for (const url of urls) {
-        try {
-            const res = await fetch(url, { headers, cache: 'no-store' });
-            if (res.ok) {
-                const json = await res.json();
-                if (json && Array.isArray(json.data)) rawItems.push(...json.data);
-                else if (json && json.data && Array.isArray(json.data.list)) rawItems.push(...json.data.list);
-            }
-        } catch (e: any) {}
+    
+    // 💡 오직 '캐치(Catch)' 전용 API만 찌릅니다. (일반 클립/다시보기가 섞일 확률 0%)
+    const url = `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=20`;
+    
+    const res = await fetch(url, { headers, cache: 'no-store' });
+    
+    // 🚨 통신 실패 시 화면 엑박 방지 (디버깅 메시지 출력)
+    if (!res.ok) {
+        return NextResponse.json({ 
+            clips: [{ id: "err1", title: `[에러] SOOP 서버 차단됨 (${res.status})`, thumb: "https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png", views: 0, url: "#" }] 
+        });
     }
 
-    const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const json = await res.json();
+    const rawItems = json?.data || json?.data?.list || [];
 
-    const parsedItems = rawItems.map((c: any) => {
-        if (!c || typeof c !== 'object') return null;
+    // 🚨 몽나님 방송국에 진짜로 생성된 캐치가 한 개도 없을 때
+    if (rawItems.length === 0) {
+        return NextResponse.json({ 
+            clips: [{ id: "err2", title: "최근 생성된 캐치가 없습니다. 방송을 기다려주세요!", thumb: "https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png", views: 0, url: "#" }] 
+        });
+    }
 
-        const title = String(c.title_name || c.title || c.vod_title || c.catch_title || '제목 없음');
-        if (title.includes('다시보기') || title.includes('풀영상')) return null;
-
-        const isCatch = Boolean(c.catch_no || c.catch_title);
-        const isClip = Boolean(c.uc_no || c.clip_no || c.type === 'USER_CLIP');
-
-        if (!isCatch && !isClip) return null;
-
-        // 🚨 핵심 수정: 캐치는 0초로 넘어오는 경우가 많으므로 길이에 상관없이 무조건 통과!
-        let sec = 0;
-        const d = c.file_duration || c.duration || c.play_time || 0;
-        if (typeof d === 'number') sec = d;
-        else if (typeof d === 'string') {
-            const parts = d.split(':').map(Number);
-            if (parts.length === 3) sec = parts[0]*3600 + parts[1]*60 + (parts[2]||0);
-            else if (parts.length === 2) sec = parts[0]*60 + (parts[1]||0);
-            else sec = parseInt(d, 10) || 0;
-        }
+    // 💡 깐깐했던 필터 전면 삭제! SOOP이 주는 캐치 데이터를 있는 그대로 무조건 띄웁니다.
+    const parsedItems = rawItems.map((c: any, index: number) => {
+        const id = c.catch_no || c.no || c.id || `catch-${index}`;
+        const title = String(c.title_name || c.title || c.catch_title || c.name || '제목 없음');
         
-        // 일반 클립인데 20분 넘어가는 것만 컷!
-        if (isClip && sec > 1200) return null;
-
-        const id = c.catch_no || c.uc_no || c.clip_no || c.no;
-        if (!id) return null;
-
-        const regDateStr = c.reg_date || c.board_reg_date || c.create_date || c.date || '';
-        if (regDateStr) {
-            const videoTime = new Date(String(regDateStr).replace(' ', 'T')).getTime();
-            if (videoTime && !isNaN(videoTime) && videoTime < oneMonthAgo) return null;
-        }
-
-        let thumb = c.thumb_path || c.uc_thumb || c.catch_thumb || c.thumb || c.thumbnail || 'https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png';
+        // 차단당했던 임시 썸네일 대신 SOOP 공식 로고를 안전망으로 씁니다.
+        let thumb = c.thumb_path || c.catch_thumb || c.thumb || c.thumbnail || 'https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png';
         if (String(thumb).includes('_sm.')) thumb = String(thumb).replace('_sm.', '_bg.');
         if (String(thumb).startsWith('//')) thumb = 'https:' + thumb;
-        else if (!String(thumb).startsWith('http')) thumb = 'https://' + String(thumb).replace(/^\/+/, '');
+        else if (thumb && !String(thumb).startsWith('http')) thumb = 'https://' + String(thumb).replace(/^\/+/, '');
 
         const views = parseInt(String(c.read_cnt || c.view_cnt || c.count || 0).replace(/,/g, ''), 10) || 0;
         const url = `https://vod.sooplive.co.kr/player/${id}/catch`;
 
         return { id, title, thumb, views, url };
-    }).filter(Boolean);
+    });
 
-    if (parsedItems.length === 0) return NextResponse.json({ clips: [] });
-
-    const uniqueMap = new Map();
-    for (const item of parsedItems) {
-        if (!uniqueMap.has(item?.id)) uniqueMap.set(item?.id, item);
-    }
-
-    const hotClips = Array.from(uniqueMap.values())
+    // 조회수 순으로 3개 정렬
+    const hotClips = parsedItems
         .sort((a: any, b: any) => b.views - a.views)
         .slice(0, 3);
 
     return NextResponse.json({ clips: hotClips }, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (error) {
-    return NextResponse.json({ clips: [] });
+
+  } catch (error: any) {
+    return NextResponse.json({ 
+        clips: [{ id: "err3", title: `[서버코드에러] ${error.message}`, thumb: "https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png", views: 0, url: "#" }] 
+    });
   }
 }
