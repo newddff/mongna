@@ -37,12 +37,13 @@ export default function HomePage() {
 
   const [autoIsLive, setAutoIsLive] = useState(false); 
   const [liveThumb, setLiveThumb] = useState(''); // 💡 실시간 썸네일 URL을 저장할 공간
+  const [hotClips, setHotClips] = useState<any[]>([]); // 💡 캐치 랭킹 데이터 저장소
   const { isBirthdayToday, isDebutToday, debutDays } = getMongnaAnniversaries();
   
   // 수동 켜기(homeData.isLive) 또는 자동 감지(autoIsLive) 중 하나라도 켜지면 방송중으로 표시
   const currentlyLive = homeData.isLive || autoIsLive;
 
-  // 💡 1분마다 SOOP API로 몽나님 방송 상태 & 썸네일 자동 확인
+  // 💡 1분마다 SOOP API로 몽나님 방송 상태 & 썸네일 자동 확인 (수정됨)
   useEffect(() => {
     const checkSoopLive = async () => {
       try {
@@ -67,6 +68,16 @@ export default function HomePage() {
     checkSoopLive();
     const interval = setInterval(checkSoopLive, 60000); 
     return () => clearInterval(interval);
+  }, []);
+
+  // 💡 주간 베스트 캐치 불러오기 (추가됨)
+  useEffect(() => {
+    fetch('/api/catch')
+      .then(res => res.json())
+      .then(data => {
+        if (data.clips) setHotClips(data.clips);
+      })
+      .catch(err => console.error("캐치 로딩 실패:", err));
   }, []);
 
   // 💡 브라우저 사이즈 감지
@@ -323,7 +334,7 @@ export default function HomePage() {
 
           <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
             
-            {/* 💡 실시간 썸네일 & 생방송 배지 렌더링 부분 */}
+            {/* 💡 실시간 썸네일 & 생방송 배지 렌더링 부분 (수정됨) */}
             {currentlyLive && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '-10px' }}>
                 
@@ -457,6 +468,41 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* 🏆 주간 레전드 캐치 랭킹 섹션 (추가됨) */}
+            {hotClips.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🏆 이번 주 레전드 캐치 TOP 3</div>
+                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                  {hotClips.map((clip, idx) => {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const medalColors = ['#fbbf24', '#94a3b8', '#b45309'];
+
+                    return (
+                      <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                        
+                        {/* 순위 금/은/동 배지 */}
+                        <div style={{ position: 'absolute', top: '-10px', left: '-10px', background: medalColors[idx], color: 'white', padding: '8px 14px', borderRadius: '16px', fontWeight: 900, zIndex: 10, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
+                          {medals[idx]} {idx + 1}위
+                        </div>
+                        
+                        <div style={{ position: 'relative', marginTop: '10px' }}>
+                           <img src={clip.thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
+                           {/* 조회수 표시 */}
+                           <div style={{ position: 'absolute', bottom: '22px', right: '8px', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                             👀 {clip.views.toLocaleString()}회
+                           </div>
+                        </div>
+                        
+                        <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {clip.title}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* 유튜브 섹션 */}
             <div>
               <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>▶️ 몽튜브 최신 영상</div>
@@ -523,7 +569,7 @@ export default function HomePage() {
               </div>
 
               <div style={{ marginBottom: '30px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶️️ 유튜브 채널 ID</label>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶ 유튜브 채널 ID</label>
                 <input type="text" value={inputYtChannelId} onChange={e => setInputYtChannelId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
               </div>
 
