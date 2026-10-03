@@ -16,7 +16,7 @@ export default function WikiPage() {
       sections: [
         { title: '📝 몽나 소개', content: '' },
         { title: '📜 방송 규칙', content: '' },
-        { title: '🗣️ 유행어 & 밈', content: '' }
+        { title: '🗣️️ 유행어 & 밈', content: '' }
       ]
     },
     history: []
@@ -256,6 +256,11 @@ export default function WikiPage() {
 
   return (
     <>
+      {/* 💡 1. 탭 아이콘(파비콘) 새 로고로 변경 완료 */}
+      <head>
+        <link rel="icon" href="/logo-new.png" />
+      </head>
+
       <style dangerouslySetInnerHTML={{
         __html: `
         .history-card { transition: 0.3s; cursor: pointer; }
@@ -290,6 +295,11 @@ export default function WikiPage() {
           
           .modal-box { width: 95% !important; padding: 25px 20px !important; }
         }
+
+        /* 💡 2. 다크모드일 때 로고 주변에 하얀 빛 번짐(후광) 효과 주기 */
+        html:not([data-theme="light"]) .logo-img {
+          filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+        }
       `}} />
 
       <div style={{ backgroundColor: '#f8fafc', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }} className={isAdmin ? 'admin-mode' : ''}>
@@ -302,8 +312,9 @@ export default function WikiPage() {
 
         {/* 상단 네비게이션바 */}
         <nav className="nav-container" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* 💡 3. 메인 로고 새 로고 이미지로 교체 완료 */}
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" style={{ height: '40px', objectFit: 'contain' }} />
+            <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
           <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#1e293b', fontSize: '15px' }}>
@@ -313,6 +324,8 @@ export default function WikiPage() {
             <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
             <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
             <a href="/wiki" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '3px' }}>몽무위키</a>
+            {/* 💡 4. 미니게임 네비게이션 버튼 추가 완료 */}
+            <a href="/minigames" style={{ textDecoration: 'none', color: 'inherit' }}>미니게임</a>
           </div>
 
           <div className="top-btn-group" style={{ display: 'flex', alignItems: 'center' }}>
