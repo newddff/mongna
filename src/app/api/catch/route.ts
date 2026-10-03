@@ -6,111 +6,84 @@ export async function GET() {
   try {
     const soopId = 'pinktape8';
     const headers = { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     };
+
+    // 💡 1. SOOP 모바일 웹페이지의 '캐치' 탭 HTML 자체를 긁어옵니다. (API 차단 우회)
+    const mobileUrl = `https://m.sooplive.co.kr/station/${soopId}/catch`;
+    const res = await fetch(mobileUrl, { headers, cache: 'no-store' });
     
-    // 💡 SOOP의 클립, 캐치 주소 2곳을 찌릅니다.
-    const urls = [
-      `https://chapi.sooplive.co.kr/api/${soopId}/vods?page=1&per_page=100&type=user_clip`,
-      `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=100`
-    ];
-
-    let rawItems: any[] = [];
-
-    for (const url of urls) {
-        try {
-            const res = await fetch(url, { headers, cache: 'no-store' });
-            if (res.ok) {
-                const json = await res.json();
-                if (json && Array.isArray(json.data)) {
-                    rawItems.push(...json.data);
-                } else if (json && json.data && Array.isArray(json.data.list)) {
-                    rawItems.push(...json.data.list);
-                }
-            }
-        } catch (e: any) {}
-    }
-
-    if (rawItems.length === 0) {
+    if (!res.ok) {
         return NextResponse.json({ clips: [] });
     }
 
-    // 💡 기간 30일 (데이터 뜨는거 확인하시면 7로 바꾸시면 됩니다!)
+    const html = await res.text();
+
+    // 💡 2. HTML 안쪽에 숨겨진 JSON 데이터를 정규식으로 쏙 빼냅니다!
+    // SOOP은 화면을 그리기 위해 <script> 태그 안에 초기 데이터를 넣어둡니다.
+    const match = html.match(/window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});/);
+    if (!match || !match[1]) {
+        return NextResponse.json({ clips: [] });
+    }
+
+    const preloadedState = JSON.parse(match[1]);
+    
+    // 💡 3. 캐치 데이터 리스트 추출
+    // 데이터 구조가 깊숙한 곳에 숨어있으므로 조심스럽게 꺼냅니다.
+    const catchList = preloadedState?.station?.catchList?.data || 
+                      preloadedState?.catch?.list || 
+                      [];
+
+    if (!Array.isArray(catchList) || catchList.length === 0) {
+        return NextResponse.json({ clips: [] });
+    }
+
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
-    const parsedItems = rawItems.map((c: any) => {
-        if (!c || typeof c !== 'object') return null;
-        
-        // 1. 아이디 추출 (SOOP이 이름을 뭘로 바꿨든 다 걸리게 그물망 촘촘히!)
-        const id = c.catch_no || c.uc_no || c.bbs_no || c.title_no || c.vod_no || c.no;
+    const parsedItems = catchList.map((c: any) => {
+        if (!c) return null;
+
+        // 명확하게 캐치/클립 ID가 있는 녀석들만 취급 (풀영상 원천 차단)
+        const id = c.catch_no || c.uc_no || c.clip_no;
         if (!id) return null;
 
-        // 2. 날짜 확인
-        const regDateStr = c.reg_date || c.board_reg_date || c.create_date || c.date || '';
+        const regDateStr = c.reg_date || c.create_date || '';
         if (regDateStr) {
-            const safeDateStr = String(regDateStr).replace(' ', 'T');
-            const videoTime = new Date(safeDateStr).getTime();
+            const videoTime = new Date(String(regDateStr).replace(' ', 'T')).getTime();
             if (videoTime && !isNaN(videoTime) && videoTime < oneMonthAgo) return null;
         }
 
-        // 3. 숏폼 필터 (명찰 검사 대신, 길이가 20분 이하면 무조건 클립/캐치로 인정!)
-        let sec = 0;
-        const d = c.file_duration || c.duration || c.play_time || 0;
-        if (typeof d === 'number') sec = d;
-        else if (typeof d === 'string') {
-            const parts = d.split(':').map(Number);
-            if (parts.length === 3) sec = parts[0]*3600 + parts[1]*60 + (parts[2]||0);
-            else if (parts.length === 2) sec = parts[0]*60 + (parts[1]||0);
-            else sec = parseInt(d, 10) || 0;
+        const title = String(c.title_name || c.title || c.catch_title || '');
+        if (title.includes('다시보기') || title.includes('풀영상')) return null;
+
+        let thumb = c.thumb_path || c.thumb || c.catch_thumb || '';
+        if (thumb) {
+            if (String(thumb).includes('_sm.')) thumb = String(thumb).replace('_sm.', '_bg.'); 
+            if (String(thumb).startsWith('//')) thumb = 'https:' + thumb;
+            else if (!String(thumb).startsWith('http')) thumb = 'https://' + String(thumb).replace(/^\/+/, '');
+        } else {
+            thumb = 'https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png'; 
         }
-        if (sec > 1200) return null; 
 
-        // 4. 제목, 썸네일, 조회수 추출
-        const title = c.title_name || c.title || c.vod_title || c.catch_title || c.name || '제목 없음';
-        let thumb = c.thumb_path || c.uc_thumb || c.catch_thumb || c.thumb || c.thumbnail || 'https://via.placeholder.com/640x360.png?text=SOOP';
-        if(String(thumb).includes('_sm.')) thumb = String(thumb).replace('_sm.', '_bg.'); 
-        if (String(thumb).startsWith('//')) thumb = 'https:' + thumb;
-        else if (thumb && !String(thumb).startsWith('http')) thumb = 'https://' + String(thumb).replace(/^\/+/, '');
+        const views = parseInt(String(c.read_cnt || c.view_cnt || 0).replace(/,/g, ''), 10) || 0;
+        
+        // 무조건 캐치 플레이어 주소로 연결
+        const url = `https://vod.sooplive.co.kr/player/${id}/catch`;
 
-        const viewsStr = c.read_cnt || c.view_cnt || c.total_view_cnt || c.count || 0;
-        const views = parseInt(String(viewsStr).replace(/,/g, ''), 10) || 0;
-
-        // 5. 캐치 vs 일반 클립 URL 연결
-        const isCatch = Boolean(c.catch_no || c.catch_title || String(thumb).includes('catch'));
-        const url = isCatch ? `https://vod.sooplive.co.kr/player/${id}/catch` : `https://vod.sooplive.co.kr/player/${id}`;
-
-        return { id, title, thumb, views, url };
+        return { id, title: title || '제목 없음', thumb, views, url };
     }).filter(Boolean);
 
-    // 🚨 혹시라도 또 구조가 바뀌어서 0개가 되면 화면에 데이터 구조를 출력해 주는 안전망
-    if (parsedItems.length === 0 && rawItems.length > 0) {
-        return NextResponse.json({ 
-            clips: [{
-                id: "error-struct",
-                title: `데이터 구조 확인용: ${JSON.stringify(rawItems[0]).substring(0, 80)}...`,
-                thumb: "https://via.placeholder.com/640x360.png?text=Fix+Me",
-                views: 0,
-                url: "#"
-            }] 
-        });
-    }
-
-    // 중복 제거
+    // 중복 제거 및 랭킹 정렬
     const uniqueMap = new Map();
     for (const item of parsedItems) {
-        if (!uniqueMap.has(item?.id)) {
-            uniqueMap.set(item?.id, item);
-        }
+        if (!uniqueMap.has(item?.id)) uniqueMap.set(item?.id, item);
     }
 
-    // 조회수 순으로 TOP 3 정렬!
     const hotClips = Array.from(uniqueMap.values())
         .sort((a: any, b: any) => b.views - a.views)
         .slice(0, 3);
 
-    return NextResponse.json({ clips: hotClips }, {
-        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
-    });
+    return NextResponse.json({ clips: hotClips }, { headers: { 'Cache-Control': 'no-store' } });
 
   } catch (error: any) {
     return NextResponse.json({ clips: [] });
