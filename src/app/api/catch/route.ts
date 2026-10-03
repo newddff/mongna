@@ -5,19 +5,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const soopId = 'pinktape8';
-    const headers = { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' 
-    };
-    
-    // 💡 가장 확실하게 120개를 뚫고 가져왔던 chapi 주소 사용
+    const headers = { 'User-Agent': 'Mozilla/5.0' };
     const urls = [
-      `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=50`, 
+      `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=50`,
       `https://chapi.sooplive.co.kr/api/${soopId}/vods?page=1&per_page=50&type=user_clip`
     ];
 
     let rawItems: any[] = [];
-    let fetchLogs = "";
-
     for (const url of urls) {
         try {
             const res = await fetch(url, { headers, cache: 'no-store' });
@@ -25,24 +19,24 @@ export async function GET() {
                 const json = await res.json();
                 if (json && Array.isArray(json.data)) rawItems.push(...json.data);
                 else if (json && json.data && Array.isArray(json.data.list)) rawItems.push(...json.data.list);
-            } else {
-                fetchLogs += `[${res.status}] `;
             }
-        } catch (e: any) { fetchLogs += "[Err] "; }
-    }
-
-    // 🚨 통신 완전 실패 시 화면 안 숨기고 원인 출력
-    if (rawItems.length === 0) {
-        return NextResponse.json({ 
-            clips: [{ id: "debug1", title: `[에러] 데이터 0개. (SOOP 차단됨) 로그: ${fetchLogs}`, thumb: "https://via.placeholder.com/640x360.png?text=Empty", views: 0, url: "#" }] 
-        });
+        } catch (e: any) {}
     }
 
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
     const parsedItems = rawItems.map((c: any) => {
         if (!c || typeof c !== 'object') return null;
-        
+
+        const title = String(c.title_name || c.title || c.vod_title || c.catch_title || '제목 없음');
+        if (title.includes('다시보기') || title.includes('풀영상')) return null;
+
+        const isCatch = Boolean(c.catch_no || c.catch_title);
+        const isClip = Boolean(c.uc_no || c.clip_no || c.type === 'USER_CLIP');
+
+        if (!isCatch && !isClip) return null;
+
+        // 🚨 핵심 수정: 캐치는 0초로 넘어오는 경우가 많으므로 길이에 상관없이 무조건 통과!
         let sec = 0;
         const d = c.file_duration || c.duration || c.play_time || 0;
         if (typeof d === 'number') sec = d;
@@ -52,12 +46,9 @@ export async function GET() {
             else if (parts.length === 2) sec = parts[0]*60 + (parts[1]||0);
             else sec = parseInt(d, 10) || 0;
         }
-
-        const title = String(c.title_name || c.title || c.vod_title || c.catch_title || '제목 없음');
         
-        // 🚨 철통 방어: 제목에 다시보기/풀영상이 있거나, 길이가 0초이거나, 20분이 넘어가면 무조건 파기!
-        if (title.includes('다시보기') || title.includes('풀영상')) return null;
-        if (sec === 0 || sec > 1200) return null;
+        // 일반 클립인데 20분 넘어가는 것만 컷!
+        if (isClip && sec > 1200) return null;
 
         const id = c.catch_no || c.uc_no || c.clip_no || c.no;
         if (!id) return null;
@@ -69,7 +60,7 @@ export async function GET() {
         }
 
         let thumb = c.thumb_path || c.uc_thumb || c.catch_thumb || c.thumb || c.thumbnail || 'https://res.sooplive.co.kr/asset/app/main/img/default_thumb.png';
-        if (String(thumb).includes('_sm.')) thumb = String(thumb).replace('_sm.', '_bg.'); 
+        if (String(thumb).includes('_sm.')) thumb = String(thumb).replace('_sm.', '_bg.');
         if (String(thumb).startsWith('//')) thumb = 'https:' + thumb;
         else if (!String(thumb).startsWith('http')) thumb = 'https://' + String(thumb).replace(/^\/+/, '');
 
@@ -79,12 +70,7 @@ export async function GET() {
         return { id, title, thumb, views, url };
     }).filter(Boolean);
 
-    // 🚨 모든 데이터가 풀영상이라 필터에서 짤렸을 때 원인 출력
-    if (parsedItems.length === 0) {
-        return NextResponse.json({ 
-            clips: [{ id: "debug2", title: `[필터됨] 총 ${rawItems.length}개를 가져왔으나, 0초 버그 또는 풀영상 필터로 전부 삭제됨.`, thumb: "https://via.placeholder.com/640x360.png?text=Filtered", views: 0, url: "#" }] 
-        });
-    }
+    if (parsedItems.length === 0) return NextResponse.json({ clips: [] });
 
     const uniqueMap = new Map();
     for (const item of parsedItems) {
@@ -96,10 +82,7 @@ export async function GET() {
         .slice(0, 3);
 
     return NextResponse.json({ clips: hotClips }, { headers: { 'Cache-Control': 'no-store' } });
-
-  } catch (error: any) {
-    return NextResponse.json({ 
-        clips: [{ id: "debug3", title: `[서버코드에러] ${error.message}`, thumb: "https://via.placeholder.com/640x360.png?text=Error", views: 0, url: "#" }] 
-    });
+  } catch (error) {
+    return NextResponse.json({ clips: [] });
   }
 }
