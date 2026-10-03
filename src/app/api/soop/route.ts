@@ -1,33 +1,39 @@
 import { NextResponse } from 'next/server';
 
-// 💡 Vercel 서버가 옛날 데이터를 기억(캐싱)하지 못하게 강제 설정 (생방송 레이더 필수 옵션)
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const CLIENT_ID = process.env.SOOP_CLIENT_ID;
-
-  // 🚨 Vercel 환경 변수에 키가 없으면 500 에러를 뱉습니다. (아까 보신 에러의 원인!)
-  if (!CLIENT_ID) {
-    return NextResponse.json({ error: "API 키가 설정되지 않았습니다." }, { status: 500 });
-  }
-
   try {
-    // 💡 몽나님(pinktape8) 방송 상태만 정확하고 빠르게 긁어오도록 검색 옵션 추가
-    const targetUrl = `https://openapi.sooplive.co.kr/api/broad/list?client_id=${CLIENT_ID}&select_key=user_id&select_value=pinktape8`;
+    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
     
-    const response = await fetch(targetUrl, { 
-        cache: 'no-store' // 항상 최신 상태 통신
-    });
+    // 💡 SOOP 모바일 홈페이지에서 몽나님 방송 정보를 몰래 훔쳐옵니다 (API 키 필요 없음!)
+    const res = await fetch('https://m.sooplive.co.kr/pinktape8', { headers, cache: 'no-store' });
     
-    if (!response.ok) {
-        throw new Error("SOOP 서버 통신 실패");
+    if (!res.ok) throw new Error("통신 실패");
+    
+    const html = await res.text();
+    const match = html.match(/window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});/);
+    
+    if (match && match[1]) {
+        const state = JSON.parse(match[1]);
+        const broad = state?.station?.broad || null;
+        
+        // 방송 중일 때만 데이터 전달
+        if (broad && broad.is_live) {
+            return NextResponse.json({
+                broad: [{
+                    user_id: 'pinktape8',
+                    broad_thumb: broad.broad_thumb || '',
+                    broad_title: broad.broad_title || ''
+                }]
+            });
+        }
     }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    
+    // 방송 중이 아니면 빈 배열 전달
+    return NextResponse.json({ broad: [] });
     
   } catch (error) {
-    console.error("방송 상태 확인 실패:", error);
-    return NextResponse.json({ error: "데이터 통신 실패", broad: [] }, { status: 500 });
+    return NextResponse.json({ broad: [] });
   }
 }
