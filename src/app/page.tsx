@@ -256,10 +256,15 @@ export default function HomePage() {
     });
   }
 
+  // 💡 1. Next.js의 Head 태그를 사용하여 탭 아이콘(파비콘)을 설정합니다.
   if (!isMounted) return null;
 
   return (
     <>
+      <head>
+        <link rel="icon" href="/logo-new.png" />
+      </head>
+      
       <style dangerouslySetInnerHTML={{
         __html: `
         @media (max-width: 768px) {
@@ -284,29 +289,37 @@ export default function HomePage() {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(0.8); }
         }
+
+        /* 💡 2. 다크모드일 때 로고 주변에 하얀 빛 번짐(후광) 효과 주기 */
+        html:not([data-theme="light"]) .logo-img {
+          filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+        }
       `}} />
 
       <div style={{ background: 'linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%)', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, sans-serif' }}>
         
         {isLoading && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '50px', marginBottom: '20px' }} />
+            <img src="/logo-new.png" alt="로고" style={{ height: '50px', marginBottom: '20px' }} />
             <div style={{ color: '#a855f7', fontWeight: 800, fontSize: '15px' }}>데이터를 불러오는 중입니다... 🌙</div>
           </div>
         )}
 
         <div className="nav-container" style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(168, 85, 247, 0.1)' }}>
+          {/* 💡 3. 메인 로고 교체 완료 */}
           <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="로고" style={{ height: '40px', objectFit: 'contain' }} />
+            <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
           <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
             <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
+            <a href="/wiki" style={{ textDecoration: 'none', color: '#1e293b' }}>몽무위키</a>
             <a href="/calendar" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
             <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
             <a href="/reward.html" style={{ textDecoration: 'none', color: '#1e293b' }}>업보(보상)</a>
             <a href="/vod.html" style={{ textDecoration: 'none', color: '#1e293b' }}>VOD</a>
-            <a href="/wiki" style={{ textDecoration: 'none', color: '#1e293b' }}>몽무위키</a>
+            {/* 💡 4. 미니게임 네비게이션 버튼 추가 완료 */}
+            <a href="/minigames" style={{ textDecoration: 'none', color: '#1e293b' }}>미니게임</a>
           </div>
 
           <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
@@ -489,7 +502,7 @@ export default function HomePage() {
                            <img src={clip.thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
                            {/* 조회수 표시 */}
                            <div style={{ position: 'absolute', bottom: '22px', right: '8px', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
-                             👀 {clip.views.toLocaleString()}회
+                              👀 {clip.views.toLocaleString()}회
                            </div>
                         </div>
                         
