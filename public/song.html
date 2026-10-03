@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>몽나 노래책</title>
-<link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1823/1823321.png" />
+<!-- 💡 1. 탭 아이콘(파비콘) 새 로고로 변경 완료 -->
+<link rel="icon" href="/logo-new.png" />
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
 <style>
   :root {
@@ -39,6 +40,11 @@
   .logo-wrap:hover { transform: scale(1.02); }
   .logo-img { height: 38px; object-fit: contain; }
   .logo-icon { font-size: 22px; }
+
+  /* 💡 2. 다크모드일 때 로고 주변에 하얀 빛 번짐(후광) 효과 주기 */
+  html:not([data-theme="light"]) .logo-img {
+    filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+  }
 
   .nav-menu { display: flex; gap: 30px; font-weight: 800; color: var(--text-main); font-size: 15px;}
   .nav-menu a { text-decoration: none; color: inherit; transition: 0.2s; position: relative;}
@@ -220,8 +226,9 @@
 <body>
 
 <div class="top-bar">
+  <!-- 💡 3. 메인 로고 새 로고 이미지로 교체 완료 -->
   <a href="/" class="logo-wrap">
-    <img src="mongna_logo.png" alt="몽나 로고" class="logo-img" onerror="this.src='https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png'">
+    <img src="/logo-new.png" alt="몽나 로고" class="logo-img">
     <span class="logo-icon">🎵</span>
   </a>
   
@@ -232,6 +239,8 @@
     <a href="/song.html" class="active">노래책</a>
     <a href="/reward.html">업보(보상)</a>
     <a href="/vod.html">VOD</a>
+    <!-- 💡 4. 미니게임 네비게이션 버튼 추가 완료 -->
+    <a href="/minigames">미니게임</a>
   </div>
   
   <button id="adminBtn" class="admin-btn" onclick="toggleAdmin()">🔒 관리자 로그인</button>
