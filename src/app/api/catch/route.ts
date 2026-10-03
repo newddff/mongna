@@ -5,19 +5,21 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const soopId = 'pinktape8';
-    // SOOP 서버가 봇(Bot)으로 의심하지 않도록 일반 브라우저처럼 위장합니다.
+    
+    // 💡 SOOP 서버가 일반 사용자로 인식하도록 꼼꼼하게 헤더 위장
     const headers = { 
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
-        'Origin': 'https://bj.afreecatv.com',
-        'Referer': `https://bj.afreecatv.com/${soopId}/vods/clip`
+        'Origin': 'https://ch.sooplive.co.kr',
+        'Referer': `https://ch.sooplive.co.kr/${soopId}/vods/clip`
     };
-    const nocache = Date.now();
 
-    // 💡 캐치와 유저클립 최신 URL 구조 반영 (한 번에 100개씩 넉넉히 가져옵니다)
+    // 💡 새롭게 바뀐 SOOP 전용 API 주소 (chapi.sooplive.co.kr)
+    // - 클립: /api/{아이디}/vods?type=user_clip
+    // - 캐치: /api/{아이디}/catchs
     const urls = [
-      `https://bjapi.afreecatv.com/api/${soopId}/vods?page=1&per_page=100&type=user_clip&_t=${nocache}`, // 일반 클립
-      `https://bjapi.afreecatv.com/api/${soopId}/catchs?page=1&per_page=100&_t=${nocache}` // 숏폼 캐치
+      `https://chapi.sooplive.co.kr/api/${soopId}/vods?page=1&per_page=100&type=user_clip`,
+      `https://chapi.sooplive.co.kr/api/${soopId}/catchs?page=1&per_page=100`
     ];
 
     const responses = await Promise.all(urls.map(url => fetch(url, { headers, cache: 'no-store' }).catch(() => null)));
@@ -27,7 +29,7 @@ export async function GET() {
         if (!res || !res.ok) continue;
         const json = await res.json().catch(() => null);
         
-        // SOOP API 응답 구조 2가지 모두 대응
+        // SOOP API가 뱉어내는 다양한 JSON 껍데기 모두 대응
         if (json && Array.isArray(json.data)) {
             rawItems.push(...json.data);
         } else if (json && json.data && Array.isArray(json.data.list)) {
@@ -35,8 +37,8 @@ export async function GET() {
         }
     }
 
-    // 💡 테스트를 위해 임시로 '최근 30일(한 달)'로 기간을 늘립니다. 
-    // 나중에 데이터가 잘 뜨면 숫자 30을 다시 7로 바꾸시면 됩니다.
+    // 💡 기간 필터: 우선 확실하게 데이터가 뜨는지 보기 위해 30일(한 달)로 넉넉하게 잡습니다. 
+    // 나중에 데이터 뜨는 거 확인하시면 숫자 30을 다시 7로 바꾸세요!
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
     const parsedItems = rawItems.map(c => {
@@ -50,7 +52,6 @@ export async function GET() {
         const id = c.catch_no || c.uc_no || c.bbs_no || c.title_no;
         if (!id) return null;
 
-        // 날짜 필터링 적용 (30일 이내)
         const regDateStr = c.reg_date || c.board_reg_date || c.create_date || '';
         if (regDateStr) {
             const safeDateStr = regDateStr.replace(' ', 'T');
@@ -69,17 +70,17 @@ export async function GET() {
         }
         if (sec > 1200) return null; 
 
+        // 제목 및 썸네일 파싱 (최신 구조 반영)
         const title = c.title_name || c.title || c.vod_title || c.catch_title || '제목 없음';
-        
-        // 썸네일 고화질(bg) 처리
         let thumb = c.thumb_path || c.uc_thumb || c.catch_thumb || c.thumb || c.thumbnail || '';
-        if(thumb.includes('_sm.')) thumb = thumb.replace('_sm.', '_bg.'); // 고화질 썸네일로 교체
+        if(thumb.includes('_sm.')) thumb = thumb.replace('_sm.', '_bg.'); 
         if (thumb.startsWith('//')) thumb = 'https:' + thumb;
         else if (thumb && !thumb.startsWith('http')) thumb = 'https://' + thumb.replace(/^\/+/, '');
 
         const viewsStr = c.read_cnt || c.view_cnt || c.total_view_cnt || 0;
         const views = parseInt(String(viewsStr).replace(/,/g, ''), 10) || 0;
 
+        // 플레이어 주소도 sooplive.co.kr 로 변경
         const url = isCatch
             ? `https://vod.sooplive.co.kr/player/${id}/catch`
             : `https://vod.sooplive.co.kr/player/${id}`;
@@ -94,7 +95,6 @@ export async function GET() {
         }
     }
 
-    // 조회수 순으로 3개 뽑기
     const hotClips = Array.from(uniqueMap.values())
         .sort((a: any, b: any) => b.views - a.views)
         .slice(0, 3);
