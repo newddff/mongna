@@ -36,23 +36,36 @@ export default function HomePage() {
   const [inputLinks, setInputLinks] = useState<any[]>([]);
 
   const [autoIsLive, setAutoIsLive] = useState(false); 
+  const [liveThumb, setLiveThumb] = useState(''); // 💡 실시간 썸네일 URL을 저장할 공간
   const { isBirthdayToday, isDebutToday, debutDays } = getMongnaAnniversaries();
+  
+  // 수동 켜기(homeData.isLive) 또는 자동 감지(autoIsLive) 중 하나라도 켜지면 방송중으로 표시
   const currentlyLive = homeData.isLive || autoIsLive;
 
-  // 💡 1분마다 방송 상태 자동 확인
+  // 💡 1분마다 SOOP API로 몽나님 방송 상태 & 썸네일 자동 확인
   useEffect(() => {
-    const checkLiveStatus = async () => {
+    const checkSoopLive = async () => {
       try {
-        const res = await fetch('/api/live');
+        const res = await fetch('/api/soop');
         const data = await res.json();
-        setAutoIsLive(data.isLive);
+        
+        // 몽나님(pinktape8) 방송 데이터 찾기
+        const mongnaBroad = data.broad?.find((broad: any) => broad.user_id === 'pinktape8');
+        
+        if (mongnaBroad) {
+          setAutoIsLive(true);
+          setLiveThumb(mongnaBroad.broad_thumb); // 📸 SOOP이 주는 실시간 썸네일 저장
+        } else {
+          setAutoIsLive(false);
+          setLiveThumb(''); // 방송 종료 시 썸네일 초기화
+        }
       } catch (error) {
-        console.error("방송 상태 확인 실패");
+        console.error("SOOP 방송 상태 확인 실패", error);
       }
     };
     
-    checkLiveStatus();
-    const interval = setInterval(checkLiveStatus, 60000); 
+    checkSoopLive();
+    const interval = setInterval(checkSoopLive, 60000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -310,8 +323,27 @@ export default function HomePage() {
 
           <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
             
+            {/* 💡 실시간 썸네일 & 생방송 배지 렌더링 부분 */}
             {currentlyLive && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '-20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '-10px' }}>
+                
+                {/* 썸네일 이미지 (방송 켰을 때만 짠! 하고 나타남) */}
+                {liveThumb && (
+                  <img 
+                    src={liveThumb} 
+                    alt="몽나 실시간 생방송" 
+                    style={{ 
+                      width: '100%', 
+                      maxWidth: '450px', 
+                      aspectRatio: '16/9', 
+                      borderRadius: '20px', 
+                      objectFit: 'cover',
+                      border: '3px solid #ef4444',
+                      boxShadow: '0 10px 30px rgba(239, 68, 68, 0.25)'
+                    }} 
+                  />
+                )}
+
                 <a 
                   href="https://play.sooplive.co.kr/pinktape8" 
                   target="_blank" 
@@ -491,7 +523,7 @@ export default function HomePage() {
               </div>
 
               <div style={{ marginBottom: '30px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶️ 유튜브 채널 ID</label>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶️️ 유튜브 채널 ID</label>
                 <input type="text" value={inputYtChannelId} onChange={e => setInputYtChannelId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
               </div>
 
