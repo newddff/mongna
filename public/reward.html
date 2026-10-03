@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>몽나 보상/업보 목록</title>
-<link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1823/1823321.png" />
+<!-- 💡 1. 탭 아이콘(파비콘) 새 로고로 변경 완료 -->
+<link rel="icon" href="/logo-new.png" />
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -34,6 +35,12 @@
   .logo-wrap { display: flex; align-items: center; text-decoration: none; transition: 0.2s; }
   .logo-wrap:hover { transform: scale(1.02); }
   .logo-img { height: 40px; object-fit: contain; }
+
+  /* 💡 2. 다크모드일 때 로고 주변에 하얀 빛 번짐(후광) 효과 주기 */
+  html:not([data-theme="light"]) .logo-img {
+    filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+  }
+
   .nav-menu { display: flex; gap: 30px; font-weight: 800; color: var(--text-main); font-size: 15px;}
   .nav-menu a { text-decoration: none; color: inherit; transition: 0.2s; position: relative;}
   .nav-menu a:hover, .nav-menu a.active { color: var(--primary); }
@@ -262,8 +269,9 @@
 <body>
 
 <nav class="top-bar">
+  <!-- 💡 3. 메인 로고 교체 완료 -->
   <a href="/" class="logo-wrap">
-    <img src="https://event.img.sooplive.com/note_image/2026/08/31/37806a95605eda196.png" alt="몽나 로고" class="logo-img">
+    <img src="/logo-new.png" alt="몽나 로고" class="logo-img">
   </a>
   <div class="nav-menu">
     <a href="/">홈</a>
@@ -272,6 +280,8 @@
     <a href="/song.html">노래책</a>
     <a href="/reward.html" class="active">업보(보상)</a>
     <a href="/vod.html">VOD</a>
+    <!-- 💡 4. 미니게임 네비게이션 버튼 추가 완료 -->
+    <a href="/minigames">미니게임</a>
   </div>
   <div class="right-menu">
     <button id="adminToggleBtn" class="admin-btn" onclick="window.toggleAdmin()">🔒 로그인</button>
