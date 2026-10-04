@@ -20,6 +20,7 @@ export async function GET() {
   try {
     const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
     
+    // 💡 차단 우회를 위해 종우님이 쓰시던 HTML 긁어오기 방식을 다시 적용합니다.
     const res = await fetch('https://m.sooplive.co.kr/pinktape8', { headers, cache: 'no-store' });
     
     if (!res.ok) throw new Error("SOOP 통신 실패");
@@ -31,6 +32,7 @@ export async function GET() {
       const state = JSON.parse(match[1]);
       const broad = state?.station?.broad || null;
       
+      // 💡 여기가 핵심! HTML 데이터 뭉치 속에서 '애청자 수(favor_cnt)'를 기어코 찾아냅니다!
       const stationInfo = state?.station?.station || state?.station || {};
       const favorCnt = stationInfo.favor_cnt || 0;
       
@@ -62,16 +64,18 @@ export async function GET() {
           isLive: true, title: currentTitle, category: currentCategory,
           viewers: currentViewers, maxViewers: maxViewers,
           thumb: broad.broad_thumb || '', lastUpdated: timestampIso,
-          favorCnt: favorCnt
+          favorCnt: favorCnt // 💡 찾은 애청자 수를 파이어베이스에 저장!
         };
         await setDoc(statusRef, currentData, { merge: true });
 
         const viewerRef = doc(db, 'mongna_live_viewers', todayStr);
         await setDoc(viewerRef, { date: todayStr, logs: arrayUnion({ time: timeStr, viewers: currentViewers }) }, { merge: true });
 
+        // 💡 화면에 성공적으로 찍혔는지 바로 확인할 수 있게 결과값에 favorCnt를 추가해줍니다.
         return NextResponse.json({ success: true, status: "방송중", favorCnt: favorCnt, data: currentData });
         
       } else {
+        // 방송이 꺼져있어도 애청자 수를 업데이트 합니다.
         await setDoc(statusRef, { isLive: false, lastUpdated: timestampIso, favorCnt: favorCnt }, { merge: true });
         return NextResponse.json({ success: true, status: "오프라인", favorCnt: favorCnt });
       }
