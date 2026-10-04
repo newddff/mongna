@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-// 💡 getApps, getApp을 새로 추가해서 중복 실행을 막습니다.
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, arrayUnion } from "firebase/firestore";
 
@@ -14,21 +13,33 @@ const firebaseConfig = {
   appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
 };
 
-// 💡 핵심 방패막이 로직: 앱이 없을 때만(length가 0일때) 새로 켜고, 있으면 기존 앱을 가져옵니다.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
 export async function GET() {
   try {
+    // 💡 차단 우회 필살기: Vercel 서버에서 보내도 브라우저처럼 보이게 헤더를 떡칠합니다.
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Cache-Control': 'max-age=0'
     };
     
-    const res = await fetch('https://m.sooplive.co.kr/pinktape8', { headers, cache: 'no-store' });
+    // 💡 혹시 모를 캐싱 방지를 위해 URL 끝에 랜덤 값을 붙여 무조건 새 데이터를 받아오게 합니다.
+    const url = `https://m.sooplive.co.kr/pinktape8?t=${new Date().getTime()}`;
+    const res = await fetch(url, { headers, cache: 'no-store' });
     
-    if (!res.ok) throw new Error("SOOP 통신 실패");
+    if (!res.ok) throw new Error(`SOOP 통신 실패: ${res.status}`);
     
     const html = await res.text();
     const match = html.match(/window\.__PRELOADED_STATE__\s*=\s*(\{.*?\})(?:;|<\/script>)/s);
@@ -83,7 +94,8 @@ export async function GET() {
       }
     }
     
-    return NextResponse.json({ success: false, msg: "데이터 파싱 실패" });
+    // 💡 실패 시 디버깅을 위해 응답 텍스트 일부를 반환합니다.
+    return NextResponse.json({ success: false, msg: "데이터 파싱 실패", debug_html: html.substring(0, 150) });
     
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message });
