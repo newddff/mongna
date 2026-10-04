@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { initializeApp } from "firebase/app";
+// 💡 getApps, getApp을 새로 추가해서 중복 실행을 막습니다.
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, arrayUnion } from "firebase/firestore";
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,8 @@ const firebaseConfig = {
   appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
 };
 
-const app = initializeApp(firebaseConfig);
+// 💡 핵심 방패막이 로직: 앱이 없을 때만(length가 0일때) 새로 켜고, 있으면 기존 앱을 가져옵니다.
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
 export async function GET() {
@@ -29,8 +31,6 @@ export async function GET() {
     if (!res.ok) throw new Error("SOOP 통신 실패");
     
     const html = await res.text();
-    console.log("✅ 숲(SOOP) HTML 응답 길이:", html.length);
-
     const match = html.match(/window\.__PRELOADED_STATE__\s*=\s*(\{.*?\})(?:;|<\/script>)/s);
     
     if (match && match[1]) {
@@ -50,7 +50,6 @@ export async function GET() {
         const currentViewers = broad.current_sum_viewer || 0;
         
         const statusSnap = await getDoc(statusRef);
-        // 💡 Vercel 빌드 에러 방지용: (as any)를 붙여서 타입스크립트의 태클을 무시합니다.
         const prevData = statusSnap.exists() ? (statusSnap.data() as any) : null;
 
         if (prevData && prevData.isLive) {
@@ -84,11 +83,9 @@ export async function GET() {
       }
     }
     
-    console.log("❌ 매칭 실패! 가져온 HTML 일부 내용:\n", html.substring(0, 300));
-    return NextResponse.json({ success: false, msg: "데이터 파싱 실패", htmlPreview: html.substring(0, 150) });
+    return NextResponse.json({ success: false, msg: "데이터 파싱 실패" });
     
   } catch (error: any) {
-    console.error("API 에러:", error);
     return NextResponse.json({ success: false, error: error.message });
   }
 }
