@@ -7,12 +7,12 @@ export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const router = useRouter();
 
-  const games = [
+const games = [
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
-    // 💡 알려주신 핀볼 배포 주소(https://mongna.vercel.app)를 새 창 링크로 완벽히 연결했습니다.
-    { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: 'https://mongna.vercel.app' },
+    // 💡 핀볼 게임 주소를 정확한 배포 링크로 설정했습니다.
+    { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: 'https://mongna-pinball.vercel.app/' },
   ];
 
   const handleCardClick = (g: any) => {
@@ -21,7 +21,7 @@ export default function MinigameHub() {
       return;
     }
     if (g.isLink) {
-      window.open(g.path, '_blank');
+      router.push(g.path);
     } else {
       setActiveGame(g.id);
     }
