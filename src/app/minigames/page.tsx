@@ -12,7 +12,7 @@ export default function MinigameHub() {
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
-    { id: 'pinball', icon: '🪐', title: '우주 핀볼 추첨', desc: '달구와 몽나가 빙글빙글 도는 장애물을 튕기며 떨어집니다.', ready: true, isLink: false },
+    { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '달구와 몽나가 빙글빙글 도는 장애물을 튕기며 떨어집니다.', ready: true, isLink: false },
   ];
 
   const handleCardClick = (g: any) => {
