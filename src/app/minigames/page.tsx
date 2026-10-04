@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Matter from 'matter-js';
 
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
@@ -12,7 +11,8 @@ export default function MinigameHub() {
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
-    { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '달구와 몽나가 빙글빙글 도는 장애물을 튕기며 떨어집니다.', ready: true, isLink: false },
+    // 💡 핀볼 게임은 이제 무거운 물리 엔진 로직 없이 깔끔하게 '새 페이지 이동 링크'로만 작동합니다.
+    { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: '/minigames/pinball' },
   ];
 
   const handleCardClick = (g: any) => {
@@ -65,8 +65,7 @@ export default function MinigameHub() {
           <h1 className="arcade-title">
             {activeGame === 'cannon' ? '💥 대포 뽑기' : 
              activeGame === 'ladder' ? '🪜 달구 사다리타기' : 
-             activeGame === 'roulette' ? '🎯 룰렛 돌리기' : 
-             activeGame === 'pinball' ? '🪐 우주 핀볼 추첨' : '🎮 몽나 오락실'}
+             activeGame === 'roulette' ? '🎯 룰렛 돌리기' : '🎮 몽나 오락실'}
           </h1>
           {activeGame && (
             <button className="back-btn" onClick={() => setActiveGame(null)}>← 오락실 로비로</button>
@@ -87,259 +86,10 @@ export default function MinigameHub() {
         {activeGame === 'cannon' && <CannonPlayground />}
         {activeGame === 'ladder' && <LadderPlayground />}
         {activeGame === 'roulette' && <RoulettePlayground />}
-        {activeGame === 'pinball' && <PinballPlayground />}
       </div>
     </div>
   );
 }
-
-/* =========================================================================
-   🪐 우주 핀볼 추첨
-   ========================================================================= */
-function PinballPlayground() {
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<Matter.Engine | null>(null);
-  const renderRef = useRef<Matter.Render | null>(null);
-  const runnerRef = useRef<Matter.Runner | null>(null);
-  
-  const [participantsInput, setParticipantsInput] = useState('이름*숫자');
-  const [winner, setWinner] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const mapWidth = 460;
-  const mapHeight = 750;
-
-  // 💡 텍스트 입력창에서 이름*숫자 패턴을 파싱하여 실제 공 개수만큼 배열을 만드는 함수
-  const parseParticipants = (text: string) => {
-    const rawList = text.split(',').map(s => s.trim()).filter(Boolean);
-    const parsedList: string[] = [];
-    
-    rawList.forEach(item => {
-      const match = item.match(/^(.*?)\s*\*\s*(\d+)$/);
-      if (match) {
-        const name = match[1].trim();
-        const count = Math.min(Math.max(parseInt(match[2], 10), 1), 100); // 최소 1, 최대 100 제한
-        for (let i = 0; i < count; i++) {
-          parsedList.push(name);
-        }
-      } else {
-        parsedList.push(item);
-      }
-    });
-    return parsedList;
-  };
-
-  useEffect(() => {
-    if (!sceneRef.current) return;
-
-    const Engine = Matter.Engine,
-          Render = Matter.Render,
-          Runner = Matter.Runner,
-          Bodies = Matter.Bodies,
-          Composite = Matter.Composite,
-          Events = Matter.Events,
-          Constraint = Matter.Constraint,
-          Body = Matter.Body;
-
-    const engine = Engine.create();
-    engine.world.gravity.y = 0.9;
-    engineRef.current = engine;
-
-    const render = Render.create({
-      element: sceneRef.current,
-      engine: engine,
-      options: {
-        width: mapWidth,
-        height: mapHeight,
-        wireframes: false, 
-        background: '#111827',
-        pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1
-      }
-    });
-    renderRef.current = render;
-
-    const wallOptions = { isStatic: true, render: { fillStyle: '#1f2937', strokeStyle: '#38bdf8', lineWidth: 2 } };
-    const walls = [
-      Bodies.rectangle(mapWidth / 2, -100, mapWidth * 2, 100, wallOptions),
-      Bodies.rectangle(-20, mapHeight / 2, 40, mapHeight * 2, wallOptions),
-      Bodies.rectangle(mapWidth + 20, mapHeight / 2, 40, mapHeight * 2, wallOptions),
-      Bodies.rectangle(mapWidth / 2, mapHeight + 30, mapWidth, 60, { isStatic: true, isSensor: true, label: 'finishLine', render: { fillStyle: '#10b981' } })
-    ];
-
-    const staticPins = [];
-    const pinOptions = { isStatic: true, chamfer: { radius: 4 }, render: { fillStyle: '#0ea5e9', strokeStyle: '#38bdf8', lineWidth: 1 } };
-    const dotOptions = { isStatic: true, render: { fillStyle: '#0ea5e9' } };
-
-    for(let i=0; i<4; i++) { staticPins.push(Bodies.rectangle(85 + i*95, 120, 8, 35, pinOptions)); }
-    for(let i=0; i<5; i++) { staticPins.push(Bodies.circle(40 + i*95, 190, 6, dotOptions)); }
-    for(let i=0; i<4; i++) { staticPins.push(Bodies.rectangle(85 + i*95, 260, 8, 35, pinOptions)); }
-
-    const spinners: Matter.Body[] = [];
-    const createSpinner = (x: number, y: number, width: number, height: number, speed: number) => {
-      const spinner = Bodies.rectangle(x, y, width, height, {
-        render: { fillStyle: '#f43f5e', strokeStyle: '#fb7185', lineWidth: 2 }
-      });
-      const constraint = Constraint.create({
-        pointA: { x, y },
-        bodyB: spinner,
-        length: 0,
-        render: { visible: false }
-      });
-      Composite.add(engine.world, [spinner, constraint]);
-      spinners.push({ body: spinner, speed } as any);
-    };
-
-    createSpinner(110, 360, 110, 12, 0.06);
-    createSpinner(350, 360, 110, 12, -0.05);
-    createSpinner(230, 440, 120, 12, 0.07);
-    createSpinner(110, 520, 110, 12, -0.04);
-    createSpinner(350, 520, 110, 12, 0.05);
-
-    const funnelLeft = Bodies.rectangle(90, 650, 220, 15, { isStatic: true, angle: Math.PI / 5, render: { fillStyle: '#1f2937' } });
-    const funnelRight = Bodies.rectangle(370, 650, 220, 15, { isStatic: true, angle: -Math.PI / 5, render: { fillStyle: '#1f2937' } });
-    staticPins.push(funnelLeft, funnelRight);
-
-    createSpinner(230, 710, 150, 16, 0.08);
-
-    Events.on(engine, 'beforeUpdate', () => {
-      spinners.forEach((s: any) => {
-        Body.setAngularVelocity(s.body, s.speed);
-      });
-    });
-
-    Composite.add(engine.world, [...walls, ...staticPins]);
-
-    Events.on(engine, 'collisionStart', (event) => {
-      const pairs = event.pairs;
-      for (let i = 0; i < pairs.length; i++) {
-        const bodyA = pairs[i].bodyA;
-        const bodyB = pairs[i].bodyB;
-
-        if (
-          (bodyA.label === 'finishLine' && bodyB.label === 'playerBall') ||
-          (bodyB.label === 'finishLine' && bodyA.label === 'playerBall')
-        ) {
-          const ball = bodyA.label === 'playerBall' ? bodyA : bodyB;
-          
-          setWinner((prev) => {
-            if (!prev) {
-              setIsPlaying(false);
-              return ball.plugin.name || '알 수 없음';
-            }
-            return prev;
-          });
-        }
-      }
-    });
-
-    Render.run(render);
-    const runner = Runner.create();
-    Runner.run(runner, engine);
-    runnerRef.current = runner;
-
-    return () => {
-      Render.stop(render);
-      Runner.stop(runner);
-      if (render.canvas) render.canvas.remove();
-      render.canvas = null as any;
-      render.context = null as any;
-      render.textures = {};
-    };
-  }, []);
-
-  const handleStartPinball = () => {
-    if (!engineRef.current || isPlaying) return;
-    
-    // 💡 여기서 입력된 텍스트를 파싱하여 공의 실제 개수를 구함
-    const participants = parseParticipants(participantsInput);
-    if (participants.length < 2) return alert('2개 이상의 참가자(또는 공)를 입력해주세요!');
-
-    setIsPlaying(true);
-    setWinner(null);
-
-    const engine = engineRef.current;
-
-    const existingBalls = engine.world.bodies.filter(b => b.label === 'playerBall');
-    Matter.Composite.remove(engine.world, existingBalls);
-
-    const images = ['/dalgu-ball.png', '/mongna-ball.png'];
-
-    participants.forEach((name, index) => {
-      const startX = (mapWidth / 2) - 40 + (Math.random() * 80);
-      const startY = -40 - (Math.random() * 150); 
-      
-      const ball = Matter.Bodies.circle(startX, startY, 18, {
-        label: 'playerBall',
-        restitution: 0.6, 
-        friction: 0.01,
-        density: 0.05,
-        plugin: { name: name }, 
-        render: {
-          sprite: {
-            texture: images[index % 2], 
-            xScale: 0.8,
-            yScale: 0.8
-          }
-        }
-      });
-      
-      Matter.Body.setVelocity(ball, { x: (Math.random() - 0.5) * 4, y: 0 });
-      Matter.Composite.add(engine.world, ball);
-    });
-  };
-
-  return (
-    <div className="board-wrapper" style={{ background: '#1e293b' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        
-        <div style={{ width: '100%', maxWidth: '800px', background: '#334155', padding: '20px', borderRadius: '16px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column' }}>
-            {/* 💡 입력 방법 안내 문구 추가 */}
-            <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>
-              항목 입력 (쉼표로 구분, *숫자 입력 시 공 증가)
-            </span>
-            <input 
-              type="text" 
-              value={participantsInput} 
-              onChange={(e) => setParticipantsInput(e.target.value)} 
-              placeholder="예: 몽나*5, 달타*2, 시청자" 
-              disabled={isPlaying}
-              style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: 'none', background: '#0f172a', color: 'white', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-          <button 
-            onClick={handleStartPinball} 
-            disabled={isPlaying}
-            style={{ padding: '12px 30px', background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: isPlaying ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(14, 165, 233, 0.4)', marginTop: '22px' }}
-          >
-            {isPlaying ? '우주 낙하 중... ☄️' : '🚀 게임 시작'}
-          </button>
-        </div>
-
-        <div style={{ position: 'relative', width: '460px', maxWidth: '100%', height: '750px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', border: '4px solid #38bdf8' }}>
-          <div ref={sceneRef} style={{ width: '100%', height: '100%' }} />
-
-          {winner && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 100, animation: 'fadeIn 0.5s ease-out' }}>
-              <style>{`@keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }`}</style>
-              <div style={{ fontSize: '24px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '10px' }}>최종 우승자 🎉</div>
-              <div style={{ fontSize: '50px', fontWeight: 900, color: 'white', textShadow: '0 0 20px #8b5cf6, 0 0 40px #d946ef', textAlign: 'center', wordBreak: 'keep-all', padding: '0 20px' }}>
-                {winner}
-              </div>
-              <button 
-                onClick={() => setWinner(null)} 
-                style={{ marginTop: '30px', padding: '10px 24px', background: 'white', color: '#0f172a', border: 'none', borderRadius: '99px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                다시 하기
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 /* =========================================================================
    🎯 룰렛 돌리기
