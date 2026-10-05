@@ -30,7 +30,7 @@ const getStrictKstIsoString = (date: Date) => {
   return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}.000+09:00`;
 };
 
-// 🛠️ 1. SOOP 시간 엄격 검증 (JS Date 자동 보정 완벽 방어)
+// 🛠️ 1. SOOP 시간 엄격 검증 (아직 건드리지 않고 그대로 유지)
 const parseSoopTimeToKstIso = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
@@ -56,6 +56,7 @@ const parseSoopTimeToKstIso = (value: unknown): string | null => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000+09:00`;
 };
 
+// 💡 여기가 수정된 부분입니다! (로그 추가 + is_live 검사 완화)
 async function fetchSoopLiveStatus(bjid: string) {
   const url = `https://bjapi.afreecatv.com/api/${bjid}/station`;
   const res = await fetch(url, {
@@ -73,7 +74,18 @@ async function fetchSoopLiveStatus(bjid: string) {
   if (!data.broad || typeof data.broad !== 'object') throw new Error("INVALID_BROAD_OBJECT_STRUCTURE");
 
   const broad = data.broad;
-  if (broad.is_live !== true) return { isLive: false, favorCnt };
+  
+  // 🔥 [추가된 로그] Vercel 콘솔에서 실제 값을 확인하기 위함
+  console.log("🔥 SOOP broad 상태 확인:", {
+    is_live: broad.is_live,
+    broad_no: broad.broad_no,
+    broad_start: broad.broad_start,
+    title: broad.broad_title
+  });
+
+  // 🔥 [조건 완화] 기존의 !== true 를 !broad.is_live 로 변경
+  if (!broad.is_live) return { isLive: false, favorCnt };
+  
   if (!broad.broad_no) throw new Error("MISSING_BROADCAST_ID");
 
   const soopStartTimeKst = parseSoopTimeToKstIso(broad.broad_start);
@@ -91,9 +103,8 @@ async function fetchSoopLiveStatus(bjid: string) {
   };
 }
 
-// 💡 매개변수로 request를 받아 헤더를 검사합니다.
+// 💡 매개변수로 request를 받아 헤더를 검사합니다. (기존 자물쇠 로직 유지)
 export async function GET(request: Request) {
-  // 🔴 [보호장치] 환경변수 누락 방어까지 포함된 철통 보안
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
