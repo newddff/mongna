@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase'; // 💡 본인 경로에 맞게 수정
+import { db } from '../../lib/firebase'; // 💡 본인 경로에 맞게 수정
 
 export default function Dashboard() {
   // 1. 사용자 PC 시간이 아닌 KST(한국 표준시) 기준으로 완벽하게 이번 달 설정
