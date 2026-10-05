@@ -56,7 +56,6 @@ const parseSoopTimeToKstIso = (value: unknown): string | null => {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000+09:00`;
 };
 
-// 💡 여기가 수정된 부분입니다! (로그 추가 + is_live 검사 완화)
 async function fetchSoopLiveStatus(bjid: string) {
   const url = `https://bjapi.afreecatv.com/api/${bjid}/station`;
   const res = await fetch(url, {
@@ -75,7 +74,7 @@ async function fetchSoopLiveStatus(bjid: string) {
 
   const broad = data.broad;
   
-  // 🔥 [추가된 로그] Vercel 콘솔에서 실제 값을 확인하기 위함
+  // 🔥 [유지] Vercel 콘솔에서 실제 값을 계속 모니터링하기 위한 로그
   console.log("🔥 SOOP broad 상태 확인:", {
     is_live: broad.is_live,
     broad_no: broad.broad_no,
@@ -83,10 +82,8 @@ async function fetchSoopLiveStatus(bjid: string) {
     title: broad.broad_title
   });
 
-  // 🔥 [조건 완화] 기존의 !== true 를 !broad.is_live 로 변경
-  if (!broad.is_live) return { isLive: false, favorCnt };
-  
-  if (!broad.broad_no) throw new Error("MISSING_BROADCAST_ID");
+  // 💡 [수정됨] is_live 검사와 throw Error를 지우고 broad_no 기준으로 오프라인 판단!
+  if (!broad.broad_no) return { isLive: false, favorCnt };
 
   const soopStartTimeKst = parseSoopTimeToKstIso(broad.broad_start);
 
@@ -103,7 +100,7 @@ async function fetchSoopLiveStatus(bjid: string) {
   };
 }
 
-// 💡 매개변수로 request를 받아 헤더를 검사합니다. (기존 자물쇠 로직 유지)
+// 💡 [유지] 자물쇠 로직 및 파이어베이스 저장 로직
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
