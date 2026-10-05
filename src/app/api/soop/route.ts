@@ -41,15 +41,14 @@ const parseSoopTimeToKstIso = (value: unknown): string | null => {
 
   if (Number.isNaN(testDate.getTime())) return null;
 
-  // JS Date가 2월 31일을 3월 3일로 몰래 보정하는 것을 찾아내서 차단
   const kstCheck = new Date(testDate.getTime() + 9 * 60 * 60 * 1000);
   if (
     kstCheck.getUTCFullYear() !== Number(year) ||
     kstCheck.getUTCMonth() + 1 !== Number(month) ||
     kstCheck.getUTCDate() !== Number(day) ||
     kstCheck.getUTCHours() !== Number(hour) ||
-    kstCheck.getUTCMinutes() !== Number(minute) || // 💡 분 단위 비교 추가
-    kstCheck.getUTCSeconds() !== Number(second)    // 💡 초 단위 비교 추가
+    kstCheck.getUTCMinutes() !== Number(minute) || 
+    kstCheck.getUTCSeconds() !== Number(second)    
   ) {
     return null;
   }
@@ -92,7 +91,19 @@ async function fetchSoopLiveStatus(bjid: string) {
   };
 }
 
-export async function GET() {
+// 💡 매개변수로 request를 받아 헤더를 검사합니다.
+export async function GET(request: Request) {
+  // 🔴 [보호장치] 환경변수 누락 방어까지 포함된 철통 보안
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const now = new Date();
     const timestampKst = getStrictKstIsoString(now);
@@ -112,7 +123,6 @@ export async function GET() {
             const data = targetSnap.data();
             const startedAtDate = new Date(data.startedAt);
             
-            // 💡 종료 시간 NaN 방어 로직 적용
             let durationMinutes = Number(data.durationMinutes) || 0;
             if (!Number.isNaN(startedAtDate.getTime())) {
               durationMinutes = Math.max(0, Math.round((now.getTime() - startedAtDate.getTime()) / 60000));
