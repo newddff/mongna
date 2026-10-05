@@ -77,7 +77,12 @@ export async function GET() {
       }
     }
     
-    return NextResponse.json({ success: false, msg: "데이터 파싱 실패" });
+   // 받아온 HTML의 맨 앞 300글자를 출력해서 봇이 튕겼는지 확인합니다.
+    return NextResponse.json({ 
+      success: false, 
+      msg: "데이터 파싱 실패", 
+      htmlPreview: html.substring(0, 300) 
+    });
     
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message });
