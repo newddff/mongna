@@ -1,265 +1,272 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../lib/firebase'; // 💡 본인 경로에 맞게 수정
+import React, { useState, useEffect } from 'react';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../../lib/firebase'; // 💡 파이어베이스 경로가 다를 경우 이 부분을 수정해 주세요 (예: '../../lib/firebase')
 
 export default function Dashboard() {
-  // 1. 사용자 PC 시간이 아닌 KST(한국 표준시) 기준으로 완벽하게 이번 달 설정
+  // ==========================================
+  // 1. 상태(State) 관리
+  // ==========================================
   const [selectedMonth, setSelectedMonth] = useState(() => {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: '2-digit',
-    }).formatToParts(new Date());
-
-    const year = parts.find(p => p.type === 'year')?.value;
-    const month = parts.find(p => p.type === 'month')?.value;
-
-    return `${year}-${month}`;
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
   });
-  
   const [streams, setStreams] = useState<any[]>([]);
   const [stats, setStats] = useState({
-    totalDays: 0, totalCount: 0, 
-    maxViewers: 0, avgViewers: 0
+    totalDays: 0,
+    totalCount: 0,
+    totalDurationMin: 0,
+    maxViewers: 0,
+    avgViewers: 0,
   });
-  const [loading, setLoading] = useState(true);
-  
-  // 라이브 방송 시간 실시간 갱신용 Trigger (1분마다)
-  const [nowTrigger, setNowTrigger] = useState(Date.now());
 
+  // ==========================================
+  // 2. 파이어베이스 데이터 조회 및 통계 계산 로직
+  // ==========================================
   useEffect(() => {
-    const interval = setInterval(() => setNowTrigger(Date.now()), 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const fetchMonthlyData = async () => {
-      setLoading(true);
+    const fetchData = async () => {
       try {
-        const [yearStr, monthStr] = selectedMonth.split('-');
-        const year = parseInt(yearStr, 10);
-        const month = parseInt(monthStr, 10);
+        const q = query(collection(db, 'mongna_streams'), orderBy('startedAt', 'desc'));
+        const snapshot = await getDocs(q);
         
-        const startKst = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000+09:00`;
-        const nextMonth = month === 12 ? 1 : month + 1;
-        const nextYear = month === 12 ? year + 1 : year;
-        const nextMonthKst = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000+09:00`;
-
-        const streamsRef = collection(db, 'mongna_streams');
-        const q = query(
-          streamsRef,
-          where("startedAt", ">=", startKst),
-          where("startedAt", "<", nextMonthKst),
-          orderBy("startedAt", "desc")
-        );
-
-        const snap = await getDocs(q);
         const fetchedStreams: any[] = [];
-        const uniqueDays = new Set<string>();
-        
-        let globalMaxViewers = 0;
-        let totalViewersSum = 0;
-        let totalViewerSamplesCount = 0;
-
-        snap.forEach(doc => {
-          const data = doc.data();
-          const safeStream = {
-            ...data,
-            durationMinutes: Number(data.durationMinutes) || 0,
-            maxViewers: Number(data.maxViewers) || 0,
-            avgViewers: Number(data.avgViewers) || 0,
-            viewerSamples: Array.isArray(data.viewerSamples) ? data.viewerSamples : [],
-            titleChanges: Array.isArray(data.titleChanges) ? data.titleChanges : [],
-            categoryChanges: Array.isArray(data.categoryChanges) ? data.categoryChanges : []
-          };
-          fetchedStreams.push(safeStream);
-          
-          if (safeStream.startedAt) {
-            uniqueDays.add(safeStream.startedAt.substring(0, 10)); 
-          }
-          
-          if (safeStream.maxViewers > globalMaxViewers) globalMaxViewers = safeStream.maxViewers;
-
-          safeStream.viewerSamples.forEach((sample: any) => {
-            totalViewersSum += (Number(sample.viewers) || 0);
-            totalViewerSamplesCount += 1;
-          });
+        snapshot.forEach((doc) => {
+          fetchedStreams.push({ id: doc.id, ...doc.data() });
         });
 
-        setStreams(fetchedStreams);
+        // 선택된 월(selectedMonth)에 해당하는 데이터만 필터링
+        const filteredStreams = fetchedStreams.filter((stream) => {
+          if (!stream.startedAt) return false;
+          return stream.startedAt.startsWith(selectedMonth);
+        });
+
+        setStreams(filteredStreams);
+
+        // 통계 계산 (일수, 횟수, 최고/평균 시청자, 총 시간)
+        const daysSet = new Set();
+        let durationMin = 0;
+        let maxV = 0;
+        let sumAvgV = 0;
+
+        filteredStreams.forEach((s) => {
+          if (s.startedAt) {
+            daysSet.add(s.startedAt.substring(0, 10)); // YYYY-MM-DD 추출
+          }
+          durationMin += (Number(s.durationMinutes) || 0);
+          if (Number(s.maxViewers) > maxV) maxV = Number(s.maxViewers);
+          sumAvgV += (Number(s.avgViewers) || 0);
+        });
+
         setStats({
-          totalDays: uniqueDays.size,
-          totalCount: fetchedStreams.length,
-          maxViewers: globalMaxViewers,
-          avgViewers: totalViewerSamplesCount > 0 ? Math.round(totalViewersSum / totalViewerSamplesCount) : 0,
+          totalDays: daysSet.size, // 방송한 날짜 수
+          totalCount: filteredStreams.length, // 총 방송 횟수
+          totalDurationMin: durationMin,
+          maxViewers: maxV,
+          avgViewers: filteredStreams.length > 0 ? Math.round(sumAvgV / filteredStreams.length) : 0
         });
 
       } catch (error) {
         console.error("데이터 불러오기 실패:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchMonthlyData();
-  }, [selectedMonth]); // 💡 nowTrigger를 dependency에 넣지 않아 불필요한 DB 읽기 방지
+    fetchData();
+  }, [selectedMonth]);
 
-  // UI 헬퍼 함수들
-  const formatDuration = (minutes: number) => {
-    if (!minutes || minutes < 0) return '0분';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
-  };
-
+  // ==========================================
+  // 3. 시간 계산 및 포맷 헬퍼 함수
+  // ==========================================
   const getLiveDurationMinutes = (stream: any) => {
     if (!stream.startedAt) return 0;
     const start = new Date(stream.startedAt).getTime();
-    const end = stream.isLive ? nowTrigger : new Date(stream.endedAt).getTime();
-    if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
-    return Math.max(0, Math.round((end - start) / 60000));
+    const now = new Date().getTime();
+    if (Number.isNaN(start)) return 0;
+    return Math.max(0, Math.round((now - start) / 60000));
   };
 
-  const extractTime = (isoString: string) => {
-    if (!isoString) return '';
-    return isoString.substring(11, 16);
+  const extractTime = (timestamp: string) => {
+    if (!timestamp) return '시간 정보 없음';
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '시간 정보 없음';
+    
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? '오후' : '오전';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0시는 12시로 표시
+    
+    return `${ampm} ${hours}:${minutes}`;
   };
 
-  // 💡 월간 총 방송 시간 실시간 계산
-  const totalDurationMin = streams.reduce((sum, stream) => {
-    return sum + (stream.isLive ? getLiveDurationMinutes(stream) : stream.durationMinutes);
-  }, 0);
+  // ==========================================
+  // 4. 월별 전체 일수 계산 (UI 표시용 - 💡 반드시 return 직전에 위치!)
+  // ==========================================
+  const [year, month] = selectedMonth.split('-');
+  const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
 
-  // 💡 2. 평균 방송 시간 추가 계산
-  const avgDurationMin = stats.totalCount > 0 ? Math.round(totalDurationMin / stats.totalCount) : 0;
-
+  // ==========================================
+  // 5. UI 디자인 렌더링 (JSX)
+  // ==========================================
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-[#F8F9FD] p-4 sm:p-8 text-gray-800 font-sans">
       
-      {/* 📅 월 선택기 */}
-      <div className="flex items-center space-x-4 bg-white p-4 rounded-xl shadow border">
-        <label htmlFor="month-select" className="font-bold text-gray-700">조회 월 선택:</label>
-        <input 
-          type="month" id="month-select" value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+      {/* 상단 헤더 영역 */}
+      <header className="max-w-6xl mx-auto flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <span className="text-xl">✨</span> 몽나 월별 방송 현황판
+        </h1>
+        <button className="bg-white border border-gray-200 px-4 py-2 rounded-full text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors">
+          🌙 다크 모드
+        </button>
+      </header>
+
+      {/* 라이브 상태 배너 (현재는 기본 오프라인 UI, 추후 실시간 연동 공간) */}
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl p-4 mb-6 shadow-sm flex items-center gap-4">
+        <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold tracking-wide">OFFLINE</span>
+        <span className="text-gray-600 text-sm font-medium">현재 진행 중인 방송이 없습니다.</span>
       </div>
 
-      {loading ? (
-        <div className="text-center py-10 font-bold text-gray-500">데이터를 불러오는 중입니다...</div>
-      ) : (
-        <>
-          {/* 📊 월별 통계 */}
-          <div className="bg-white p-6 rounded-xl shadow border">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">📊 {selectedMonth} 월별 통계</h2>
-            {/* 💡 카드가 6개가 되었으므로 grid 구조가 딱 맞아떨어짐 */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">방송 일수</p>
-                <p className="text-2xl font-bold text-blue-700">{stats.totalDays}일</p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">방송 횟수</p>
-                <p className="text-2xl font-bold text-blue-700">{stats.totalCount}회</p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">총 방송 시간</p>
-                <p className="text-2xl font-bold text-blue-700">{formatDuration(totalDurationMin)}</p>
-              </div>
-              
-              {/* 💡 평균 방송 시간 카드 추가 */}
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">평균 방송 시간</p>
-                <p className="text-2xl font-bold text-blue-700">{formatDuration(avgDurationMin)}</p>
-              </div>
+      {/* 메인 레이아웃 (좌측 메뉴 + 우측 콘텐츠) */}
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
+        
+        {/* 👉 좌측 사이드바 (연도/월 선택) */}
+        <aside className="w-full md:w-64 flex-shrink-0">
+          <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-8">
+            <h2 className="text-xl font-bold mb-4">
+              {selectedMonth ? `${year}년` : '연도 선택'}
+            </h2>
+            <div className="relative">
+              <input 
+                type="month" 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="w-full bg-[#A588F8] text-white font-bold text-center rounded-xl py-3 px-4 focus:outline-none focus:ring-4 focus:ring-purple-200 cursor-pointer transition-shadow"
+              />
+            </div>
+          </div>
+        </aside>
 
-              <div className="bg-red-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">월간 최고 시청자</p>
-                <p className="text-2xl font-bold text-red-600">{stats.maxViewers.toLocaleString()}명</p>
+        {/* 👉 우측 메인 콘텐츠 */}
+        <main className="flex-1 space-y-6">
+          
+          {/* [카드 1] 월별 통계 & 분포도 */}
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-bold mb-8 flex items-center gap-2">
+              📈 {selectedMonth ? `${month}월` : ''} 방송 통계 & 분포도
+            </h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-center mb-10">
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">🗓️ 방송 일수</p>
+                <p className="text-2xl font-bold text-gray-800">
+                  <span className="text-orange-500 text-xl mr-1">🏆</span> 
+                  {stats.totalDays}일 <span className="text-gray-400 text-sm font-normal">/ {daysInMonth}일</span>
+                </p>
               </div>
-              <div className="bg-green-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-semibold mb-1">월간 평균 시청자</p>
-                <p className="text-2xl font-bold text-green-600">{stats.avgViewers.toLocaleString()}명</p>
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">🎬 방송 횟수</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.totalCount}회</p>
               </div>
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">🕒 총 방송 시간</p>
+                <p className="text-2xl font-bold text-gray-800">
+                  {Math.floor(stats.totalDurationMin / 60)}시간 {stats.totalDurationMin % 60}분
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">⭐ 애청자</p>
+                <p className="text-2xl font-bold text-gray-800">- 명</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">⬆️ 최고 시청자</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.maxViewers}명</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm mb-2 flex justify-center items-center gap-1">📊 평균 시청자</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.avgViewers}명</p>
+              </div>
+            </div>
+
+            {/* 분포도 차트 자리 (디자인 영역만 유지) */}
+            <div className="w-full h-64 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center">
+              <span className="text-gray-400 text-sm">분포도 차트 영역 (준비 중)</span>
             </div>
           </div>
 
-          {/* 🎥 개별 방송 세션 목록 */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-800 ml-2">📝 방송 아카이브</h2>
+          {/* [카드 2] 상세 타임라인 내역 */}
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+              📝 상세 타임라인 내역
+            </h3>
             
             {streams.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-xl shadow border text-gray-500">해당 월의 방송 기록이 없습니다.</div>
+              <div className="py-12 text-center">
+                <p className="text-[#A588F8] font-medium">해당 월에는 기록된 타임라인이 없습니다.</p>
+              </div>
             ) : (
-              streams.map((stream) => (
-                <div key={stream.broadcastId} className={`p-5 rounded-xl shadow border hover:shadow-md transition-shadow ${stream.isLive ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
-                  
-                  <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-3 mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-bold">
-                        {stream.startedAt?.substring(0, 10)}
-                      </span>
-                      <span className="text-gray-600 font-medium">
-                        {extractTime(stream.startedAt)} ~ {stream.endedAt ? extractTime(stream.endedAt) : <span className="text-red-500 animate-pulse font-bold">방송중</span>} 
-                      </span>
-                    </div>
-                    <div className={`mt-2 md:mt-0 font-bold ${stream.isLive ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>
-                      ⏱ {formatDuration(stream.isLive ? getLiveDurationMinutes(stream) : stream.durationMinutes)}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-4 mb-4">
+              <div className="space-y-4">
+                {streams.map((stream) => (
+                  <div key={stream.broadcastId} className="border border-gray-200 rounded-xl p-5 hover:border-purple-300 transition-colors bg-gray-50/50 flex flex-col md:flex-row gap-5">
+                    
+                    {/* 썸네일 영역 */}
                     {stream.thumbnail && (
-                      <img src={stream.thumbnail} alt="방송 썸네일" className="w-32 h-20 object-cover rounded-lg shadow-sm" />
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={stream.thumbnail} 
+                          alt="방송 썸네일" 
+                          className="w-full md:w-40 h-auto object-cover rounded-lg border border-gray-200" 
+                        />
+                      </div>
                     )}
-                    <div className="flex flex-col justify-center">
-                      <p className="font-semibold text-blue-500 text-sm mb-1">[{stream.category}]</p>
-                      <p className="text-gray-900 font-bold text-lg leading-tight">{stream.title}</p>
+                    
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                        <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                          {stream.title}
+                          {/* LIVE 뱃지 */}
+                          {stream.isLive && (
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded animate-pulse shadow-sm">LIVE</span>
+                          )}
+                        </h4>
+                        <span className="text-sm text-gray-500 mt-1 sm:mt-0 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">
+                          {stream.startedAt ? extractTime(stream.startedAt) : '시간 정보 없음'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
+                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-medium">
+                          {stream.category || '카테고리 없음'}
+                        </span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">최고 {stream.maxViewers || 0}명</span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">평균 {stream.avgViewers || 0}명</span>
+                        <span className="bg-blue-50 text-blue-600 font-medium px-2 py-0.5 rounded">
+                          {stream.isLive ? getLiveDurationMinutes(stream) : stream.durationMinutes || 0}분 진행
+                        </span>
+                      </div>
+                      
+                      {/* 제목 및 카테고리 변경 이력 */}
+                      {(stream.titleChanges?.length > 0 || stream.categoryChanges?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1.5 bg-white p-3 rounded-md">
+                          {stream.titleChanges?.map((tc: any, idx: number) => (
+                            <div key={`title-${idx}`}>🕒 {extractTime(tc.timestamp)}: 제목 변경 ({tc.before} ➔ <span className="font-medium text-gray-700">{tc.after}</span>)</div>
+                          ))}
+                          {stream.categoryChanges?.map((cc: any, idx: number) => (
+                            <div key={`cate-${idx}`}>🕒 {extractTime(cc.timestamp)}: 카테고리 변경 ({cc.before} ➔ <span className="font-medium text-gray-700">{cc.after}</span>)</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex space-x-6 mb-4 bg-gray-50 p-3 rounded-lg">
-                    <p className="text-gray-700 font-medium">📈 최고 시청자: <span className="font-bold text-red-500">{stream.maxViewers.toLocaleString()}명</span></p>
-                    <p className="text-gray-700 font-medium">📊 평균 시청자: <span className="font-bold text-green-600">{stream.avgViewers.toLocaleString()}명</span></p>
-                  </div>
-
-                  {stream.titleChanges.length > 0 && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm border border-blue-100">
-                      {stream.titleChanges.map((change: any, idx: number) => (
-                        <div key={idx} className="mb-2 last:mb-0">
-                          <p className="text-blue-700 font-semibold mb-1">{extractTime(change.timestamp)} ✏️ 방송 제목 변경</p>
-                          <div className="pl-2 border-l-2 border-blue-300">
-                            <p className="line-through text-gray-500">{change.before}</p>
-                            <p className="text-gray-900 font-bold">→ {change.after}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {stream.categoryChanges.length > 0 && (
-                    <div className="mt-3 p-3 bg-purple-50 rounded-lg text-sm border border-purple-100">
-                      {stream.categoryChanges.map((change: any, idx: number) => (
-                        <div key={idx} className="mb-2 last:mb-0">
-                          <p className="text-purple-700 font-semibold mb-1">{extractTime(change.timestamp)} 🗂️ 카테고리 변경</p>
-                          <div className="pl-2 border-l-2 border-purple-300">
-                            <p className="line-through text-gray-500">{change.before}</p>
-                            <p className="text-gray-900 font-bold">→ {change.after}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
-        </>
-      )}
+
+        </main>
+      </div>
     </div>
   );
 }
