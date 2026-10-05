@@ -1,8 +1,11 @@
+import './globals.css';
+
 export const metadata = {
   icons: {
     icon: 'https://cdn-icons-png.flaticon.com/512/1823/1823321.png',
   },
 };
+
 export default function RootLayout({
   children,
 }: {
