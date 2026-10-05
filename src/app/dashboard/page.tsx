@@ -1,336 +1,265 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
-  authDomain: "mongna-vod.firebaseapp.com",
-  projectId: "mongna-vod",
-  storageBucket: "mongna-vod.firebasestorage.app",
-  messagingSenderId: "310663611402",
-  appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../../lib/firebase'; // 💡 본인 경로에 맞게 수정
 
 export default function Dashboard() {
-  const [status, setStatus] = useState<any>(null);
-  const [timeline, setTimeline] = useState<any[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState({ totalMinutes: 0, maxViewers: 0, avgViewers: 0 });
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // 1. 사용자 PC 시간이 아닌 KST(한국 표준시) 기준으로 완벽하게 이번 달 설정
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(new Date());
 
-  const startYear = 2026;
-  const startMonth = 10;
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
 
-  const availableMonths: string[] = [];
-  for (let y = startYear; y <= currentYear; y++) {
-    const mStart = (y === startYear) ? startMonth : 1;
-    const mEnd = (y === currentYear) ? currentMonth : 12;
-    for (let m = mStart; m <= mEnd; m++) {
-      availableMonths.push(`${y}-${String(m).padStart(2, '0')}`);
-    }
-  }
-  availableMonths.reverse();
-
-  const [selectedMonth, setSelectedMonth] = useState(availableMonths[0]);
+    return `${year}-${month}`;
+  });
+  
+  const [streams, setStreams] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalDays: 0, totalCount: 0, 
+    maxViewers: 0, avgViewers: 0
+  });
+  const [loading, setLoading] = useState(true);
+  
+  // 라이브 방송 시간 실시간 갱신용 Trigger (1분마다)
+  const [nowTrigger, setNowTrigger] = useState(Date.now());
 
   useEffect(() => {
-    // 1. 현재 방송 상태
-    const statusRef = doc(db, 'mongna_calendar_data', 'broad_status');
-    const unsubscribeStatus = onSnapshot(statusRef, (docSnap) => {
-      if (docSnap.exists()) setStatus(docSnap.data());
-    });
+    const interval = setInterval(() => setNowTrigger(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-    // 2. 타임라인 기록
-    const timelineRef = collection(db, 'mongna_timeline');
-    const startOfMonth = `${selectedMonth}-01T00:00:00.000Z`;
-    const endOfMonth = `${selectedMonth}-31T23:59:59.999Z`;
-    
-    const qTimeline = query(
-      timelineRef, 
-      where('timestamp', '>=', startOfMonth),
-      where('timestamp', '<=', endOfMonth),
-      orderBy('timestamp', 'desc')
-    );
+  useEffect(() => {
+    const fetchMonthlyData = async () => {
+      setLoading(true);
+      try {
+        const [yearStr, monthStr] = selectedMonth.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10);
+        
+        const startKst = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000+09:00`;
+        const nextMonth = month === 12 ? 1 : month + 1;
+        const nextYear = month === 12 ? year + 1 : year;
+        const nextMonthKst = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000+09:00`;
 
-    const unsubscribeTimeline = onSnapshot(qTimeline, (snapshot) => {
-      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTimeline(logs);
-    });
+        const streamsRef = collection(db, 'mongna_streams');
+        const q = query(
+          streamsRef,
+          where("startedAt", ">=", startKst),
+          where("startedAt", "<", nextMonthKst),
+          orderBy("startedAt", "desc")
+        );
 
-    // 3. 월별 시청자 통계 및 방송 시간
-    const viewersRef = collection(db, 'mongna_live_viewers');
-    const qViewers = query(
-      viewersRef,
-      where('date', '>=', `${selectedMonth}-01`),
-      where('date', '<=', `${selectedMonth}-31`)
-    );
+        const snap = await getDocs(q);
+        const fetchedStreams: any[] = [];
+        const uniqueDays = new Set<string>();
+        
+        let globalMaxViewers = 0;
+        let totalViewersSum = 0;
+        let totalViewerSamplesCount = 0;
 
-    const unsubscribeViewers = onSnapshot(qViewers, (snapshot) => {
-      let totalMin = 0;
-      let maxV = 0;
-      let sumV = 0;
+        snap.forEach(doc => {
+          const data = doc.data();
+          const safeStream = {
+            ...data,
+            durationMinutes: Number(data.durationMinutes) || 0,
+            maxViewers: Number(data.maxViewers) || 0,
+            avgViewers: Number(data.avgViewers) || 0,
+            viewerSamples: Array.isArray(data.viewerSamples) ? data.viewerSamples : [],
+            titleChanges: Array.isArray(data.titleChanges) ? data.titleChanges : [],
+            categoryChanges: Array.isArray(data.categoryChanges) ? data.categoryChanges : []
+          };
+          fetchedStreams.push(safeStream);
+          
+          if (safeStream.startedAt) {
+            uniqueDays.add(safeStream.startedAt.substring(0, 10)); 
+          }
+          
+          if (safeStream.maxViewers > globalMaxViewers) globalMaxViewers = safeStream.maxViewers;
 
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.logs && Array.isArray(data.logs)) {
-          totalMin += data.logs.length;
-          data.logs.forEach((log: any) => {
-            if (log.viewers > maxV) maxV = log.viewers;
-            sumV += log.viewers;
+          safeStream.viewerSamples.forEach((sample: any) => {
+            totalViewersSum += (Number(sample.viewers) || 0);
+            totalViewerSamplesCount += 1;
           });
-        }
-      });
+        });
 
-      setMonthlyStats({
-        totalMinutes: totalMin,
-        maxViewers: maxV,
-        avgViewers: totalMin > 0 ? Math.round(sumV / totalMin) : 0
-      });
-    });
+        setStreams(fetchedStreams);
+        setStats({
+          totalDays: uniqueDays.size,
+          totalCount: fetchedStreams.length,
+          maxViewers: globalMaxViewers,
+          avgViewers: totalViewerSamplesCount > 0 ? Math.round(totalViewersSum / totalViewerSamplesCount) : 0,
+        });
 
-    return () => {
-      unsubscribeStatus();
-      unsubscribeTimeline();
-      unsubscribeViewers();
+      } catch (error) {
+        console.error("데이터 불러오기 실패:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [selectedMonth]);
 
-  const groupedTimeline = timeline.reduce((groups, log) => {
-    const date = log.timestamp.split('T')[0];
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(log);
-    return groups;
-  }, {});
+    fetchMonthlyData();
+  }, [selectedMonth]); // 💡 nowTrigger를 dependency에 넣지 않아 불필요한 DB 읽기 방지
 
-  const groupedNav = availableMonths.reduce((acc, ym) => {
-    const [y, m] = ym.split('-');
-    if (!acc[y]) acc[y] = [];
-    acc[y].push(m);
-    return acc;
-  }, {} as Record<string, string[]>);
-
-  // 그래프(히트맵)용 데이터
-  const [selYear, selMon] = selectedMonth.split('-');
-  const daysInMonth = new Date(Number(selYear), Number(selMon), 0).getDate();
-  const heatmapData = Array.from({ length: 24 }, () => Array(daysInMonth).fill(0));
-  const activeDays = new Set();
-
-  timeline.forEach(log => {
-    const d = new Date(log.timestamp);
-    const day = d.getDate() - 1;
-    const hour = d.getHours();
-    heatmapData[hour][day] += 1;
-    activeDays.add(day);
-  });
-
-  const colors = {
-    bg: isDarkMode ? '#1a1625' : '#f8f6fb',
-    cardBg: isDarkMode ? '#2d2438' : '#ffffff',
-    text: isDarkMode ? '#f3e8ff' : '#2d3748',
-    textMuted: isDarkMode ? '#a78bfa' : '#8b5cf6',
-    border: isDarkMode ? '#4c3e66' : '#ede9fe',
-    primary: isDarkMode ? '#8b5cf6' : '#a78bfa',
-    graphActive: isDarkMode ? '#34d399' : '#10b981',
-    graphEmpty: isDarkMode ? '#3b2f4a' : '#f3f4f6',
-    statLabel: isDarkMode ? '#9ca3af' : '#6b7280',
+  // UI 헬퍼 함수들
+  const formatDuration = (minutes: number) => {
+    if (!minutes || minutes < 0) return '0분';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
   };
 
-  const styles = {
-    container: { minHeight: '100vh', backgroundColor: colors.bg, padding: '2rem', fontFamily: 'sans-serif', color: colors.text, transition: 'all 0.3s ease' },
-    wrapper: { maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column' as const, gap: '1.5rem' },
-    
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem' },
-    titleBox: { display: 'flex', alignItems: 'center', gap: '12px' },
-    logo: { height: '38px', filter: isDarkMode ? 'invert(1) drop-shadow(0 0 2px rgba(255,255,255,0.3))' : 'none', transition: '0.3s' },
-    title: { fontSize: '1.8rem', fontWeight: 'bold', margin: 0 },
-    themeBtn: { padding: '0.6rem 1.2rem', borderRadius: '30px', border: `1px solid ${colors.border}`, backgroundColor: colors.cardBg, color: colors.text, cursor: 'pointer', fontWeight: 'bold', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '8px' },
-    
-    card: { backgroundColor: colors.cardBg, borderRadius: '1rem', padding: '1.5rem', boxShadow: isDarkMode ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 15px rgba(139, 92, 246, 0.08)', border: `1px solid ${colors.border}`, transition: 'all 0.3s ease' },
-    
-    compactStatusLine: { display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '0.8rem 1.5rem', backgroundColor: colors.cardBg, borderRadius: '0.8rem', border: `1px solid ${colors.border}`, boxShadow: isDarkMode ? 'none' : '0 2px 8px rgba(139,92,246,0.05)' },
-    badgeOn: { backgroundColor: '#fee2e2', color: '#dc2626', padding: '0.2rem 0.8rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 'bold', animation: 'pulse 2s infinite' },
-    badgeOff: { backgroundColor: isDarkMode ? '#4c3e66' : '#f3f4f6', color: isDarkMode ? '#e2e8f0' : '#4b5563', padding: '0.2rem 0.8rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 'bold' },
-    statusText: { fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', gap: '1rem' },
-    
-    layoutRow: { display: 'flex', gap: '2rem', alignItems: 'flex-start' },
-    navColumn: { width: '220px', flexShrink: 0 },
-    mainColumn: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: '1.5rem' },
-    
-    navYearTitle: { fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: `2px solid ${colors.border}` },
-    navMonthBtn: (isActive: boolean) => ({
-      display: 'block', width: '100%', textAlign: 'left' as const, padding: '0.8rem 1rem', borderRadius: '0.5rem', fontWeight: 'bold', cursor: 'pointer', border: 'none', transition: '0.2s', marginBottom: '0.5rem',
-      backgroundColor: isActive ? colors.primary : 'transparent',
-      color: isActive ? '#ffffff' : colors.textMuted,
-    }),
-
-    // 💡 애청자가 빠지면서 디자인 밸런스를 맞춘 통계 레이아웃
-    statsContainer: { backgroundColor: isDarkMode ? '#1e1a24' : '#f8fafc', padding: '1.5rem', borderRadius: '0.8rem', border: `1px solid ${colors.border}`, marginBottom: '1.5rem' },
-    statsRowTop: { display: 'flex', justifyContent: 'center', gap: '5rem', marginBottom: '1.5rem' },
-    statsRowBottom: { display: 'flex', justifyContent: 'center', gap: '5rem' },
-    statItem: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center' },
-    statLabel: { fontSize: '0.85rem', color: colors.statLabel, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '6px' },
-    statValue: { fontSize: '1.3rem', fontWeight: 'bold' },
-    
-    graphContainer: { padding: '1.5rem', backgroundColor: isDarkMode ? '#1e1a24' : '#f8fafc', borderRadius: '0.8rem', border: `1px solid ${colors.border}` },
-    graphRow: { display: 'flex', height: '14px', marginBottom: '2px', alignItems: 'center' },
-    graphYLabel: { width: '30px', fontSize: '0.7rem', color: colors.statLabel, textAlign: 'right' as const, paddingRight: '8px' },
-    graphCell: (val: number) => ({
-      flex: 1, margin: '0 1px', borderRadius: '2px', transition: '0.2s',
-      backgroundColor: val > 0 ? colors.graphActive : colors.graphEmpty,
-      opacity: val > 0 ? Math.min(0.5 + (val * 0.1), 1) : 1
-    }),
-    graphXAxis: { display: 'flex', paddingLeft: '30px', marginTop: '8px' },
-    graphXLabel: { flex: 1, textAlign: 'center' as const, fontSize: '0.7rem', color: colors.statLabel },
-
-    dateGroup: { marginBottom: '2.5rem' },
-    dateHeader: { backgroundColor: colors.primary, color: 'white', padding: '0.4rem 1rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', display: 'inline-block', marginBottom: '1rem' },
-    timelineItem: { display: 'flex', gap: '1rem', padding: '0.8rem 0', borderBottom: `1px solid ${colors.border}` },
-    timeText: { fontSize: '0.85rem', color: colors.textMuted, minWidth: '60px', paddingTop: '0.2rem', fontWeight: 'bold' },
-    tagTitle: { backgroundColor: isDarkMode ? '#4c1d95' : '#f3e8ff', color: isDarkMode ? '#e9d5ff' : '#7e22ce', padding: '0.2rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', marginRight: '0.5rem' },
-    tagCategory: { backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', color: isDarkMode ? '#a7f3d0' : '#15803d', padding: '0.2rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', marginRight: '0.5rem' },
-    logMessage: { fontSize: '0.9rem', margin: 0, marginTop: '0.35rem', lineHeight: '1.4' }
+  const getLiveDurationMinutes = (stream: any) => {
+    if (!stream.startedAt) return 0;
+    const start = new Date(stream.startedAt).getTime();
+    const end = stream.isLive ? nowTrigger : new Date(stream.endedAt).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
+    return Math.max(0, Math.round((end - start) / 60000));
   };
+
+  const extractTime = (isoString: string) => {
+    if (!isoString) return '';
+    return isoString.substring(11, 16);
+  };
+
+  // 💡 월간 총 방송 시간 실시간 계산
+  const totalDurationMin = streams.reduce((sum, stream) => {
+    return sum + (stream.isLive ? getLiveDurationMinutes(stream) : stream.durationMinutes);
+  }, 0);
+
+  // 💡 2. 평균 방송 시간 추가 계산
+  const avgDurationMin = stats.totalCount > 0 ? Math.round(totalDurationMin / stats.totalCount) : 0;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.wrapper}>
-        
-        <div style={styles.header}>
-          <div style={styles.titleBox}>
-            <img src="/logo-new.png" alt="몽나 로고" style={styles.logo} />
-            <h1 style={styles.title}>몽나 월별 방송 현황판</h1>
-          </div>
-          <button style={styles.themeBtn} onClick={() => setIsDarkMode(!isDarkMode)}>
-            {isDarkMode ? '☀️ 라이트 모드' : '🌙 다크 모드'}
-          </button>
-        </div>
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+      
+      {/* 📅 월 선택기 */}
+      <div className="flex items-center space-x-4 bg-white p-4 rounded-xl shadow border">
+        <label htmlFor="month-select" className="font-bold text-gray-700">조회 월 선택:</label>
+        <input 
+          type="month" id="month-select" value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
 
-        <div style={styles.compactStatusLine}>
-          {status?.isLive ? <span style={styles.badgeOn}>ON AIR 🔴</span> : <span style={styles.badgeOff}>OFFLINE</span>}
-          <div style={styles.statusText}>
-            {status?.isLive ? (
-              <>
-                <span><span style={{color: colors.statLabel}}>방제:</span> {status.title}</span>
-                <span><span style={{color: colors.statLabel}}>카테고리:</span> {status.category}</span>
-                <span style={{color: '#3b82f6'}}>👁️ {status.viewers?.toLocaleString()}명</span>
-              </>
+      {loading ? (
+        <div className="text-center py-10 font-bold text-gray-500">데이터를 불러오는 중입니다...</div>
+      ) : (
+        <>
+          {/* 📊 월별 통계 */}
+          <div className="bg-white p-6 rounded-xl shadow border">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">📊 {selectedMonth} 월별 통계</h2>
+            {/* 💡 카드가 6개가 되었으므로 grid 구조가 딱 맞아떨어짐 */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">방송 일수</p>
+                <p className="text-2xl font-bold text-blue-700">{stats.totalDays}일</p>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">방송 횟수</p>
+                <p className="text-2xl font-bold text-blue-700">{stats.totalCount}회</p>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">총 방송 시간</p>
+                <p className="text-2xl font-bold text-blue-700">{formatDuration(totalDurationMin)}</p>
+              </div>
+              
+              {/* 💡 평균 방송 시간 카드 추가 */}
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">평균 방송 시간</p>
+                <p className="text-2xl font-bold text-blue-700">{formatDuration(avgDurationMin)}</p>
+              </div>
+
+              <div className="bg-red-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">월간 최고 시청자</p>
+                <p className="text-2xl font-bold text-red-600">{stats.maxViewers.toLocaleString()}명</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500 font-semibold mb-1">월간 평균 시청자</p>
+                <p className="text-2xl font-bold text-green-600">{stats.avgViewers.toLocaleString()}명</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 🎥 개별 방송 세션 목록 */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800 ml-2">📝 방송 아카이브</h2>
+            
+            {streams.length === 0 ? (
+              <div className="text-center py-10 bg-white rounded-xl shadow border text-gray-500">해당 월의 방송 기록이 없습니다.</div>
             ) : (
-              <span style={{color: colors.statLabel}}>현재 진행 중인 방송이 없습니다.</span>
+              streams.map((stream) => (
+                <div key={stream.broadcastId} className={`p-5 rounded-xl shadow border hover:shadow-md transition-shadow ${stream.isLive ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
+                  
+                  <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-3 mb-3">
+                    <div className="flex items-center space-x-3">
+                      <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {stream.startedAt?.substring(0, 10)}
+                      </span>
+                      <span className="text-gray-600 font-medium">
+                        {extractTime(stream.startedAt)} ~ {stream.endedAt ? extractTime(stream.endedAt) : <span className="text-red-500 animate-pulse font-bold">방송중</span>} 
+                      </span>
+                    </div>
+                    <div className={`mt-2 md:mt-0 font-bold ${stream.isLive ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>
+                      ⏱ {formatDuration(stream.isLive ? getLiveDurationMinutes(stream) : stream.durationMinutes)}
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-4 mb-4">
+                    {stream.thumbnail && (
+                      <img src={stream.thumbnail} alt="방송 썸네일" className="w-32 h-20 object-cover rounded-lg shadow-sm" />
+                    )}
+                    <div className="flex flex-col justify-center">
+                      <p className="font-semibold text-blue-500 text-sm mb-1">[{stream.category}]</p>
+                      <p className="text-gray-900 font-bold text-lg leading-tight">{stream.title}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-6 mb-4 bg-gray-50 p-3 rounded-lg">
+                    <p className="text-gray-700 font-medium">📈 최고 시청자: <span className="font-bold text-red-500">{stream.maxViewers.toLocaleString()}명</span></p>
+                    <p className="text-gray-700 font-medium">📊 평균 시청자: <span className="font-bold text-green-600">{stream.avgViewers.toLocaleString()}명</span></p>
+                  </div>
+
+                  {stream.titleChanges.length > 0 && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm border border-blue-100">
+                      {stream.titleChanges.map((change: any, idx: number) => (
+                        <div key={idx} className="mb-2 last:mb-0">
+                          <p className="text-blue-700 font-semibold mb-1">{extractTime(change.timestamp)} ✏️ 방송 제목 변경</p>
+                          <div className="pl-2 border-l-2 border-blue-300">
+                            <p className="line-through text-gray-500">{change.before}</p>
+                            <p className="text-gray-900 font-bold">→ {change.after}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {stream.categoryChanges.length > 0 && (
+                    <div className="mt-3 p-3 bg-purple-50 rounded-lg text-sm border border-purple-100">
+                      {stream.categoryChanges.map((change: any, idx: number) => (
+                        <div key={idx} className="mb-2 last:mb-0">
+                          <p className="text-purple-700 font-semibold mb-1">{extractTime(change.timestamp)} 🗂️ 카테고리 변경</p>
+                          <div className="pl-2 border-l-2 border-purple-300">
+                            <p className="line-through text-gray-500">{change.before}</p>
+                            <p className="text-gray-900 font-bold">→ {change.after}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                </div>
+              ))
             )}
           </div>
-        </div>
-
-        <div style={styles.layoutRow}>
-          
-          <div style={styles.navColumn}>
-            <div style={styles.card}>
-              {Object.keys(groupedNav).sort().reverse().map(year => (
-                <div key={year} style={{ marginBottom: '1.5rem' }}>
-                  <div style={styles.navYearTitle}>{year}년</div>
-                  {groupedNav[year].sort().reverse().map(month => {
-                    const ym = `${year}-${month}`;
-                    return (
-                      <button key={ym} style={styles.navMonthBtn(selectedMonth === ym)} onClick={() => setSelectedMonth(ym)}>
-                        {month}월 데이터
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={styles.mainColumn}>
-            
-            <div style={styles.card}>
-              <h2 style={{...styles.cardTitle, marginBottom: '1.5rem'}}>📈 {selMon}월 방송 통계 & 분포도</h2>
-              
-              <div style={styles.statsContainer}>
-                <div style={styles.statsRowTop}>
-                  <div style={styles.statItem}>
-                    <div style={styles.statLabel}>📅 방송 일수</div>
-                    <div style={styles.statValue}>🏆 {activeDays.size}일 <span style={{fontSize:'0.9rem', color: colors.statLabel, fontWeight:'normal'}}>/ {daysInMonth}일</span></div>
-                  </div>
-                  <div style={styles.statItem}>
-                    <div style={styles.statLabel}>🕒 방송 시간</div>
-                    <div style={styles.statValue}>{Math.floor(monthlyStats.totalMinutes / 60)}시간 {monthlyStats.totalMinutes % 60}분</div>
-                  </div>
-                </div>
-                
-                {/* 💡 애청자를 제거하고 최고/평균 시청자만 깔끔하게 배치했습니다. */}
-                <div style={styles.statsRowBottom}>
-                  <div style={styles.statItem}>
-                    <div style={styles.statLabel}>⬆️ 최고 시청자</div>
-                    <div style={styles.statValue}>{monthlyStats.maxViewers.toLocaleString()}명</div>
-                  </div>
-                  <div style={styles.statItem}>
-                    <div style={styles.statLabel}>📊 평균 시청자</div>
-                    <div style={styles.statValue}>{monthlyStats.avgViewers.toLocaleString()}명</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={styles.graphContainer}>
-                {heatmapData.map((row, hour) => (
-                  <div key={hour} style={styles.graphRow}>
-                    <div style={styles.graphYLabel}>
-                      {hour % 3 === 0 ? String(hour).padStart(2, '0') : ''}
-                    </div>
-                    {row.map((val, dayIndex) => (
-                      <div key={dayIndex} style={styles.graphCell(val)} title={`${dayIndex + 1}일 ${hour}시: ${val}건`} />
-                    ))}
-                  </div>
-                ))}
-                <div style={styles.graphXAxis}>
-                  {Array.from({ length: daysInMonth }).map((_, i) => (
-                    <div key={i} style={styles.graphXLabel}>
-                      {(i + 1) % 5 === 0 || i === 0 || i === daysInMonth - 1 ? i + 1 : ''}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.card}>
-              <h2 style={{...styles.cardTitle, marginBottom: '1.5rem'}}>📝 상세 타임라인 내역</h2>
-              <div>
-                {Object.keys(groupedTimeline).length > 0 ? (
-                  Object.keys(groupedTimeline).sort().reverse().map(date => (
-                    <div key={date} style={styles.dateGroup}>
-                      <div style={styles.dateHeader}>
-                        📅 {date.split('-')[1]}월 {date.split('-')[2]}일
-                      </div>
-                      <div>
-                        {groupedTimeline[date].map((log: any) => (
-                          <div key={log.id} style={styles.timelineItem}>
-                            <span style={styles.timeText}>{log.timeStr}</span>
-                            <div>
-                              <span style={log.type === 'title' ? styles.tagTitle : styles.tagCategory}>
-                                {log.type === 'title' ? '방제' : '카테고리'}
-                              </span>
-                              <p style={styles.logMessage}>{log.message}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ textAlign: 'center', color: colors.textMuted, padding: '2rem 0' }}>해당 월에는 기록된 타임라인이 없습니다.</p>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
