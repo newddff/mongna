@@ -240,7 +240,17 @@ export default function HomePage() {
   };
 
   const todayObj = new Date();
-  const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;   const currentDay = todayObj.getDay();   const sunday = new Date(todayObj.getTime());   sunday.setDate(todayObj.getDate() - currentDay);    const thisWeekKeys = [];   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];   for (let i = 0; i < 7; i++) {     const d = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + i);     thisWeekKeys.push({       key: `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`,
+  const todayStr = `${todayObj.getFullYear()}-${todayObj.getMonth() + 1}-${todayObj.getDate()}`;
+  const currentDay = todayObj.getDay();
+  const sunday = new Date(todayObj.getTime());
+  sunday.setDate(todayObj.getDate() - currentDay);
+
+  const thisWeekKeys = [];
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + i);
+    thisWeekKeys.push({
+      key: `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`,
       dateNum: d.getDate(),
       dayIdx: d.getDay()
     });
@@ -273,4 +283,335 @@ export default function HomePage() {
         @keyframes live-pulse {
           0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); transform: scale(1); }
           50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); transform: scale(1.02); }
-          100% { box-shadow: 0 0 0 0 rgba(23
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
+        }
+        @keyframes live-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* 💡 2. 다크모드일 때 로고 주변에 하얀 빛 번짐(후광) 효과 주기 */
+        html:not([data-theme="light"]) .logo-img {
+          filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+        }
+      `}} />
+
+      <div style={{ background: 'linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%)', color: '#1e293b', minHeight: '100vh', fontFamily: 'Pretendard, sans-serif' }}>
+        
+        {isLoading && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <img src="/logo-new.png" alt="로고" style={{ height: '50px', marginBottom: '20px' }} />
+            <div style={{ color: '#a855f7', fontWeight: 800, fontSize: '15px' }}>데이터를 불러오는 중입니다... 🌙</div>
+          </div>
+        )}
+
+        <div className="nav-container" style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(168, 85, 247, 0.1)' }}>
+          {/* 💡 3. 메인 로고 교체 완료 */}
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
+          </a>
+
+          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
+            <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
+            <a href="/wiki" style={{ textDecoration: 'none', color: '#1e293b' }}>몽무위키</a>
+            <a href="/calendar" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
+            <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
+            <a href="/reward.html" style={{ textDecoration: 'none', color: '#1e293b' }}>업보(보상)</a>
+            {/* 🚨 상단 네비게이션에서 VOD 메뉴 삭제 완료 */}
+            <a href="/minigames" style={{ textDecoration: 'none', color: '#1e293b' }}>미니게임</a>
+          </div>
+
+          <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            {currentlyLive && (
+              <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
+            )}
+            {isAdmin && (
+              <button onClick={openSettings} style={{ background: '#f1f5f9', border: 'none', fontSize: '18px', cursor: 'pointer', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚙️</button>
+            )}
+            <button onClick={toggleAdmin} style={{ background: isAdmin ? '#ffd700' : 'white', border: '1px solid #ddd', padding: '6px 16px', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {isAdmin ? '👑 관리자' : '🔒 로그인'}
+            </button>
+          </div>
+        </div>
+
+        <div className="main-container" style={{ maxWidth: '1500px', margin: '40px auto', padding: '0 40px', display: 'flex', gap: '60px', alignItems: 'flex-start' }}>
+          
+          <div className="left-profile" style={{ flex: 1, position: 'sticky', top: '110px', display: 'flex' }}>
+            <img 
+              src={homeData.heroImg || 'https://via.placeholder.com/600x800/e2e8f0/94a3b8?text=Admin+Setting+Image'} 
+              alt="메인 사진" 
+              style={{ width: '100%', aspectRatio: '3/4', borderRadius: '32px', objectFit: 'cover', background: 'white', border: '6px solid white', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }} 
+            />
+          </div>
+
+          <div className="content-area" style={{ flex: 1.2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
+            
+            {/* 💡 실시간 썸네일 & 생방송 배지 렌더링 부분 */}
+            {currentlyLive && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginBottom: '-10px' }}>
+                
+                {liveThumb && (
+                  <img 
+                    src={liveThumb} 
+                    alt="몽나 실시간 생방송" 
+                    style={{ 
+                      width: '100%', 
+                      maxWidth: '450px', 
+                      aspectRatio: '16/9', 
+                      borderRadius: '20px', 
+                      objectFit: 'cover',
+                      border: '3px solid #ef4444',
+                      boxShadow: '0 10px 30px rgba(239, 68, 68, 0.25)'
+                    }} 
+                  />
+                )}
+
+                <a 
+                  href="https://play.sooplive.co.kr/pinktape8" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: '#ef4444', color: 'white', padding: '12px 24px',
+                    borderRadius: '30px', fontWeight: 900, fontSize: '16px',
+                    textDecoration: 'none', animation: 'live-pulse 2s infinite'
+                  }}
+                >
+                  <div style={{ width: '12px', height: '12px', background: 'white', borderRadius: '50%', animation: 'live-dot 1s infinite' }}></div>
+                  몽나님 현재 생방송 중! 보러가기 🏃‍♀️
+                </a>
+              </div>
+            )}
+
+            {(isBirthdayToday || isDebutToday) && (
+              <div style={{
+                background: 'linear-gradient(90deg, #fce7f3 0%, #f3e8ff 100%)',
+                border: '1px solid #fbcfe8', padding: '20px', borderRadius: '24px',
+                textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                marginBottom: '-20px'
+              }}>
+                {isBirthdayToday && (
+                  <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#db2777', margin: 0, marginBottom: isDebutToday ? '10px' : '0' }}>
+                    🎉 오늘은 몽나님 생일입니다! 모두 축하해 주세요! 🎉
+                  </h2>
+                )}
+                {isDebutToday && (
+                  <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#9333ea', margin: 0 }}>
+                    🎙️ 오늘은 몽나님 방송 데뷔 {debutDays}일째 되는 날! 🎙️
+                  </h2>
+                )}
+              </div>
+            )}
+
+            {/* 이번 주 일정 */}
+            <div style={{ background: '#ffffff', borderRadius: '24px', padding: isMobile ? '25px 20px' : '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>📅 이번 주 일정</h3>
+                <a href="/calendar" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none', background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold' }}>전체보기</a>
+              </div>
+              
+              {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {thisWeekKeys.map(dayObj => {
+                    const daySchedules = scheduleData[dayObj.key] || [];
+                    const isToday = (dayObj.key === todayStr);
+                    let dateColor = '#1e293b';
+                    if (dayObj.dayIdx === 0) dateColor = '#ef4444';
+                    else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
+
+                    return (
+                      <div key={dayObj.key} style={{ display: 'flex', alignItems: 'center', gap: '15px', background: isToday ? '#f8f4ff' : '#fff', borderRadius: '16px', padding: '15px', border: isToday ? '2px solid #a855f7' : '1px solid #f1f5f9' }}>
+                        <div style={{ minWidth: '45px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{dayNames[dayObj.dayIdx]}</div>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: dateColor }}>{dayObj.dateNum}</div>
+                        </div>
+                        <div style={{ width: '1px', background: '#e2e8f0', alignSelf: 'stretch' }}></div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {daySchedules.length > 0 ? (
+                            daySchedules.map((sch: any, idx: number) => {
+                              const bgColor = getEventColor(sch); 
+                              return (
+                                <div key={idx} style={{ background: bgColor, color: 'white', padding: '10px 12px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {sch.time && sch.time !== '시간 미정' && <span style={{ fontSize: '12px', opacity: 0.9 }}>⏰ {sch.time}</span>}
+                                  <span>{sch.title}</span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 500, padding: '5px 0' }}>일정이 없습니다.</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', width: '100%' }}>
+                  {thisWeekKeys.map(dayObj => {
+                    const daySchedules = scheduleData[dayObj.key] || [];
+                    const isToday = (dayObj.key === todayStr);
+                    let dateColor = '#1e293b';
+                    if (dayObj.dayIdx === 0) dateColor = '#ef4444';
+                    else if (dayObj.dayIdx === 6) dateColor = '#3b82f6';
+
+                    return (
+                      <div key={dayObj.key} style={{ border: isToday ? '2px solid #a855f7' : '1px solid #f1f5f9', borderRadius: '16px', padding: '10px', background: isToday ? '#f3e8ff' : '#ffffff', minHeight: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: dateColor, marginBottom: '2px', textAlign: 'center' }}>
+                          {dayObj.dateNum}
+                        </div>
+                        {daySchedules.map((sch: any, idx: number) => {
+                          const bgColor = getEventColor(sch); 
+                          const txtColor = sch.textColor || (sch.extendedProps && sch.extendedProps.textColor) || 'white';
+                          
+                          return (
+                            <div key={idx} style={{ borderRadius: '8px', padding: '6px', color: txtColor, fontSize: '11px', backgroundColor: bgColor, wordBreak: 'keep-all', overflowWrap: 'anywhere', lineHeight: '1.3', boxShadow: '0 2px 5px rgba(0,0,0,0.08)' }}>
+                              <div style={{ background: 'rgba(0,0,0,0.15)', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: 'white' }}>
+                                [{sch.time || '미정'}]
+                              </div>
+                              <div style={{ fontWeight: 'bold' }}>{sch.title}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 🏆 주간 레전드 캐치 랭킹 섹션 */}
+            {hotClips.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🏆 이번 주 레전드 캐치 TOP 3</div>
+                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                  {hotClips.map((clip, idx) => {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const medalColors = ['#fbbf24', '#94a3b8', '#b45309'];
+
+                    return (
+                      <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                        
+                        {/* 순위 금/은/동 배지 */}
+                        <div style={{ position: 'absolute', top: '-10px', left: '-10px', background: medalColors[idx], color: 'white', padding: '8px 14px', borderRadius: '16px', fontWeight: 900, zIndex: 10, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
+                          {medals[idx]} {idx + 1}위
+                        </div>
+                        
+                        <div style={{ position: 'relative', marginTop: '10px' }}>
+                           <img src={clip.thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
+                           {/* 조회수 표시 */}
+                           <div style={{ position: 'absolute', bottom: '22px', right: '8px', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                              👀 {clip.views.toLocaleString()}회
+                           </div>
+                        </div>
+                        
+                        <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {clip.title}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 유튜브 섹션 */}
+            <div>
+              <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>▶️ 몽튜브 최신 영상</div>
+              {ytError ? (
+                <div style={{ textAlign: 'center', color: '#ef4444', fontSize: '14px', padding: '40px 0', background: 'white', borderRadius: '20px' }} dangerouslySetInnerHTML={{ __html: ytError }} />
+              ) : (
+                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                  {ytVideos.map((item, idx) => {
+                    const video = item.snippet;
+                    const videoId = item.id.videoId || video.resourceId?.videoId;
+                    const thumb = video.thumbnails?.medium?.url || '';
+                    return (
+                      <a key={idx} href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+                        <img src={thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
+                        <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4' }}>{video.title}</div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 몽나링크 섹션 */}
+            <div>
+              <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🔗 몽나링크</div>
+              <div className="link-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+                {homeData.links.map((link: any, idx: number) => (
+                  <a key={idx} href={link.url || '#'} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative' }}>
+                    <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
+                      {link.icon && link.icon.startsWith('http') ? (
+                        <img src={link.icon} alt="아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        link.icon || '🔗'
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '16px', fontWeight: 900, marginBottom: '4px' }}>{link.title}</div>
+                      <div style={{ fontSize: '13px', color: '#64748b' }}>{link.sub}</div>
+                    </div>
+                  </a>
+                ))}
+                
+                {/* 🚨 몽다살(VOD 관리) 고정 카드 5번째 영역 추가 완료 */}
+                <a href="/vod.html" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative', gridColumn: '1 / -1' }}>
+                  <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
+                    💜
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 900, marginBottom: '4px' }}>몽다살</div>
+                    <div style={{ fontSize: '13px', color: '#64748b' }}>다시보기 VOD 보관 관리</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 관리자 설정 모달 */}
+        {isModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsModalOpen(false)}>
+            <div style={{ background: 'white', borderRadius: '24px', width: '650px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto', padding: '40px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+              <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#a855f7', marginBottom: '20px' }}>⚙️ 홈페이지 설정</h2>
+              
+              <div style={{ marginBottom: '20px', background: '#fff0f0', padding: '15px', borderRadius: '12px' }}>
+                <label style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={inputIsLive} onChange={e => setInputIsLive(e.target.checked)} />
+                  🚨 현재 방송중 배지 강제 켜기 (수동)
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>📸 좌측 메인 사진 URL</label>
+                <input type="text" value={inputHeroImg} onChange={e => setInputHeroImg(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ marginBottom: '30px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>▶ 유튜브 채널 ID</label>
+                <input type="text" value={inputYtChannelId} onChange={e => setInputYtChannelId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              </div>
+
+              <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>🔗 몽나링크 4개 설정</h3>
+              {inputLinks.map((l, i) => (
+                <div key={i} style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <input type="text" placeholder="제목" value={l.title} onChange={e => { const n = [...inputLinks]; n[i].title = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
+                    <input type="text" placeholder="설명" value={l.sub} onChange={e => { const n = [...inputLinks]; n[i].sub = e.target.value; setInputLinks(n); }} style={{ flex: 1, padding: '6px' }} />
+                  </div>
+                  <input type="text" placeholder="아이콘(이모티콘 또는 이미지 주소)" value={l.icon} onChange={e => { const n = [...inputLinks]; n[i].icon = e.target.value; setInputLinks(n); }} style={{ width: '100%', marginBottom: '8px', padding: '6px', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="URL" value={l.url} onChange={e => { const n = [...inputLinks]; n[i].url = e.target.value; setInputLinks(n); }} style={{ width: '100%', padding: '6px', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+
+              <button onClick={saveSettings} style={{ background: '#a855f7', color: 'white', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', width: '100%', marginTop: '20px', cursor: 'pointer' }}>설정 저장 및 적용하기</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
