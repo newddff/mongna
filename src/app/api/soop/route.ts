@@ -55,6 +55,83 @@ const parseSoopTimeToKstIso = (value: unknown): string | null => {
 
   return `${year}-${month}-${day}T${hour}:${minute}:${second}.000+09:00`;
 };
+// SOOP 카테고리 번호 → 이름 자동 조회
+const categoryCache = new Map<string, {
+  name: string;
+  expiresAt: number;
+}>();
+
+async function getSoopCategoryName(categoryNo: unknown): Promise<string | null> {
+  if (categoryNo == null || categoryNo === "") return null;
+
+  // SOOP 카테고리 번호는 앞에 0이 붙을 수 있으므로 숫자로 비교
+  const target = String(categoryNo).padStart(8, "0");
+
+  const cached = categoryCache.get(target);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.name;
+  }
+
+  try {
+    // 최대 10페이지 확인
+    for (let page = 1; page <= 10; page++) {
+      const params = new URLSearchParams({
+        m: "categoryList",
+        szKeyword: "",
+        szOrder: "view_cnt",
+        nPageNo: String(page),
+        nListCnt: "120",
+        nOffset: String((page - 1) * 120),
+        szPlatform: "pc"
+      });
+
+      const response = await fetch(
+        `https://sch.sooplive.com/api.php?${params.toString()}`,
+        {
+          headers: {
+            Accept: "application/json"
+          },
+          signal: AbortSignal.timeout(5000)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`CATEGORY_API_HTTP_${response.status}`);
+      }
+
+      const result = await response.json();
+
+      const list = result?.data?.list;
+
+      if (!Array.isArray(list)) break;
+
+      // 해당 페이지의 모든 카테고리 캐싱
+      for (const item of list) {
+        if (item.category_no == null || !item.category_name) {
+          continue;
+        }
+
+        const id = String(item.category_no).padStart(8, "0");
+
+        categoryCache.set(id, {
+          name: String(item.category_name),
+          expiresAt: Date.now() + 60 * 60 * 1000
+        });
+      }
+
+      const found = categoryCache.get(target);
+      if (found) return found.name;
+
+      if (!result?.data?.is_more || list.length === 0) {
+        break;
+      }
+    }
+  } catch (error) {
+    console.error("SOOP 카테고리 이름 조회 실패:", error);
+  }
+
+  return null;
+}
 
 async function fetchSoopLiveStatus(bjid: string) {
   const url = `https://bjapi.afreecatv.com/api/${bjid}/station`;
@@ -124,17 +201,23 @@ console.log("SOOP CATEGORY DEBUG:", {
   // 💡 [수정됨] is_live 검사와 throw Error를 지우고 broad_no 기준으로 오프라인 판단!
   if (!broad.broad_no) return { isLive: false, favorCnt };
 
-  const soopStartTimeKst = parseSoopTimeToKstIso(broad.broad_start);
+// 현재 SOOP 방송 카테고리 번호
+const categoryNo = broad.broad_cate_no;
 
+// 카테고리 이름 자동 조회
+const categoryName = await getSoopCategoryName(categoryNo);
+
+console.log("SOOP 카테고리 자동 변환:", {
+  categoryNo,
+  categoryName
+});
+
+const soopStartTimeKst = parseSoopTimeToKstIso(broad.broad_start);
   return {
     isLive: true,
     broadcastId: String(broad.broad_no),
     title: broad.broad_title || '',
-    category:
-  broad.broad_cate_name ||
-  (broad.broad_cate_no
-    ? `카테고리 ${broad.broad_cate_no}`
-    : '카테고리 없음'),
+    category: categoryName || `카테고리 ${categoryNo ?? "확인 불가"}`,
     viewers: Number(broad.current_sum_viewer) || 0,
     thumbnail: broad.broad_thumb || '',
     favorCnt: favorCnt,
