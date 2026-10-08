@@ -111,6 +111,16 @@ const favorCnt =
     title: broad.broad_title
   });
 
+  // 🔎 SOOP 카테고리 필드 확인용
+console.log("SOOP CATEGORY DEBUG:", {
+  broadKeys: Object.keys(broad),
+  categoryFields: Object.fromEntries(
+    Object.entries(broad).filter(([key]) =>
+      /cate|category|game/i.test(key)
+    )
+  )
+});
+
   // 💡 [수정됨] is_live 검사와 throw Error를 지우고 broad_no 기준으로 오프라인 판단!
   if (!broad.broad_no) return { isLive: false, favorCnt };
 
