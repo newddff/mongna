@@ -63,30 +63,35 @@ async function fetchSoopLiveStatus(bjid: string) {
     cache: 'no-store'
   });
 
-  if (!res.ok) throw new Error(`SOOP_API_ERROR: HTTP ${res.status}`);
-  const data = await res.json();
-  if (!data || typeof data !== 'object') throw new Error("INVALID_JSON_STRUCTURE");
+ if (!res.ok) throw new Error(`SOOP_API_ERROR: HTTP ${res.status}`);
 
-  console.log("SOOP 애청자 필드 확인:", {
-  stationFanCnt: data.station?.fan_cnt,
-  rootFanCnt: data.fan_cnt,
-  stationFavorCnt: data.station?.favor_cnt
+const data = await res.json();
+
+if (!data || typeof data !== 'object') {
+  throw new Error("INVALID_JSON_STRUCTURE");
+}
+
+// SOOP 응답 구조 확인용 로그
+console.log("SOOP RESPONSE STRUCTURE:", {
+  topLevelKeys: Object.keys(data),
+  hasUpd: Object.prototype.hasOwnProperty.call(data, "upd"),
+  stationKeys:
+    data.station && typeof data.station === "object"
+      ? Object.keys(data.station)
+      : []
 });
 
+// 애청자 수 조회
 const rawFanCnt = data.upd?.fan_cnt;
-
-console.log("SOOP FAN DEBUG:", {
-  hasUpd: !!data.upd,
-  rawFanCnt,
-  parsedFanCnt: Number(rawFanCnt)
-});
+const parsedFanCnt = Number(rawFanCnt);
 
 const favorCnt =
-  rawFanCnt !== undefined &&
-  rawFanCnt !== null &&
-  Number.isFinite(Number(rawFanCnt))
-    ? Number(rawFanCnt)
-    : 0;
+  rawFanCnt != null &&
+  rawFanCnt !== "" &&
+  Number.isFinite(parsedFanCnt) &&
+  parsedFanCnt >= 0
+    ? parsedFanCnt
+    : null;
 
   if (data.broad === null) return { isLive: false, favorCnt };
   if (!data.broad || typeof data.broad !== 'object') throw new Error("INVALID_BROAD_OBJECT_STRUCTURE");
@@ -165,9 +170,14 @@ export async function GET(request: Request) {
           }
         }
       }
-      await setDoc(broadStatusRef, { 
-        isLive: false, activeBroadcastId: null, favorCnt: status.favorCnt, updatedAt: timestampKst 
-      }, { merge: true });
+await setDoc(broadStatusRef, {
+  isLive: false,
+  activeBroadcastId: null,
+  ...(status.favorCnt !== null
+    ? { favorCnt: status.favorCnt }
+    : {}),
+  updatedAt: timestampKst
+}, { merge: true });
       return NextResponse.json({ success: true, status: "오프라인" });
     }
 
@@ -219,12 +229,18 @@ export async function GET(request: Request) {
       }
     });
 
-    await setDoc(broadStatusRef, {
-      isLive: true, activeBroadcastId: status.broadcastId,
-      title: status.title, category: status.category,
-      viewers: status.viewers, thumb: status.thumbnail,
-      favorCnt: status.favorCnt, updatedAt: timestampKst
-    }, { merge: true });
+await setDoc(broadStatusRef, {
+  isLive: true,
+  activeBroadcastId: status.broadcastId,
+  title: status.title,
+  category: status.category,
+  viewers: status.viewers,
+  thumb: status.thumbnail,
+  ...(status.favorCnt !== null
+    ? { favorCnt: status.favorCnt }
+    : {}),
+  updatedAt: timestampKst
+}, { merge: true });
 
     return NextResponse.json({ success: true, status: "방송중", broadcastId: status.broadcastId });
 
