@@ -73,7 +73,20 @@ async function fetchSoopLiveStatus(bjid: string) {
   stationFavorCnt: data.station?.favor_cnt
 });
 
-const favorCnt = Number(data.upd?.fan_cnt ?? 0);
+const rawFanCnt = data.upd?.fan_cnt;
+
+console.log("SOOP FAN DEBUG:", {
+  hasUpd: !!data.upd,
+  rawFanCnt,
+  parsedFanCnt: Number(rawFanCnt)
+});
+
+const favorCnt =
+  rawFanCnt !== undefined &&
+  rawFanCnt !== null &&
+  Number.isFinite(Number(rawFanCnt))
+    ? Number(rawFanCnt)
+    : 0;
 
   if (data.broad === null) return { isLive: false, favorCnt };
   if (!data.broad || typeof data.broad !== 'object') throw new Error("INVALID_BROAD_OBJECT_STRUCTURE");
