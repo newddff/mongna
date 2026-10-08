@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -162,50 +163,58 @@ export default function Dashboard() {
   }, [allStreams, selectedMonth, nowMs]);
 
   const [year, month] = selectedMonth.split('-');
-  const shell = isDarkMode ? 'bg-[#171421] text-violet-50' : 'bg-[#F8F9FD] text-gray-800';
-  const card = isDarkMode ? 'bg-[#292436] border border-violet-900/60' : 'bg-white border border-gray-100';
-  const muted = isDarkMode ? 'text-violet-200/70' : 'text-gray-500';
-  const panel = isDarkMode ? 'bg-[#211b2e] border-violet-800/60' : 'bg-gray-50 border-gray-100';
-  const numberText = isDarkMode ? 'text-violet-50' : 'text-gray-800';
+  const shell = isDarkMode ? 'bg-[linear-gradient(150deg,#191424_0%,#241b34_55%,#21182c_100%)] text-[#F8F1FF]' : 'bg-[linear-gradient(145deg,#FCF8FF_0%,#F7F3FF_55%,#FFF8FC_100%)] text-[#453957]';
+  const card = isDarkMode ? 'bg-[#2D243B]/95 border border-[#59466D]' : 'bg-white/90 border border-[#EEE1FA]';
+  const muted = isDarkMode ? 'text-[#BFAED0]' : 'text-[#8C7B9F]';
+  const panel = isDarkMode ? 'bg-[#261E34] border-[#514162]' : 'bg-[#FCF9FF] border-[#EEE2F9]';
+  const numberText = isDarkMode ? 'text-[#F9F3FF]' : 'text-[#433655]';
   const viewerNumber = (value: unknown) => (Number(value) || 0).toLocaleString('ko-KR');
   const fanCount = typeof status?.favorCnt === 'number' && Number.isFinite(status.favorCnt) && status.favorCnt > 0
     ? status.favorCnt.toLocaleString('ko-KR') + '명' : '확인 불가';
 
   return (
     <div className={`min-h-screen p-4 sm:p-8 font-sans transition-colors duration-200 ${shell}`}>
-      <header className="max-w-6xl mx-auto flex justify-between items-center gap-4 mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold">✨ 몽나 월별 방송 현황판</h1>
+      <header className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4 mb-7">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="flex h-[56px] w-[102px] sm:h-[68px] sm:w-[128px] shrink-0 items-center justify-center rounded-2xl border border-[#EEE1FA] bg-white px-2.5 py-2 shadow-[0_6px_24px_rgba(138,99,182,0.10)]">
+            <Image src="/logo-new.png" alt="몽나 로고" width={1828} height={860} priority className="max-h-full w-full object-contain" />
+          </div>
+          <div className="min-w-0">
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-[#C6A9ED]' : 'text-[#A084C5]'}`}>MONGNA · BROADCAST</p>
+            <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight">몽나 월별 방송 현황판</h1>
+          </div>
+        </div>
         <button type="button" onClick={toggleTheme} aria-pressed={isDarkMode}
-          className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium shadow-sm border transition-colors ${isDarkMode ? 'bg-[#393047] border-violet-700 hover:bg-[#453854]' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+          className={`shrink-0 px-4 py-2.5 rounded-full text-sm font-semibold shadow-sm border transition-colors ${isDarkMode ? 'bg-[#3B304B] border-[#6B5483] hover:bg-[#473858] text-[#F4E8FF]' : 'bg-white/90 border-[#EADAFB] hover:bg-[#F7EFFF] text-[#755D99]'}`}>
           {isDarkMode ? '☀️ 라이트 모드' : '🌙 다크 모드'}
         </button>
       </header>
 
-      <div className={`max-w-6xl mx-auto rounded-2xl p-4 mb-6 shadow-sm flex flex-wrap items-center gap-3 ${card}`}>
+      <div className={`max-w-6xl mx-auto rounded-[22px] p-4 sm:p-5 mb-6 shadow-[0_8px_28px_rgba(119,85,157,0.06)] flex flex-wrap items-center gap-3 ${card}`}>
         {status?.isLive ? (
-          <><span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">ON AIR 🔴</span>
+          <><span className="bg-[#EF657B] text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">● ON AIR</span>
             <span className="text-sm font-medium break-words">{status.title || '방송 중'} <span className={muted}>· {status.category || '카테고리 없음'} · 👁 {viewerNumber(status.viewers)}명</span></span></>
         ) : (
-          <><span className={`px-3 py-1 rounded-full text-xs font-bold ${isDarkMode ? 'bg-[#41374f] text-violet-200' : 'bg-gray-100 text-gray-500'}`}>OFFLINE</span>
+          <><span className={`px-3 py-1 rounded-full text-xs font-bold ${isDarkMode ? 'bg-[#41374f] text-violet-200' : 'bg-[#F4ECFA] text-[#87709E]'}`}>OFFLINE</span>
             <span className={`text-sm ${muted}`}>현재 진행 중인 방송이 없습니다.</span></>
         )}
       </div>
 
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
         <aside className="w-full md:w-64 flex-shrink-0">
-          <div className={`${card} rounded-2xl p-6 shadow-sm md:sticky md:top-8`}>
-            <h2 className="text-xl font-bold mb-4">{year}년</h2>
+          <div className={`${card} rounded-[24px] p-5 sm:p-6 shadow-[0_8px_30px_rgba(122,88,171,0.06)] md:sticky md:top-8`}>
+            <h2 className="text-lg font-bold mb-4">🗓️ {year}년</h2>
             <input type="month" value={selectedMonth} min="2026-10" max={kstMonth(nowMs)} onChange={e => { if (e.target.value) setSelectedMonth(e.target.value); }}
-              aria-label="통계를 볼 연도와 월" className="w-full bg-[#A588F8] text-white font-bold text-center rounded-xl py-3 px-2 focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer" />
+              aria-label="통계를 볼 연도와 월" className="w-full bg-[linear-gradient(120deg,#A88AEF,#D6A6E8)] text-white font-bold text-center rounded-xl py-3 px-2 focus:outline-none focus:ring-4 focus:ring-[#E9DAFF] cursor-pointer shadow-sm" />
           </div>
         </aside>
 
         <main className="flex-1 min-w-0 space-y-6">
-          <section className={`${card} rounded-2xl p-6 sm:p-8 shadow-sm`}>
-            <h3 className="text-xl font-bold mb-8">📈 {Number(month)}월 방송 통계 & 분포도</h3>
+          <section className={`${card} rounded-[24px] p-5 sm:p-8 shadow-[0_8px_30px_rgba(122,88,171,0.06)]`}>
+            <h3 className="text-lg sm:text-xl font-bold mb-6">📈 {Number(month)}월 방송 통계 & 분포도</h3>
             {error && <p role="alert" className="mb-5 text-sm text-red-500">{error}</p>}
             {loading && <p className={`mb-5 text-sm ${muted}`}>방송 기록 불러오는 중...</p>}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-8 text-center mb-10">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
               {[
                 ['🗓️ 방송 일수', `${stats.totalDays}일 / ${daysInMonth}일`],
                 ['🎬 방송 횟수', `${stats.totalCount}회`],
@@ -214,14 +223,15 @@ export default function Dashboard() {
                 ['⬆️ 최고 시청자', `${viewerNumber(stats.maxViewers)}명`],
                 ['📊 평균 시청자', `${viewerNumber(stats.avgViewers)}명`]
               ].map(([label, value]) => (
-                <div key={label} className="min-w-0"><p className={`text-xs sm:text-sm mb-2 ${muted}`}>{label}</p>
-                  <p className={`text-lg sm:text-2xl font-bold break-words ${numberText}`}>{value}</p>
+                <div key={label} className={`min-w-0 rounded-2xl border px-3 py-4 sm:px-4 sm:py-5 text-center ${isDarkMode ? 'bg-[#352941] border-[#59466D]' : 'bg-[#FCF9FF] border-[#EEE3F9]'}`}>
+                  <p className={`text-xs sm:text-sm mb-2 ${muted}`}>{label}</p>
+                  <p className={`text-lg sm:text-xl break-words ${label.includes('애청자') ? 'font-semibold' : 'font-bold'} ${label.includes('애청자') ? (isDarkMode ? 'text-[#D7C6E7]' : 'text-[#665779]') : numberText}`}>{value}</p>
                 </div>
               ))}
             </div>
-            <div className={`rounded-xl border p-3 sm:p-5 ${panel}`}>
+            <div className={`rounded-2xl border p-3 sm:p-5 ${panel}`}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <strong className="text-sm">🟩 날짜·시간별 방송 분포</strong>
+                <strong className="text-sm">🪻 날짜·시간별 방송 분포</strong>
                 <span className={`text-xs ${muted}`}>한국 시간 · 진할수록 오래 방송</span>
               </div>
               <div className="overflow-x-auto pb-1">
@@ -233,8 +243,8 @@ export default function Dashboard() {
                         {heatmap[hour].map((minutes, day) => (
                           <div key={`${hour}-${day}`} role="img" aria-label={`${day + 1}일 ${hour}시 ${Math.round(minutes)}분 방송`}
                             title={`${Number(month)}월 ${day + 1}일 ${String(hour).padStart(2, '0')}시: 약 ${Math.round(minutes)}분 방송`}
-                            className={`h-[15px] rounded-[3px] ${minutes === 0 ? (isDarkMode ? 'bg-[#3d344b]' : 'bg-gray-200') : ''}`}
-                            style={minutes > 0 ? { backgroundColor: `rgba(34, 197, 94, ${0.25 + 0.75 * minutes / maxHeat})` } : undefined} />
+                            className={`h-[15px] rounded-[3px] ${minutes === 0 ? (isDarkMode ? 'bg-[#463952]' : 'bg-[#EDE7F3]') : ''}`}
+                            style={minutes > 0 ? { backgroundColor: `rgba(174, 119, 222, ${0.30 + 0.70 * minutes / maxHeat})` } : undefined} />
                         ))}
                       </React.Fragment>
                     ))}
@@ -250,13 +260,13 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <section className={`${card} rounded-2xl p-6 sm:p-8 shadow-sm`}>
-            <h3 className="text-xl font-bold mb-6">📝 상세 타임라인 내역</h3>
+          <section className={`${card} rounded-[24px] p-5 sm:p-8 shadow-[0_8px_30px_rgba(122,88,171,0.06)]`}>
+            <h3 className="text-lg sm:text-xl font-bold mb-6">📝 상세 타임라인 내역</h3>
             {streams.length === 0 ? (
               <div className="py-12 text-center"><p className="text-[#A588F8] font-medium">{loading ? '불러오는 중...' : '해당 월에는 기록된 방송이 없습니다.'}</p></div>
             ) : (
               <div className="space-y-4">{streams.map(stream => (
-                <div key={stream.id} className={`rounded-xl border p-5 flex flex-col md:flex-row gap-5 ${panel}`}>
+                <div key={stream.id} className={`rounded-2xl border p-4 sm:p-5 flex flex-col md:flex-row gap-4 hover:shadow-[0_8px_24px_rgba(126,82,158,0.08)] transition-shadow ${panel}`}>
                   {stream.thumbnail && <div className="flex-shrink-0"><img src={stream.thumbnail} alt="방송 썸네일" className="w-full md:w-40 object-cover rounded-lg" /></div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
@@ -264,13 +274,13 @@ export default function Dashboard() {
                       <span className={`text-sm shrink-0 ${muted}`}>{formatKstTime(stream.startedAt)}</span>
                     </div>
                     <div className={`flex flex-wrap gap-3 text-sm mb-3 ${muted}`}>
-                      <span className={isDarkMode ? 'text-violet-300' : 'text-purple-700'}>{stream.category || '카테고리 없음'}</span>
+                      <span className={isDarkMode ? 'text-[#D8B7F4]' : 'text-[#916BBF]'}>{stream.category || '카테고리 없음'}</span>
                       <span>최고 {viewerNumber(stream.maxViewers)}명</span>
                       <span>평균 {viewerNumber(stream.avgViewers)}명</span>
                       <span>{Math.round(((getInterval(stream, nowMs)?.[1] || 0) - (getInterval(stream, nowMs)?.[0] || 0)) / MINUTE_MS)}분 진행</span>
                     </div>
                     {(!!stream.titleChanges?.length || !!stream.categoryChanges?.length) && (
-                      <div className={`mt-4 pt-4 border-t text-xs space-y-1.5 ${isDarkMode ? 'border-violet-800 text-violet-200' : 'border-gray-200 text-gray-500'}`}>
+                      <div className={`mt-4 pt-4 border-t text-xs space-y-1.5 ${isDarkMode ? 'border-[#59466D] text-[#C6B6D7]' : 'border-[#EADCF7] text-[#8C7B9F]'}`}>
                         {stream.titleChanges?.map((t, i) => <p key={`t-${i}`}>🕒 {formatKstTime(t.timestamp)}: 제목 변경 ({t.before} ➔ {t.after})</p>)}
                         {stream.categoryChanges?.map((c, i) => <p key={`c-${i}`}>🕒 {formatKstTime(c.timestamp)}: 카테고리 변경 ({c.before} ➔ {c.after})</p>)}
                       </div>
