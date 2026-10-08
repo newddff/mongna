@@ -130,7 +130,11 @@ console.log("SOOP CATEGORY DEBUG:", {
     isLive: true,
     broadcastId: String(broad.broad_no),
     title: broad.broad_title || '',
-    category: broad.broad_cate_name || '카테고리 없음',
+    category:
+  broad.broad_cate_name ||
+  (broad.broad_cate_no
+    ? `카테고리 ${broad.broad_cate_no}`
+    : '카테고리 없음'),
     viewers: Number(broad.current_sum_viewer) || 0,
     thumbnail: broad.broad_thumb || '',
     favorCnt: favorCnt,
