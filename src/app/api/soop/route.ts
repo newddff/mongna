@@ -67,7 +67,13 @@ async function fetchSoopLiveStatus(bjid: string) {
   const data = await res.json();
   if (!data || typeof data !== 'object') throw new Error("INVALID_JSON_STRUCTURE");
 
-  const favorCnt = Number(data.station?.fan_cnt ?? 0);
+  console.log("SOOP 애청자 필드 확인:", {
+  stationFanCnt: data.station?.fan_cnt,
+  rootFanCnt: data.fan_cnt,
+  stationFavorCnt: data.station?.favor_cnt
+});
+
+const favorCnt = Number(data.station?.fan_cnt ?? 0);
 
   if (data.broad === null) return { isLive: false, favorCnt };
   if (!data.broad || typeof data.broad !== 'object') throw new Error("INVALID_BROAD_OBJECT_STRUCTURE");
