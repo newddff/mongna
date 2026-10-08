@@ -67,7 +67,7 @@ async function fetchSoopLiveStatus(bjid: string) {
   const data = await res.json();
   if (!data || typeof data !== 'object') throw new Error("INVALID_JSON_STRUCTURE");
 
-  const favorCnt = data.station?.favor_cnt || 0;
+  const favorCnt = Number(data.station?.fan_cnt ?? 0);
 
   if (data.broad === null) return { isLive: false, favorCnt };
   if (!data.broad || typeof data.broad !== 'object') throw new Error("INVALID_BROAD_OBJECT_STRUCTURE");
