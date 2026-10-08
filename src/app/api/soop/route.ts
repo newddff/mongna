@@ -81,8 +81,13 @@ console.log("SOOP RESPONSE STRUCTURE:", {
       : []
 });
 
+// ⭐ 애청자 수 최종 확인
+console.log("SOOP 애청자 최종 확인:", {
+  fanCnt: data.station?.upd?.fan_cnt
+});
+  
 // 애청자 수 조회
-const rawFanCnt = data.upd?.fan_cnt;
+const rawFanCnt = data.station?.upd?.fan_cnt;
 const parsedFanCnt = Number(rawFanCnt);
 
 const favorCnt =
