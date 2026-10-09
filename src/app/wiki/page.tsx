@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
+import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
@@ -172,7 +173,7 @@ export default function WikiPage() {
     };
     try {
       const updatedData = { ...wikiData, profile: newProfile };
-      await setDoc(getFirebaseRef(), { data: updatedData }, { merge: true });
+      await saveAdminCalendarDocument('wiki_data', { data: updatedData });
       setIsProfileModalOpen(false);
     } catch (e) { alert('저장 실패'); }
   };
@@ -225,7 +226,7 @@ export default function WikiPage() {
 
     try {
       const updatedData = { ...wikiData, history: updatedHistory };
-      await setDoc(getFirebaseRef(), { data: updatedData }, { merge: true });
+      await saveAdminCalendarDocument('wiki_data', { data: updatedData });
       setIsCardModalOpen(false);
     } catch (e) { alert('저장 실패'); }
   };
@@ -237,7 +238,7 @@ export default function WikiPage() {
     const updatedHistory = getSafeHistory().filter((c: any) => c.id !== cardId);
     try {
       const updatedData = { ...wikiData, history: updatedHistory };
-      await setDoc(getFirebaseRef(), { data: updatedData }, { merge: true });
+      await saveAdminCalendarDocument('wiki_data', { data: updatedData });
     } catch (e) { alert('삭제 실패'); }
   };
 
