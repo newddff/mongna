@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
+import { getAdminFirestore } from '../../../../lib/server/admin-firestore';
 import { isAdminSession } from '../../../../lib/server/admin-session';
 
 export const runtime = 'nodejs';
@@ -33,7 +32,7 @@ export async function POST(request: Request) {
     if (JSON.stringify(payload).length > 12000) {
       return NextResponse.json({ error: '설정 크기 초과' }, { status: 413 });
     }
-    await setDoc(doc(db, 'mongna_calendar_data', 'home_settings_v2'), payload, { merge: true });
+    await getAdminFirestore().collection('mongna_calendar_data').doc('home_settings_v2').set(payload, { merge: true });
     return NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('홈 관리자 설정 저장 실패', error);

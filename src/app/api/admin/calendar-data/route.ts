@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
+import { getAdminFirestore } from '../../../../lib/server/admin-firestore';
 import { isAdminSession } from '../../../../lib/server/admin-session';
 
 export const runtime = 'nodejs';
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
     if (!ALLOWED.has(input?.documentId) || !input?.data || typeof input.data !== 'object' || Array.isArray(input.data)) {
       return NextResponse.json({ error: '허용되지 않은 저장 요청입니다.' }, { status: 400 });
     }
-    await setDoc(doc(db, 'mongna_calendar_data', input.documentId), input.data, { merge: true });
+    await getAdminFirestore().collection('mongna_calendar_data').doc(input.documentId).set(input.data, { merge: true });
     return NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('관리자 데이터 저장 실패:', error);
