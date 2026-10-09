@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
@@ -317,18 +318,10 @@ export default function WikiPage() {
             <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
-          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#1e293b', fontSize: '15px' }}>
-            <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
-            <a href="/calendar" style={{ textDecoration: 'none', color: 'inherit' }}>캘린더</a>
-            <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
-            <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
-            <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
-            <a href="/wiki" style={{ textDecoration: 'none', color: '#8b5cf6', borderBottom: '3px solid #8b5cf6', paddingBottom: '3px' }}>몽무위키</a>
-            {/* 💡 4. 미니게임 네비게이션 버튼 추가 완료 */}
-            <a href="/minigames" style={{ textDecoration: 'none', color: 'inherit' }}>미니게임</a>
-          </div>
+          <MainNavLinks />
 
           <div className="top-btn-group" style={{ display: 'flex', alignItems: 'center' }}>
+            <UtilityNavLinks />
             <button onClick={toggleAdmin} style={{ padding: '8px 18px', borderRadius: '99px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: isAdmin ? 'none' : '1px solid #ddd', background: isAdmin ? '#ffd700' : 'white', color: isAdmin ? '#333' : '#1e293b' }}>
               {isAdmin ? '👑 관리자 모드' : '🔒 관리자 로그인'}
             </button>
