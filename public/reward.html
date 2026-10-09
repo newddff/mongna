@@ -450,7 +450,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
@@ -466,7 +466,30 @@
   const rewardRef = doc(db, 'mongna_calendar_data', 'reward_data_v3'); 
   const settingsRef = doc(db, 'mongna_calendar_data', 'reward_settings_v4'); 
 
-  let isAdmin = localStorage.getItem('mongna_secure_admin_v2') === 'true';
+  let isAdmin = false;
+  async function saveAdminData(documentId, data) {
+    const response = await fetch('/api/admin/community-data', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId, data })
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        isAdmin = false;
+        localStorage.removeItem('mongna_secure_admin_v2');
+        updateAdminUI();
+      }
+      throw new Error('관리자 저장 실패: HTTP ' + response.status);
+    }
+  }
+
+  fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
+    .then(response => response.ok ? response.json() : { authenticated: false })
+    .then(result => { isAdmin = result.authenticated === true; updateAdminUI(); })
+    .catch(() => { isAdmin = false; updateAdminUI(); });
+
+
   let rewards = [];
   
   let settingsData = { categories: [], menuImages: {}, probImages: {}, priceList: {} }; 
@@ -843,7 +866,7 @@
     if(settingsData.categories.includes(newCat)) return alert("이미 존재하는 카테고리입니다.");
 
     const updatedCats = [...settingsData.categories, newCat];
-    await setDoc(settingsRef, { categories: updatedCats }, { merge: true });
+    await saveAdminData('reward_settings_v4', { categories: updatedCats });
     input.value = '';
     renderCatManageList();
   }
@@ -851,7 +874,7 @@
   window.deleteCategory = async function(catName) {
     if(!confirm(`'${catName}' 카테고리를 삭제하시겠습니까?\n(업보 데이터가 지워지진 않지만 '미분류'로 표시됩니다)`)) return;
     const updatedCats = settingsData.categories.filter(c => c !== catName);
-    await setDoc(settingsRef, { categories: updatedCats }, { merge: true });
+    await saveAdminData('reward_settings_v4', { categories: updatedCats });
     renderCatManageList();
     if(currentCategory === catName) {
       currentCategory = 'all';
@@ -893,11 +916,11 @@
     const newProbImages = { ...(settingsData.probImages || {}), [selectedCat]: pUrls };
     const newPriceList = { ...(settingsData.priceList || {}), [selectedCat]: priceRaw }; 
     
-    await setDoc(settingsRef, { 
+    await saveAdminData('reward_settings_v4', { 
       menuImages: newMenuImages, 
       probImages: newProbImages, 
       priceList: newPriceList 
-    }, { merge: true });
+    });
     
     closeMenuSettings();
     alert("해당 카테고리의 설정이 저장되었습니다!");
@@ -931,7 +954,7 @@
       status: 'pending'
     };
     try {
-      await setDoc(rewardRef, { items: [...rewards, newData] }, { merge: true });
+      await saveAdminData('reward_data_v3', { items: [...rewards, newData] });
       closeAddModal();
     } catch(e) { alert("저장 실패"); }
   };
@@ -978,7 +1001,7 @@
   window.changeStatus = async function(id, newStatus) {
     if(!isAdmin) return;
     const updated = rewards.map(r => r.id === id ? {...r, status: newStatus} : r);
-    await setDoc(rewardRef, { items: updated }, { merge: true });
+    await saveAdminData('reward_data_v3', { items: updated });
     closeManageModal();
   }
   
@@ -986,7 +1009,7 @@
     if(!isAdmin) return;
     if(!confirm("이 항목을 삭제하시겠습니까?")) return;
     const updated = rewards.filter(r => r.id !== id);
-    await setDoc(rewardRef, { items: updated }, { merge: true });
+    await saveAdminData('reward_data_v3', { items: updated });
     closeManageModal();
   }
 
@@ -1075,7 +1098,7 @@
     
     try {
       if(mode === 'append') {
-        await setDoc(rewardRef, { items: [...rewards, ...window.tempNewItems] }, { merge: true });
+        await saveAdminData('reward_data_v3', { items: [...rewards, ...window.tempNewItems] });
         alert("기존 데이터에 누적 추가되었습니다!");
       } 
       else if(mode === 'overwrite') {
@@ -1083,7 +1106,7 @@
         
         const retainedRewards = rewards.filter(r => (r.category || '미분류') !== window.tempTargetCat);
         
-        await setDoc(rewardRef, { items: [...retainedRewards, ...window.tempNewItems] }, { merge: true });
+        await saveAdminData('reward_data_v3', { items: [...retainedRewards, ...window.tempNewItems] });
         alert(`[${window.tempTargetCat}] 카테고리가 성공적으로 덮어쓰기 되었습니다!`);
       }
       
