@@ -405,6 +405,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
@@ -416,6 +417,9 @@
   };
   const app = initializeApp(firebaseConfig); 
   const db = getFirestore(app);
+  const auth = getAuth(app);
+  // 신규 가입자만 Firebase Authentication 사용. 기존 회원 데이터는 이전하지 않음.
+  const authEmailForId = id => `${id.toLowerCase()}@accounts.mongna.invalid`;
   const $ = sel => document.querySelector(sel);
   
   const THEME_KEY = 'mongna-theme-v2';
@@ -546,6 +550,7 @@
     } else if(confirm("로그아웃 하시겠습니까?")) { 
       await syncStatsToDB(); 
       await removeLiveViewer(); 
+      if (auth.currentUser) await signOut(auth);
       currentUser = null; 
       localStorage.removeItem(AUTO_LOGIN_KEY); 
       $('#authBtn').innerHTML = '로그인 해주세요'; 
@@ -573,20 +578,29 @@
     const id = $('#regId').value.trim();
     const pw = $('#regPw').value.trim();
     if (!nick || !id || !pw) return alert("빈칸을 모두 채워주세요.");
-    
+    if (!/^[a-zA-Z0-9_-]{3,24}$/.test(id)) return alert("아이디는 영문·숫자·_·- 3~24자로 만들어주세요.");
+    if (pw.length < 6) return alert("비밀번호는 최소 6자 이상으로 설정해주세요.");
+
+    let createdAccount = null;
     try {
       const userRef = doc(db, COL_USERS, id);
       const snap = await getDoc(userRef);
       if (snap.exists()) return alert("이미 가입된 아이디입니다.");
-      
-      await setDoc(userRef, { nickname: nick, id: id, password: pw, stats: { total: 0, revived: 0 }, periodKey: getPeriodKey(), history: {} });
+
+      // 새 회원의 비밀번호는 Firestore에 저장하지 않습니다.
+      const credential = await createUserWithEmailAndPassword(auth, authEmailForId(id), pw);
+      createdAccount = credential.user;
+      await setDoc(userRef, { nickname: nick, id, authUid: createdAccount.uid, stats: { total: 0, revived: 0 }, periodKey: getPeriodKey(), history: {} });
       alert("환영합니다! 가입이 완료되었습니다.");
-      $('#regNickname').value = ''; 
-      $('#regId').value = ''; 
+      $('#regNickname').value = '';
+      $('#regId').value = '';
       $('#regPw').value = '';
-      processLogin(id, pw, false);
-    } catch (error) { 
-      alert("서버 오류가 발생했습니다."); 
+      await processLogin(id, null, false);
+    } catch (error) {
+      // Firestore 저장이 실패했다면 인증 계정이 고아 상태로 남지 않도록 정리.
+      if (createdAccount) { try { await deleteUser(createdAccount); } catch (cleanupError) { console.warn('신규 회원가입 정리 실패', cleanupError); } }
+      console.error('회원가입 실패', error);
+      alert("회원가입에 실패했습니다. Firebase Authentication의 이메일/비밀번호 로그인이 활성화되어 있는지 확인해주세요.");
     }
   });
 
@@ -600,8 +614,22 @@
         return; 
       }
       const userData = snap.data();
-      if (!isAutoLogin && userData.password !== pw) return alert("비밀번호가 일치하지 않습니다.");
-      
+      if (userData.authUid) {
+        // 신규 회원: Firebase 로그인 상태/UID로만 계정 사용 허용
+        if (!isAutoLogin && pw !== null) {
+          try { await signInWithEmailAndPassword(auth, authEmailForId(id), pw); }
+          catch { return alert("비밀번호가 일치하지 않습니다."); }
+        }
+        if (auth.currentUser?.uid !== userData.authUid) {
+          if (!isAutoLogin) alert("로그인 인증을 확인할 수 없습니다.");
+          return;
+        }
+      } else {
+        // 기존 회원: 강제 비밀번호 재설정 없이 기존 로그인 유지 (향후 별도 보안 이전 대상)
+        if (!isAutoLogin && userData.password !== pw) return alert("비밀번호가 일치하지 않습니다.");
+        if (typeof userData.password !== 'string') return;
+      }
+
       const dbStats = userData.stats || {};
       currentUser = { 
         id: id, 
@@ -629,9 +657,11 @@
     processLogin(id, pw, false);
   });
   
-  if (localStorage.getItem(AUTO_LOGIN_KEY)) {
-    processLogin(localStorage.getItem(AUTO_LOGIN_KEY), null, true);
-  }
+  // Firebase 인증 상태가 복원된 다음 자동 로그인 처리.
+  onAuthStateChanged(auth, async () => {
+    const savedId = localStorage.getItem(AUTO_LOGIN_KEY);
+    if (savedId && !currentUser) await processLogin(savedId, null, true);
+  });
 
   let selectedRankPeriod = 'current', statsCache = {};
   
