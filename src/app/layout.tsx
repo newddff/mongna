@@ -1,4 +1,5 @@
 import './globals.css';
+import { SecondaryPageNavigation } from '../components/SiteNavigation';
 
 export const metadata = {
   icons: {
@@ -13,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body><SecondaryPageNavigation />{children}</body>
     </html>
   )
 }

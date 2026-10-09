@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { MainNavLinks, UtilityNavLinks } from '../components/SiteNavigation';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getMongnaAnniversaries } from '../utils/dday'; 
@@ -311,17 +312,10 @@ export default function HomePage() {
             <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
-          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, fontSize: '15px' }}>
-            <a href="/" style={{ textDecoration: 'none', color: '#a855f7' }}>홈</a>
-            <a href="/wiki" style={{ textDecoration: 'none', color: '#1e293b' }}>몽무위키</a>
-            <a href="/calendar" style={{ textDecoration: 'none', color: '#1e293b' }}>캘린더</a>
-            <a href="/song.html" style={{ textDecoration: 'none', color: '#1e293b' }}>노래책</a>
-            <a href="/reward.html" style={{ textDecoration: 'none', color: '#1e293b' }}>업보(보상)</a>
-            {/* 🚨 상단 네비게이션에서 VOD 메뉴 삭제 완료 */}
-            <a href="/minigames" style={{ textDecoration: 'none', color: '#1e293b' }}>미니게임</a>
-          </div>
+          <MainNavLinks />
 
           <div className="top-btn-group" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <UtilityNavLinks />
             {currentlyLive && (
               <div style={{ background: '#fee2e2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>방송중</div>
             )}
@@ -556,16 +550,7 @@ export default function HomePage() {
                   </a>
                 ))}
                 
-                {/* 🚨 몽다살(VOD 관리) 고정 카드 5번째 영역 추가 완료 */}
-                <a href="/vod.html" style={{ background: '#ffffff', borderRadius: '20px', padding: '22px', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: '#1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', position: 'relative', gridColumn: '1 / -1' }}>
-                  <div style={{ width: '45px', height: '45px', borderRadius: '14px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, overflow: 'hidden' }}>
-                    💜
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '16px', fontWeight: 900, marginBottom: '4px' }}>몽다살</div>
-                    <div style={{ fontSize: '13px', color: '#64748b' }}>다시보기 VOD 보관 관리</div>
-                  </div>
-                </a>
+
               </div>
             </div>
           </div>

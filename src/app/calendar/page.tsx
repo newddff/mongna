@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getMongnaAnniversaries } from '../../utils/dday'; 
@@ -495,18 +496,10 @@ export default function CalendarPage() {
             <img src="/logo-new.png" alt="몽나 로고" className="logo-img" style={{ height: '40px', objectFit: 'contain' }} />
           </a>
 
-          <div className="nav-links" style={{ display: 'flex', gap: '30px', fontWeight: 800, color: '#333', fontSize: '15px' }}>
-            <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>홈</a>
-            <a href="/wiki" style={{ textDecoration: 'none', color: 'inherit' }}>몽무위키</a>
-            <a href="/calendar" style={{ textDecoration: 'none', color: '#8b5cf6', position: 'relative' }}>캘린더</a>
-            <a href="/song.html" style={{ textDecoration: 'none', color: 'inherit' }}>노래책</a>
-            <a href="/reward.html" style={{ textDecoration: 'none', color: 'inherit' }}>업보(보상)</a>
-            <a href="/vod.html" style={{ textDecoration: 'none', color: 'inherit' }}>VOD</a>
-            {/* 💡 4. 미니게임 네비게이션 버튼 추가 완료 */}
-            <a href="/minigames" style={{ textDecoration: 'none', color: 'inherit' }}>미니게임</a>
-          </div>
+          <MainNavLinks />
 
           <div className="top-btn-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <UtilityNavLinks />
             {isAdmin && (
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <button onClick={() => setIsStreamerManagerOpen(true)} style={{ padding: '8px 14px', borderRadius: '99px', border: '1px solid #e4dceb', background: '#fff', color: '#555', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }} title="스트리머 명부 관리">👥 스트리머 등록</button>
