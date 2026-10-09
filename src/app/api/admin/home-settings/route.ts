@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const { isLive, heroImg, ytChannelId, links } = body;
     if (typeof isLive !== 'boolean' || typeof heroImg !== 'string' || heroImg.length > 2048 ||
         typeof ytChannelId !== 'string' || ytChannelId.length > 200 ||
-        !links || typeof links !== 'object' || Array.isArray(links)) {
+        !Array.isArray(links) || links.length > 20 || !links.every((link: unknown) => link && typeof link === 'object' && !Array.isArray(link) && ['title', 'sub', 'icon', 'url'].every(key => typeof (link as Record<string, unknown>)[key] === 'string' && ((link as Record<string, string>)[key]).length <= 2048))) {
       return NextResponse.json({ error: '설정 형식이 올바르지 않습니다.' }, { status: 400 });
     }
     const payload = { isLive, heroImg, ytChannelId, links };
