@@ -243,13 +243,13 @@ export async function GET(request: Request) {
     // 🔴 [오프라인 처리 로직]
     if (!status.isLive) {
       const cacheSnap = await broadStatusRef.get();
-      if (cacheSnap.exists()) {
+      if (cacheSnap.exists) {
         const cacheData = cacheSnap.data();
         if (cacheData.isLive === true && cacheData.activeBroadcastId) {
           const targetStreamRef = db.collection('mongna_streams').doc(cacheData.activeBroadcastId);
           const targetSnap = await targetStreamRef.get();
           
-          if (targetSnap.exists()) {
+          if (targetSnap.exists) {
             const data = targetSnap.data();
             const startedAtDate = new Date(data.startedAt);
             
@@ -285,7 +285,7 @@ await broadStatusRef.set({
     await db.runTransaction(async (transaction) => {
       const streamDoc = await transaction.get(streamRef);
 
-      if (!streamDoc.exists()) {
+      if (!streamDoc.exists) {
         transaction.set(streamRef, {
           broadcastId: status.broadcastId, streamerId: "pinktape8",
           startedAt: status.soopStartTime || timestampKst, startedAtSource: status.startedAtSource,
