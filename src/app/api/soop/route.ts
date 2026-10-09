@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
   getFirestore, doc, getDoc, runTransaction, setDoc, arrayUnion 
@@ -231,7 +232,14 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const expectedHeader = cronSecret ? `Bearer ${cronSecret}` : '';
+  const actualBuffer = Buffer.from(authHeader || '', 'utf8');
+  const expectedBuffer = Buffer.from(expectedHeader, 'utf8');
+  const authenticated = Boolean(cronSecret) &&
+    actualBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(actualBuffer, expectedBuffer);
+
+  if (!authenticated) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized' },
       { status: 401 }
