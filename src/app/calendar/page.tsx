@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
+import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getMongnaAnniversaries } from '../../utils/dday'; 
@@ -137,7 +138,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
+    await saveAdminCalendarDocument('streamer_directory', updatedDir);
   };
 
   const saveManualStreamer = async () => {
@@ -166,7 +167,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'streamer_directory'), updatedDir, { merge: true });
+    await saveAdminCalendarDocument('streamer_directory', updatedDir);
     alert("스트리머가 명부에 성공적으로 등록되었습니다!");
   };
 
@@ -340,7 +341,7 @@ export default function CalendarPage() {
       updatedSchedules[selectedDateKey].push({ id: Date.now(), title, time: inputTime, type: currentSchType, members, content: inputContent, vodLink: inputVod, backgroundColor: (categoryColors as any)[currentSchType] || '#fb819e' });
     }
 
-    try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setIsAddModalOpen(false); } catch (e) { alert("일정 저장 중 오류가 발생했습니다."); }
+    try { await saveAdminCalendarDocument('schedule_data', { data: updatedSchedules }); setIsAddModalOpen(false); } catch (e) { alert("일정 저장 중 오류가 발생했습니다."); }
   };
 
   const deleteSchedule = async (dateKeyArg: string, schIdArg: number) => {
@@ -356,7 +357,7 @@ export default function CalendarPage() {
         updatedSchedules[dateKeyArg] = rawArr.filter((s: any) => s && s.id !== schIdArg);
       }
 
-      try { await setDoc(scheduleRef, { data: updatedSchedules }, { merge: true }); setViewModalData(null); } catch (e) { alert("삭제 실패!"); }
+      try { await saveAdminCalendarDocument('schedule_data', { data: updatedSchedules }); setViewModalData(null); } catch (e) { alert("삭제 실패!"); }
     }
   };
 
@@ -373,7 +374,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
+    await saveAdminCalendarDocument('sidebar_state', { searchHistory: newHistory, memoList });
   };
 
   const deleteHistory = async (index: number) => {
@@ -383,7 +384,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
+    await saveAdminCalendarDocument('sidebar_state', { searchHistory: newHistory, memoList });
   };
 
   const dropGame = async (e: React.DragEvent, dateKey: string) => {
@@ -406,8 +407,8 @@ export default function CalendarPage() {
       const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
-      await setDoc(doc(db, 'mongna_calendar_data', 'schedule_data'), { data: updatedSchedules }, { merge: true });
-      await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newHistory, memoList }, { merge: true });
+      await saveAdminCalendarDocument('schedule_data', { data: updatedSchedules });
+      await saveAdminCalendarDocument('sidebar_state', { searchHistory: newHistory, memoList });
       setViewModalData({ sch: newSch, dateKey });
     }
   };
@@ -424,7 +425,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory, memoList: newMemos }, { merge: true });
+    await saveAdminCalendarDocument('sidebar_state', { searchHistory, memoList: newMemos });
   };
 
   const deleteMemo = async (index: number) => {
@@ -434,7 +435,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'sidebar_state'), { searchHistory: newMemos }, { merge: true });
+    await saveAdminCalendarDocument('sidebar_state', { searchHistory: newMemos });
   };
 
   const saveCategoryColors = async () => {
@@ -442,7 +443,7 @@ export default function CalendarPage() {
     const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    await setDoc(doc(db, 'mongna_calendar_data', 'category_colors'), categoryColors, { merge: true });
+    await saveAdminCalendarDocument('category_colors', categoryColors);
     setIsColorModalOpen(false);
   };
 
