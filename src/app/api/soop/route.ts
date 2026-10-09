@@ -1,23 +1,10 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { 
-  getFirestore, doc, getDoc, runTransaction, setDoc, arrayUnion 
-} from "firebase/firestore";
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../lib/server/admin-firestore';
 
 export const dynamic = 'force-dynamic';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
-  authDomain: "mongna-vod.firebaseapp.com",
-  projectId: "mongna-vod",
-  storageBucket: "mongna-vod.firebasestorage.app",
-  messagingSenderId: "310663611402",
-  appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+export const runtime = 'nodejs';
 
 // 🛠️ KST ISO 생성 헬퍼
 const getStrictKstIsoString = (date: Date) => {
@@ -247,21 +234,22 @@ export async function GET(request: Request) {
   }
 
   try {
+    const db = getAdminFirestore();
     const now = new Date();
     const timestampKst = getStrictKstIsoString(now);
     const status = await fetchSoopLiveStatus('pinktape8');
-    const broadStatusRef = doc(db, 'mongna_calendar_data', 'broad_status');
+    const broadStatusRef = db.collection('mongna_calendar_data').doc('broad_status');
 
     // 🔴 [오프라인 처리 로직]
     if (!status.isLive) {
-      const cacheSnap = await getDoc(broadStatusRef);
-      if (cacheSnap.exists()) {
+      const cacheSnap = await broadStatusRef.get();
+      if (cacheSnap.exists) {
         const cacheData = cacheSnap.data();
         if (cacheData.isLive === true && cacheData.activeBroadcastId) {
-          const targetStreamRef = doc(db, 'mongna_streams', cacheData.activeBroadcastId);
-          const targetSnap = await getDoc(targetStreamRef);
+          const targetStreamRef = db.collection('mongna_streams').doc(cacheData.activeBroadcastId);
+          const targetSnap = await targetStreamRef.get();
           
-          if (targetSnap.exists()) {
+          if (targetSnap.exists) {
             const data = targetSnap.data();
             const startedAtDate = new Date(data.startedAt);
             
@@ -274,13 +262,13 @@ export async function GET(request: Request) {
             const totalViewers = samples.reduce((sum, sample) => sum + (Number(sample?.viewers) || 0), 0);
             const avgViewers = samples.length > 0 ? Math.round(totalViewers / samples.length) : 0;
 
-            await setDoc(targetStreamRef, {
+            await targetStreamRef.set({
               isLive: false, endedAt: timestampKst, durationMinutes, avgViewers, updatedAt: timestampKst
             }, { merge: true });
           }
         }
       }
-await setDoc(broadStatusRef, {
+await broadStatusRef.set({
   isLive: false,
   activeBroadcastId: null,
   ...(status.favorCnt !== null
@@ -292,12 +280,12 @@ await setDoc(broadStatusRef, {
     }
 
     // 🟢 [온라인(방송중) 처리 로직]
-    const streamRef = doc(db, 'mongna_streams', status.broadcastId!);
+    const streamRef = db.collection('mongna_streams').doc(status.broadcastId!);
     
-    await runTransaction(db, async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       const streamDoc = await transaction.get(streamRef);
 
-      if (!streamDoc.exists()) {
+      if (!streamDoc.exists) {
         transaction.set(streamRef, {
           broadcastId: status.broadcastId, streamerId: "pinktape8",
           startedAt: status.soopStartTime || timestampKst, startedAtSource: status.startedAtSource,
@@ -324,22 +312,22 @@ await setDoc(broadStatusRef, {
           avgViewers: liveAvgViewers,
           thumbnail: status.thumbnail,
           isLive: true, updatedAt: timestampKst,
-          viewerSamples: arrayUnion(newSample)
+          viewerSamples: FieldValue.arrayUnion(newSample)
         };
 
         if (prevData.title !== status.title) {
           updateData.title = status.title;
-          updateData.titleChanges = arrayUnion({ timestamp: timestampKst, before: prevData.title, after: status.title });
+          updateData.titleChanges = FieldValue.arrayUnion({ timestamp: timestampKst, before: prevData.title, after: status.title });
         }
         if (prevData.category !== status.category) {
           updateData.category = status.category;
-          updateData.categoryChanges = arrayUnion({ timestamp: timestampKst, before: prevData.category, after: status.category });
+          updateData.categoryChanges = FieldValue.arrayUnion({ timestamp: timestampKst, before: prevData.category, after: status.category });
         }
         transaction.update(streamRef, updateData);
       }
     });
 
-await setDoc(broadStatusRef, {
+await broadStatusRef.set({
   isLive: true,
   activeBroadcastId: status.broadcastId,
   title: status.title,
