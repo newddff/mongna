@@ -194,18 +194,6 @@ export default function HomePage() {
   };
 
   const saveSettings = async () => {
-    const firebaseConfig = {
-      apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
-      authDomain: "mongna-vod.firebaseapp.com",
-      projectId: "mongna-vod",
-      storageBucket: "mongna-vod.firebasestorage.app",
-      messagingSenderId: "310663611402",
-      appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const homeRef = doc(db, 'mongna_calendar_data', 'home_settings_v2');
-
     const newData = {
       isLive: inputIsLive,
       heroImg: inputHeroImg.trim(),
@@ -214,11 +202,20 @@ export default function HomePage() {
     };
 
     try {
-      await setDoc(homeRef, newData, { merge: true });
+      const res = await fetch('/api/admin/home-settings', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newData)
+      });
+      if (!res.ok) {
+        alert(res.status === 401 ? '관리자 세션이 만료되었습니다. 다시 로그인해주세요.' : '저장 실패!');
+        return;
+      }
       setIsModalOpen(false);
-      alert("설정이 파이어베이스에 안전하게 저장되었습니다!");
+      alert('설정이 저장되었습니다!');
     } catch (e) {
-      alert("저장 실패!");
+      alert('저장 실패!');
     }
   };
 
