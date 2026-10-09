@@ -394,7 +394,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
@@ -413,7 +413,30 @@
 
   let songs = [];
   // ✨ 하나로 묶어주는 슈퍼 영수증!
-  let isAdmin = localStorage.getItem('mongna_secure_admin_v2') === 'true';
+  let isAdmin = false;
+  async function saveAdminData(documentId, data) {
+    const response = await fetch('/api/admin/community-data', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId, data })
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        isAdmin = false;
+        localStorage.removeItem('mongna_secure_admin_v2');
+        updateAdminUI();
+      }
+      throw new Error('관리자 저장 실패: HTTP ' + response.status);
+    }
+  }
+
+  fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
+    .then(response => response.ok ? response.json() : { authenticated: false })
+    .then(result => { isAdmin = result.authenticated === true; updateAdminUI(); })
+    .catch(() => { isAdmin = false; updateAdminUI(); });
+
+
   let currentFilter = '전체';
   let spinInterval = null; 
   let selectedSongId = null;
@@ -617,7 +640,7 @@
     songs.unshift(newSong);
     
     try {
-      await setDoc(songRef, { list: songs }, { merge: true });
+      await saveAdminData('song_book', { list: songs });
       titleEl.value = ''; 
       artistEl.value = '';
       customCoverEl.value = ''; 
@@ -635,7 +658,7 @@
     if(confirm("이 곡을 정말 삭제하시겠습니까?")) {
       songs = songs.filter(s => s.id !== id);
       try {
-        await setDoc(songRef, { list: songs }, { merge: true });
+        await saveAdminData('song_book', { list: songs });
       } catch(err) { alert("삭제 실패!"); }
     }
   };
@@ -692,7 +715,7 @@
       songs[idx].cover = newCover;
       
       try {
-        await setDoc(songRef, { list: songs }, { merge: true });
+        await saveAdminData('song_book', { list: songs });
         closeEditModal();
         renderDetailView();
       } catch(e) {
