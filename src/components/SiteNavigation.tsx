@@ -34,3 +34,16 @@ export function UtilityNavLinks() {
     </div>
   );
 }
+
+// 기존에 상단 공통바가 없는 게임·방송 현황 화면에만 공통바 표시
+export function SecondaryPageNavigation() {
+  const pathname = usePathname();
+  if (!pathname.startsWith('/minigames') && !pathname.startsWith('/dashboard') && !pathname.startsWith('/game/')) return null;
+  return (
+    <nav aria-label="몽나 공통 상단 메뉴" style={{ position:'relative', zIndex:110, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', padding:'14px 24px', background:'rgba(255,255,255,.97)', borderBottom:'1px solid #eadcf7', fontFamily:'Pretendard,sans-serif' }}>
+      <a href="/" aria-label="몽나 홈"><img src="/logo-new.png" alt="몽나" style={{height:36,objectFit:'contain'}} /></a>
+      <MainNavLinks />
+      <UtilityNavLinks />
+    </nav>
+  );
+}
