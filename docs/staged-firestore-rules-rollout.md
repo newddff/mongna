@@ -14,7 +14,7 @@
 - `custom_vods` writes stay denied as in supplied live rules; verify separate VOD override admin page before changing it.
 
 ## Before publishing in Firebase Console
-1. Obtain **current live Firestore Rules** and compare with the staged file; this proposal is based on the rules previously supplied and a source-code inventory, not a current rules export. Do not overwrite any additional deployed collection rules blindly.
+1. **Current live rules supplied by owner (2026-10-09):** the seven match blocks are `mongna_calendar_data/{document=**}` read/write true, `mongna_users/{userId}` read/create/update true/delete false, `mongna_records/{recordId}` read/create true/update/delete false, `mongna_live_viewers/{viewerId}` read/write true, `custom_vods/{document=**}` read true/write false, `mongna_streams/{streamId}` read/write true, fallback deny. This matches the known baseline. Staged file intentionally narrows calendar to one document level and denies unlisted descendants; confirm no other hidden subcollection writers before publishing.
 2. Use Firebase Rules Playground or Emulator to simulate unauthenticated writes: `mongna_streams/test` -> DENY; `mongna_calendar_data/home_settings_v2` -> DENY; `.../schedule_data` -> DENY; `.../reward_data_v3` -> ALLOW; `.../song_book` -> ALLOW.
 3. Verify that Firestore owner/server SDK writes (Admin SDK) are unaffected; deploy this only after Production Admin SDK routes and the external SOOP cron job have been observed operating correctly.
 4. Record currently deployed rules as rollback copy before any publish.
