@@ -1,3 +1,82 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* 몽나 전체 페이지 공통 헤더 규격 — 페이지 본문 레이아웃에는 적용하지 않음 */
+.nav-container,
+.top-bar,
+.top-nav .nav-inner,
+nav[aria-label="몽나 공통 상단 메뉴"] {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 70px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 12px 32px !important;
+  display: grid !important;
+  grid-template-columns: 130px minmax(0, 1fr) minmax(250px, auto) !important;
+  align-items: center !important;
+  column-gap: 18px !important;
+  background: rgba(255,255,255,.96) !important;
+  border-bottom: 1px solid #eadcf7 !important;
+}
+.top-nav { width:100% !important; max-width:none !important; background:rgba(255,255,255,.96) !important; }
+.nav-container > a:first-child,
+.top-bar > a.logo-wrap,
+.top-nav .logo-wrap,
+nav[aria-label="몽나 공통 상단 메뉴"] > a:first-child {
+  justify-self: start !important;
+}
+.nav-container .nav-links,
+.top-bar .nav-menu,
+.top-nav .nav-menu,
+nav[aria-label="몽나 공통 상단 메뉴"] .nav-links {
+  display: flex !important;
+  width: auto !important;
+  gap: clamp(12px, 1.7vw, 30px) !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  font-size: 15px !important;
+}
+.nav-container .top-btn-group,
+.top-bar .right-menu,
+.top-bar > .admin-btn,
+.top-nav .nav-actions,
+nav[aria-label="몽나 공통 상단 메뉴"] > div:last-child {
+  justify-self: end !important;
+}
+.nav-container .top-btn-group,
+.top-bar .right-menu,
+.top-nav .nav-actions { display:flex !important; align-items:center !important; flex-wrap:wrap !important; justify-content:flex-end !important; gap:10px !important; }
+.top-bar:has(> .admin-btn) { grid-template-columns:130px minmax(0,1fr) minmax(250px,auto) !important; }
+.top-bar:has(> .admin-btn) > .admin-btn { grid-column:3 !important; grid-row:1 !important; }
+.top-bar:has(> .admin-btn) > div:not(.nav-menu):not(.logo-wrap) { grid-column:3 !important; grid-row:1 !important; justify-self:start !important; }
+.nav-container .logo-img,
+.top-bar .logo-img,
+.top-nav .logo-img { height:40px !important; width:auto !important; }
+@media(max-width:1050px) {
+  .nav-container,
+  .top-bar,
+  .top-nav .nav-inner,
+  nav[aria-label="몽나 공통 상단 메뉴"] {
+    grid-template-columns:1fr !important;
+    justify-items:center !important;
+    row-gap:12px !important;
+    padding:14px 18px !important;
+  }
+  .nav-container > a:first-child, .top-bar > a.logo-wrap, .top-nav .logo-wrap,
+  nav[aria-label="몽나 공통 상단 메뉴"] > a:first-child,
+  .nav-container .top-btn-group, .top-bar .right-menu,
+  .top-bar > .admin-btn, .top-nav .nav-actions,
+  nav[aria-label="몽나 공통 상단 메뉴"] > div:last-child {
+    justify-self:center !important;
+    grid-column:auto !important;
+    grid-row:auto !important;
+  }
+  .top-bar:has(> .admin-btn) > .admin-btn,
+  .top-bar:has(> .admin-btn) > div:not(.nav-menu):not(.logo-wrap) { grid-column:auto !important;grid-row:auto !important; }
+  .nav-container .top-btn-group, .top-bar .right-menu, .top-nav .nav-actions { justify-content:center !important; }
+}
