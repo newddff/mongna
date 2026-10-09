@@ -1,0 +1,57 @@
+// Staged Firestore rules — REVIEW AND TEST BEFORE DEPLOYMENT.
+// Existing VOD, reward, and song client writes remain permitted in this stage.
+// These rules do not protect publicly readable legacy passwords in mongna_users.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /mongna_calendar_data/{document} {
+      allow read: if true;
+
+      // Migrated to server-only Admin SDK. Firestore Admin SDK bypasses these client rules.
+      // SOOP collector and signed admin APIs own updates to these document IDs.
+      allow write: if false;
+    }
+
+    // Temporary, narrowly scoped exception for legacy static reward/song pages.
+    // This overrides the more specific false above ONLY for these document IDs.
+    match /mongna_calendar_data/reward_data_v3 {
+      allow read, write: if true;
+    }
+    match /mongna_calendar_data/reward_settings_v4 {
+      allow read, write: if true;
+    }
+    match /mongna_calendar_data/song_book {
+      allow read, write: if true;
+    }
+
+    // Preserve current VOD user/points/ranking and presence behavior pending migration.
+    match /mongna_users/{userId} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+    match /mongna_records/{recordId} {
+      allow read, create: if true;
+      allow update, delete: if false;
+    }
+    match /mongna_live_viewers/{viewerId} {
+      allow read, write: if true;
+    }
+
+    // Preserve existing read-only manual overrides until explicit owner-facing API is tested.
+    match /custom_vods/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // The SOOP collector now uses server-only Admin SDK. Dashboards are read-only.
+    match /mongna_streams/{streamId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
