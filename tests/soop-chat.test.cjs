@@ -155,3 +155,25 @@ test('votes accept exact 1-7 and reject partial numbers', () => {
   assert.equal(vote.parseChatVote(' 3 '), 3);
   for (const value of ['0', '8', '17', '1번', '7abc', '-1', '1.0', '']) assert.equal(vote.parseChatVote(value), null);
 });
+
+test('configuration names missing variables without disclosing secret values', () => {
+  delete process.env.SOOP_CLIENT_SECRET;
+  delete process.env.SOOP_CHAT_REDIRECT_URL;
+  assert.throws(() => auth.chatConfig(), error => {
+    assert.equal(error.kind, 'configuration');
+    assert.match(error.message, /SOOP_CLIENT_SECRET/);
+    assert.match(error.message, /SOOP_CHAT_REDIRECT_URL/);
+    assert.ok(!error.message.includes('test-client'));
+    assert.ok(!error.message.includes(process.env.SOOP_CHAT_SESSION_SECRET));
+    return true;
+  });
+});
+test('configuration rejects a short session key and trims pasted whitespace', () => {
+  process.env.SOOP_CHAT_SESSION_SECRET = 'short';
+  assert.throws(() => auth.chatConfig(), /SOOP_CHAT_SESSION_SECRET.*32자/);
+  process.env.SOOP_CHAT_SESSION_SECRET = 'test-random-secret-at-least-32-characters';
+  process.env.SOOP_CLIENT_ID = ' test-client \n';
+  process.env.SOOP_CHAT_REDIRECT_URL = ' https://mongna.vercel.app/streamer/soop-callback \n';
+  assert.equal(auth.chatConfig().clientId, 'test-client');
+  assert.equal(auth.chatConfig().origin, 'https://mongna.vercel.app');
+});
