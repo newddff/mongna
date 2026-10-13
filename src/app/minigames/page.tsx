@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
-  const router = useRouter();
 
 const games = [
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
+    { id: 'streamer-chat', icon: '💬', title: '몽나 vs 달구 채팅 게임', desc: '사목 · 오목 · 체스 · 장기. 몽나 계정 연동으로 방송 채팅과 함께 즐겨요.', ready: true, isLink: true, path: '/streamer/minigames' },
     // 💡 핀볼 게임 주소를 정확한 배포 링크로 설정했습니다.
     { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: 'https://mongna-pinball.vercel.app/' },
+  ];
+
+  const gameGroups = [
+    { title: '바로 즐기는 게임', items: games.filter(g => !g.isLink) },
+    { title: '별도 게임 페이지', items: games.filter(g => g.isLink) },
   ];
 
   const handleCardClick = (g: any) => {
@@ -20,30 +24,28 @@ const games = [
       alert('준비중입니다!');
       return;
     }
-    if (g.isLink) {
-      router.push(g.path);
-    } else {
-      setActiveGame(g.id);
-    }
+    setActiveGame(g.id);
   };
 
   return (
     <div className="arcade-container">
       <style>{`
-        .arcade-container { min-height: 100vh; background-color: #f3f0f8; color: #2d3748; padding: 30px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; }
-        .arcade-inner { max-width: 1150px; margin: 0 auto; }
-        .arcade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid rgba(139, 92, 246, 0.2); }
+        .arcade-container { min-height: 100vh; background-color: #f3f0f8; color: #2d3748; padding: 24px 18px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; }
+        .arcade-inner { max-width: 1060px; margin: 0 auto; }
+        .arcade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 2px solid rgba(139, 92, 246, 0.2); }
         .arcade-title { font-size: 22px; font-weight: 800; color: #2d3748; background: #ffffff; padding: 10px 22px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); margin: 0; }
         .back-btn { background: #ffffff; border: none; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; color: #7c3aed; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); transition: all 0.2s; }
         .back-btn:hover { background: #f5f3ff; transform: translateY(-2px); }
         
-        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; }
-        .game-card { background-color: #ffffff; border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; }
+        .game-group + .game-group { margin-top: 26px; }
+        .game-group-title { font-size: 18px; font-weight: 800; color: #4a5568; margin: 0 0 16px; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+        .game-card { background-color: #ffffff; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; min-height: 145px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; text-decoration: none; }
         .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
-        .game-icon-box { width: 52px; height: 52px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
-        .game-name { font-size: 19px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
+        .game-icon-box { width: 42px; height: 42px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 23px; margin-bottom: 12px; }
+        .game-name { font-size: 17px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
         .game-desc { font-size: 14px; color: #718096; line-height: 1.5; margin: 0; word-break: keep-all; }
-        .game-link { margin-top: 20px; font-size: 14px; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 4px; }
+        .game-link { margin-top: 14px; font-size: 13px; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 4px; }
         
         .board-wrapper { background: #ffffff; border-radius: 28px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
         .pill-input { width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 13px; font-weight: 700; text-align: center; color: #4a5568; outline: none; transition: all 0.2s; background: #ffffff; }
@@ -73,13 +75,25 @@ const games = [
         </div>
 
         {!activeGame && (
-          <div className="game-grid">
-            {games.map((g) => (
-              <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>
+          <div>
+          {gameGroups.map(group => (
+            <section key={group.title} className="game-group" aria-label={group.title}>
+              <h2 className="game-group-title">{group.title}</h2>
+              <div className="game-grid">
+            {group.items.map((g) => {
+              const content = <>
                 <div><div className="game-icon-box">{g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
-                <div className="game-link"><span>{g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
+                <div className="game-link"><span>{g.id === 'streamer-chat' ? '몽나 전용 게임룸으로' : g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
+              </>;
+              return g.isLink ? (
+                <a key={g.id} className="game-card" href={g.path}>{content}</a>
+              ) : (
+                <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>{content}</div>
+              );
+            })}
               </div>
-            ))}
+            </section>
+          ))}
           </div>
         )}
 
