@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
-  const router = useRouter();
 
 const games = [
+    { id: 'streamer-chat', icon: '💬', title: '몽나 vs 달구 채팅 게임', desc: '사목 · 오목 · 체스 · 장기. 몽나 계정 연동으로 방송 채팅과 함께 즐겨요.', ready: true, isLink: true, path: '/streamer/minigames' },
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
@@ -20,11 +19,7 @@ const games = [
       alert('준비중입니다!');
       return;
     }
-    if (g.isLink) {
-      router.push(g.path);
-    } else {
-      setActiveGame(g.id);
-    }
+    setActiveGame(g.id);
   };
 
   return (
@@ -38,7 +33,7 @@ const games = [
         .back-btn:hover { background: #f5f3ff; transform: translateY(-2px); }
         
         .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; }
-        .game-card { background-color: #ffffff; border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; }
+        .game-card { background-color: #ffffff; border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; text-decoration: none; }
         .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
         .game-icon-box { width: 52px; height: 52px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
         .game-name { font-size: 19px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
@@ -74,12 +69,17 @@ const games = [
 
         {!activeGame && (
           <div className="game-grid">
-            {games.map((g) => (
-              <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>
+            {games.map((g) => {
+              const content = <>
                 <div><div className="game-icon-box">{g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
-                <div className="game-link"><span>{g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
-              </div>
-            ))}
+                <div className="game-link"><span>{g.id === 'streamer-chat' ? '몽나 전용 게임룸으로' : g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
+              </>;
+              return g.isLink ? (
+                <a key={g.id} className="game-card" href={g.path}>{content}</a>
+              ) : (
+                <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>{content}</div>
+              );
+            })}
           </div>
         )}
 
