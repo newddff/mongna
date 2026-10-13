@@ -17,12 +17,19 @@ export type ChatSession = {
 };
 
 export function chatConfig() {
-  const clientId = process.env.SOOP_CLIENT_ID;
-  const clientSecret = process.env.SOOP_CLIENT_SECRET;
-  const secret = process.env.SOOP_CHAT_SESSION_SECRET;
-  const redirectUrl = process.env.SOOP_CHAT_REDIRECT_URL;
-  if (!clientId || !clientSecret || !secret || secret.length < 32 || !redirectUrl) {
-    throw new ChatAuthError('configuration', 'SOOP 연결 설정이 준비되지 않았습니다.', 503);
+  const clientId = process.env.SOOP_CLIENT_ID?.trim();
+  const clientSecret = process.env.SOOP_CLIENT_SECRET?.trim();
+  const secret = process.env.SOOP_CHAT_SESSION_SECRET?.trim();
+  const redirectUrl = process.env.SOOP_CHAT_REDIRECT_URL?.trim();
+  const missing = Object.entries({
+    SOOP_CLIENT_ID: clientId, SOOP_CLIENT_SECRET: clientSecret,
+    SOOP_CHAT_SESSION_SECRET: secret, SOOP_CHAT_REDIRECT_URL: redirectUrl,
+  }).filter(([, value]) => !value).map(([name]) => name);
+  if (missing.length) {
+    throw new ChatAuthError('configuration', `현재 배포에 설정이 없습니다: ${missing.join(', ')}. Preview 적용 환경·브랜치와 재배포를 확인해주세요.`, 503);
+  }
+  if (secret.length < 32) {
+    throw new ChatAuthError('configuration', 'SOOP_CHAT_SESSION_SECRET은 공백을 제외하고 32자 이상이어야 합니다.', 503);
   }
   let redirect: URL;
   try { redirect = new URL(redirectUrl); } catch {
