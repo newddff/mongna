@@ -6,12 +6,17 @@ export default function MinigameHub() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
 const games = [
-    { id: 'streamer-chat', icon: '💬', title: '몽나 vs 달구 채팅 게임', desc: '사목 · 오목 · 체스 · 장기. 몽나 계정 연동으로 방송 채팅과 함께 즐겨요.', ready: true, isLink: true, path: '/streamer/minigames' },
     { id: 'ladder', icon: '🪜', title: '달구 사다리타기', desc: '설정 화면 없이 바로 슥슥 적고 출발하는 완벽한 사다리!', ready: true, isLink: false },
     { id: 'cannon', icon: '💥', title: '대포 뽑기', desc: '참가자 번호 추첨이나 벌칙을 시원하게 대포로 쏴서 뽑아요.', ready: true, isLink: false },
     { id: 'roulette', icon: '🎯', title: '룰렛 돌리기', desc: '오늘의 밥 메뉴 추천, 벌칙 등 원판을 힘차게 돌려 결과를 확인해요.', ready: true, isLink: false },
+    { id: 'streamer-chat', icon: '💬', title: '몽나 vs 달구 채팅 게임', desc: '사목 · 오목 · 체스 · 장기. 몽나 계정 연동으로 방송 채팅과 함께 즐겨요.', ready: true, isLink: true, path: '/streamer/minigames' },
     // 💡 핀볼 게임 주소를 정확한 배포 링크로 설정했습니다.
     { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: 'https://mongna-pinball.vercel.app/' },
+  ];
+
+  const gameGroups = [
+    { title: '바로 즐기는 게임', items: games.filter(g => !g.isLink) },
+    { title: '별도 게임 페이지', items: games.filter(g => g.isLink) },
   ];
 
   const handleCardClick = (g: any) => {
@@ -32,6 +37,8 @@ const games = [
         .back-btn { background: #ffffff; border: none; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; color: #7c3aed; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); transition: all 0.2s; }
         .back-btn:hover { background: #f5f3ff; transform: translateY(-2px); }
         
+        .game-group + .game-group { margin-top: 36px; }
+        .game-group-title { font-size: 18px; font-weight: 800; color: #4a5568; margin: 0 0 16px; }
         .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; }
         .game-card { background-color: #ffffff; border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; text-decoration: none; }
         .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
@@ -68,8 +75,12 @@ const games = [
         </div>
 
         {!activeGame && (
-          <div className="game-grid">
-            {games.map((g) => {
+          <div>
+          {gameGroups.map(group => (
+            <section key={group.title} className="game-group" aria-label={group.title}>
+              <h2 className="game-group-title">{group.title}</h2>
+              <div className="game-grid">
+            {group.items.map((g) => {
               const content = <>
                 <div><div className="game-icon-box">{g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
                 <div className="game-link"><span>{g.id === 'streamer-chat' ? '몽나 전용 게임룸으로' : g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
@@ -80,6 +91,9 @@ const games = [
                 <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>{content}</div>
               );
             })}
+              </div>
+            </section>
+          ))}
           </div>
         )}
 
