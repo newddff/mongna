@@ -1,16 +1,28 @@
 import 'server-only';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { NextResponse } from 'next/server';
+import { DEFAULT_SOOP_RETURN_TO, LEGACY_SOOP_CALLBACK_PATH, SOOP_CALLBACK_PATH, safeSoopReturnTo } from '../soop-auth-paths';
 
 const API = 'https://openapi.sooplive.com';
-export const HOST_PAGE = '/streamer/minigames';
+export const HOST_PAGE = DEFAULT_SOOP_RETURN_TO;
 export const SESSION_COOKIE = 'mongna_soop_chat';
 export const FLOW_COOKIE = 'mongna_soop_flow';
 const SESSION_DAYS = 30;
 export class ChatAuthError extends Error {
   constructor(public kind: string, message: string, public status = 400) { super(message); }
 }
-type Pending = { nonce: string; expiresAt: number };
+type Pending = { nonce: string; expiresAt: number; purpose?: string; returnTo?: string };
+// Register each new SOOP feature here with its own scope and authorization policy.
+const AUTH_PURPOSES = { chat: { scope: 'broad_access_chatinfo' } };
+function authPurpose(value: unknown = 'chat'): 'chat' {
+  if (value !== 'chat') throw new ChatAuthError('purpose', '지원하지 않는 SOOP 연결 기능입니다.', 400);
+  return value;
+}
+function returnToPage(value: unknown) {
+  try { return safeSoopReturnTo(value); } catch {
+    throw new ChatAuthError('return_to', '허용되지 않은 복귀 주소입니다.', 400);
+  }
+}
 export type ChatSession = {
   streamerId: string; accessToken: string; refreshToken: string;
   accessExpiresAt: number; sessionExpiresAt: number;
@@ -35,7 +47,7 @@ export function chatConfig() {
   try { redirect = new URL(redirectUrl); } catch {
     throw new ChatAuthError('configuration', 'SOOP 연결 주소 설정을 확인해주세요.', 503);
   }
-  if (redirect.pathname !== '/streamer/soop-callback' || redirect.search || redirect.hash ||
+  if (![SOOP_CALLBACK_PATH, LEGACY_SOOP_CALLBACK_PATH].includes(redirect.pathname) || redirect.search || redirect.hash ||
       (redirect.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && redirect.hostname === 'localhost'))) {
     throw new ChatAuthError('configuration', 'SOOP 연결 주소 설정을 확인해주세요.', 503);
   }
@@ -81,12 +93,14 @@ export function setCookie(response: NextResponse, name: string, value: string, m
     sameSite: 'lax', path: '/', maxAge,
   });
 }
-export function startFlow() {
-  const pending: Pending = { nonce: randomBytes(32).toString('base64url'), expiresAt: Date.now() + 10 * 60 * 1000 };
+export function startFlow(returnTo?: unknown, purpose?: unknown) {
+  const feature = authPurpose(purpose);
+  const pending: Pending = { nonce: randomBytes(32).toString('base64url'), expiresAt: Date.now() + 10 * 60 * 1000,
+    purpose: feature, returnTo: returnToPage(returnTo) };
   const url = new URL(API + '/auth/code');
   url.searchParams.set('client_id', chatConfig().clientId);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', 'broad_access_chatinfo');
+  url.searchParams.set('scope', AUTH_PURPOSES[feature].scope);
   // SOOP does not document OAuth state. Bind the callback POST to this browser
   // using an encrypted HttpOnly cookie + a per-tab nonce in sessionStorage.
   return { pending, authUrl: url.toString() };
@@ -101,6 +115,9 @@ export function verifyFlow(request: Request, nonce: unknown) {
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
     throw new ChatAuthError('flow', '이 브라우저에서 시작한 연결이 아닙니다. 다시 시작해주세요.', 403);
   }
+  // Both routing values are recovered only from the encrypted, verified flow cookie.
+  // Existing in-flight chat flows without these fields keep their original return page.
+  return { ...pending, purpose: authPurpose(pending.purpose), returnTo: returnToPage(pending.returnTo) };
 }
 export function readSession(request: Request): ChatSession | null {
   const session = unseal<ChatSession>(cookie(request, SESSION_COOKIE), 'session');

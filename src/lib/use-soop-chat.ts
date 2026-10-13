@@ -1,5 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { beginSoopAuth } from './soop-auth-client';
+import { DEFAULT_SOOP_RETURN_TO } from './soop-auth-paths';
 
 export type ChatMessage = { userId: string; nickname: string; text: string };
 type Sdk = {
@@ -12,7 +14,7 @@ type Sdk = {
 };
 declare global { interface Window { SOOP?: { ChatSDK: new (clientId: string) => Sdk }; } }
 const SDK_URL = 'https://static.sooplive.com/asset/app/chat-sdk/sooplive-chat-sdk.js';
-export const FLOW_STORAGE_KEY = 'mongna_soop_flow_nonce';
+export { FLOW_STORAGE_KEY } from './soop-auth-client';
 let sdkLoading: Promise<void> | null = null;
 export function loadChatSdk() {
   if (window.SOOP?.ChatSDK) return Promise.resolve();
@@ -116,11 +118,7 @@ export function useSoopChat(onMessage: (message: ChatMessage) => void) {
   const startAuth = async () => {
     setBusy(true); setStatus('SOOP 로그인 화면으로 이동합니다.');
     try {
-      const response = await fetch('/api/soop/chat/start', { method: 'POST', credentials: 'same-origin' });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || '연결을 시작할 수 없습니다.');
-      sessionStorage.setItem(FLOW_STORAGE_KEY, data.nonce);
-      window.location.assign(data.authUrl);
+      await beginSoopAuth({ purpose: 'chat', returnTo: DEFAULT_SOOP_RETURN_TO });
     } catch (error) { setStatus(error instanceof Error ? error.message : '연결을 시작할 수 없습니다.'); setBusy(false); }
   };
   const retryNow = () => { stopped.current = false; void connect(); };

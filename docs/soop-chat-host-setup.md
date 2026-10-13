@@ -15,11 +15,44 @@
 | `SOOP_CLIENT_ID` | 승인받은 앱의 Client ID. 기존 값이 같은 앱이면 그대로 사용 |
 | `SOOP_CLIENT_SECRET` | 같은 앱의 Client Secret. 서버 전용이며 `NEXT_PUBLIC_` 접두사 사용 금지 |
 | `SOOP_CHAT_SESSION_SECRET` | 무작위 32자 이상 암호화 키. 예: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`로 생성 |
-| `SOOP_CHAT_REDIRECT_URL` | `https://mongna.vercel.app/streamer/soop-callback` |
+| `SOOP_CHAT_REDIRECT_URL` | `https://mongna.vercel.app/soop/callback` |
 
 SOOP Developers 앱의 Redirect URL도 위 콜백 주소로 변경해야 합니다. 승인 범위에는 `broad_access_chatinfo`(채팅 메시지 조회 및 보내기)가 있어야 합니다. 환경변수 변경 후 재배포합니다. 비밀값은 GitHub와 채팅에 올리지 않습니다.
 
 전용 인증은 기존 홈페이지 관리자 로그인과 독립적입니다. Firebase 저장소나 관리자 비밀번호를 추가로 사용하지 않습니다.
+
+## 공통 인증 주소로 전환
+
+공통 콜백은 `/soop/callback`입니다. 이 주소는 인증 결과를 처리하며, 미니게임·캘린더·다른 팬페이지 페이지에서 시작한 인증을 시작 페이지로 복귀시킬 수 있습니다. 기능을 콜백 페이지 안에서 구현할 필요는 없습니다.
+
+현재 브랜치의 Preview 설정:
+
+```text
+https://mongna-git-codex-soop-streamer-chat-ppooni.vercel.app/soop/callback
+```
+
+1. 이 변경의 Preview 배포가 Ready가 된 뒤 SOOP Developers 앱의 Redirect URL을 위 주소로 변경합니다.
+2. Vercel Preview의 `SOOP_CHAT_REDIRECT_URL`도 같은 주소로 바꾸고 재배포합니다.
+3. 기존 연결된 브라우저는 인증 쿠키와 암호화 키가 같으면 그대로 사용할 수 있습니다. 콜백 전환을 확인하려면 연동 해제 후 다시 연동합니다.
+4. 정식 배포할 때 Production 값과 Developers 주소를 `https://mongna.vercel.app/soop/callback`으로 전환합니다.
+
+기존 `/streamer/soop-callback` 페이지와 기존 인증 API도 호환 경로로 유지합니다. 설정 변경 전에도 기존 경로로 연동이 가능하며, 전환 전에 시작한 인증도 원래 미니게임으로 복귀합니다. 동일 앱은 등록된 Redirect URL을 공유하므로 운영/Preview 인증을 동시에 운영하려면 앱 설정이 허용하는 방식 또는 별도 테스트 앱을 사용해야 합니다.
+
+### 다른 기능에서 인증 시작하기
+
+```ts
+import { beginSoopAuth } from './lib/soop-auth-client'; // 실제 파일 위치에 맞춰 상대 경로 조정
+
+await beginSoopAuth({ purpose: 'chat', returnTo: '/streamer/minigames' });
+// 같은 chat 기능을 다른 페이지에서 실행하는 경우:
+await beginSoopAuth({ purpose: 'chat', returnTo: '/wiki' });
+```
+
+공통 API는 `/api/soop/auth/start`, `/api/soop/auth/callback`입니다. `returnTo`는 같은 사이트의 페이지 경로만 허용하며 서버에서 암호화된 인증 흐름 쿠키에 저장합니다. 콜백 요청이 임의로 보낸 복귀 주소·기능 이름은 사용하지 않습니다. 취소·실패 화면도 ‘원래 페이지로 돌아가기’를 제공합니다.
+
+현재 등록된 인증 목적은 `chat` 하나이며, 채팅 권한과 몽나 계정 확인 정책이 그대로 적용됩니다. 새 SOOP 기능은 목적별 scope·허용 계정·토큰 저장/검증 정책을 서버에 추가해야 합니다. 공통 주소가 생겼다고 승인되지 않은 권한이 생기거나 일반 사용자에게 채팅 권한이 열리는 것은 아닙니다. 환경변수 이름의 `SOOP_CHAT_` 접두사는 기존 배포 설정 호환을 위해 유지했습니다.
+
+이번 변경은 인증 구조만 대상으로 하며 게임 추가는 포함하지 않습니다.
 
 ## 최초 실행과 다음 실행
 

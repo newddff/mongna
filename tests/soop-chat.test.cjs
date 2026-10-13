@@ -37,7 +37,7 @@ beforeEach(() => {
   originalEnv = { ...process.env };
   Object.assign(process.env, { SOOP_CLIENT_ID: 'test-client', SOOP_CLIENT_SECRET: 'test-secret',
     SOOP_CHAT_SESSION_SECRET: 'test-random-secret-at-least-32-characters',
-    SOOP_CHAT_REDIRECT_URL: 'https://mongna.vercel.app/streamer/soop-callback', NODE_ENV: 'production' });
+    SOOP_CHAT_REDIRECT_URL: 'https://mongna.vercel.app/soop/callback', NODE_ENV: 'production' });
   delete process.env.SOOP_CHAT_TEST_STREAMER_ID; delete process.env.VERCEL_ENV;
 });
 afterEach(() => { global.fetch = originalFetch; process.env = originalEnv; });
@@ -118,7 +118,7 @@ test('verified host receives an encrypted session, never tokens in the callback 
   const result = await callback.POST(req('/api/soop/chat/callback', { code: 'valid-code', nonce: pending.nonce },
     auth.FLOW_COOKIE + '=' + auth.seal(pending, 'flow')));
   assert.equal(result.status, 200);
-  assert.deepEqual(await result.json(), { authenticated: true });
+  assert.deepEqual(await result.json(), { authenticated: true, returnTo: '/streamer/minigames' });
   assert.match(result.headers.get('set-cookie'), /mongna_soop_chat=/);
   assert.ok(!result.headers.get('set-cookie').includes('new-access'));
   assert.equal(calls[0].params.get('client_secret'), 'test-secret');
@@ -176,4 +176,92 @@ test('configuration rejects a short session key and trims pasted whitespace', ()
   process.env.SOOP_CHAT_REDIRECT_URL = ' https://mongna.vercel.app/streamer/soop-callback \n';
   assert.equal(auth.chatConfig().clientId, 'test-client');
   assert.equal(auth.chatConfig().origin, 'https://mongna.vercel.app');
+});
+
+test('common callback configuration and legacy callback both remain supported', () => {
+  assert.equal(new URL(auth.chatConfig().redirectUrl).pathname, '/soop/callback');
+  process.env.SOOP_CHAT_REDIRECT_URL = 'https://mongna.vercel.app/streamer/soop-callback';
+  assert.equal(new URL(auth.chatConfig().redirectUrl).pathname, '/streamer/soop-callback');
+  process.env.SOOP_CHAT_REDIRECT_URL = 'https://mongna.vercel.app/unhandled-callback';
+  assert.throws(() => auth.chatConfig(), /주소 설정/);
+});
+test('common start and callback return to the original feature from the verified flow', async () => {
+  const commonStart = load('src/app/api/soop/auth/start/route.ts');
+  const commonCallback = load('src/app/api/soop/auth/callback/route.ts');
+  const result = await commonStart.POST(req('/api/soop/auth/start', { purpose: 'chat', returnTo: '/wiki?section=soop#tools' }));
+  assert.equal(result.status, 200);
+  const { nonce } = await result.json();
+  const flowCookie = result.headers.get('set-cookie').split(';')[0];
+  mockSoop();
+  const response = await commonCallback.POST(req('/api/soop/auth/callback', {
+    code: 'good', nonce, returnTo: 'https://evil.example', purpose: 'other',
+  }, flowCookie));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).returnTo, '/wiki?section=soop#tools');
+});
+test('external and unsafe return addresses are rejected before SOOP authentication', async () => {
+  const commonStart = load('src/app/api/soop/auth/start/route.ts');
+  const badPaths = ['https://evil.example', '//evil.example', '/\\evil.example', '/%2f%2fevil.example',
+    '/foo/../soop/callback', '/api/soop/auth/start', '/soop/callback', '/streamer/soop-callback',
+    '/soop/callback/again', '/foo\nbar'];
+  for (const returnTo of badPaths) {
+    const response = await commonStart.POST(req('/api/soop/auth/start', { returnTo }));
+    assert.equal(response.status, 400, returnTo);
+    assert.equal(response.headers.get('set-cookie'), null);
+  }
+});
+test('unknown authentication purpose cannot select extra scopes or bypass host checks', async () => {
+  const commonStart = load('src/app/api/soop/auth/start/route.ts');
+  const response = await commonStart.POST(req('/api/soop/auth/start', { purpose: 'admin', returnTo: '/' }));
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).kind, 'purpose');
+});
+test('legacy in-flight flows lacking a return path finish at the original game page', async () => {
+  const pending = { nonce: 'legacy-tab-nonce', expiresAt: Date.now() + 60000 };
+  mockSoop();
+  const response = await callback.POST(req('/api/soop/chat/callback', { code: 'good', nonce: pending.nonce },
+    auth.FLOW_COOKIE + '=' + auth.seal(pending, 'flow')));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).returnTo, '/streamer/minigames');
+});
+test('safe internal page routing supports the fanpage root and rejects non-string values', () => {
+  const paths = load('src/lib/soop-auth-paths.ts');
+  assert.equal(paths.safeSoopReturnTo('/'), '/');
+  assert.equal(paths.safeSoopReturnTo('/calendar?month=10'), '/calendar?month=10');
+  assert.throws(() => paths.safeSoopReturnTo({ path: '/' }));
+  assert.throws(() => paths.safeSoopReturnTo('/' + 'a'.repeat(1024)));
+});
+test('common start rejects malformed JSON requests', async () => {
+  const commonStart = load('src/app/api/soop/auth/start/route.ts');
+  const request = new Request('https://mongna.vercel.app/api/soop/auth/start', {
+    method: 'POST', headers: { origin: 'https://mongna.vercel.app' }, body: '{bad',
+  });
+  assert.equal((await commonStart.POST(request)).status, 400);
+});
+
+test('shared client starts the common API and stores the per-tab retry destination', async () => {
+  const previousWindow = global.window, previousStorage = global.sessionStorage;
+  const values = new Map(); let assigned; let request;
+  global.window = { location: { assign: url => { assigned = url; } } };
+  global.sessionStorage = { setItem: (key, value) => values.set(key, value), getItem: key => values.get(key) ?? null, removeItem: key => values.delete(key) };
+  global.fetch = async (url, options) => { request = { url, body: JSON.parse(options.body) }; return Response.json({ nonce: 'client-tab', authUrl: 'https://openapi.sooplive.com/auth/code' }); };
+  try {
+    const client = load('src/lib/soop-auth-client.ts');
+    await client.beginSoopAuth({ returnTo: '/calendar?month=10' });
+    assert.equal(request.url, '/api/soop/auth/start');
+    assert.deepEqual(request.body, { purpose: 'chat', returnTo: '/calendar?month=10' });
+    assert.equal(assigned, 'https://openapi.sooplive.com/auth/code');
+    assert.deepEqual(client.consumeSoopFlow('/'), { nonce: 'client-tab', returnTo: '/calendar?month=10' });
+    assert.equal(values.size, 0);
+  } finally { global.window = previousWindow; global.sessionStorage = previousStorage; }
+});
+test('tampered retry storage cannot make the shared client leave the site', () => {
+  const previousStorage = global.sessionStorage;
+  const values = new Map([['mongna_soop_flow_nonce', 'tab'], ['mongna_soop_flow_return_to', '//evil.example']]);
+  global.sessionStorage = { getItem: key => values.get(key) ?? null, removeItem: key => values.delete(key) };
+  try {
+    const client = load('src/lib/soop-auth-client.ts');
+    assert.deepEqual(client.consumeSoopFlow('/'), { nonce: 'tab', returnTo: '/' });
+    assert.equal(values.size, 0);
+  } finally { global.sessionStorage = previousStorage; }
 });
