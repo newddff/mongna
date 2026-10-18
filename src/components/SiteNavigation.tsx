@@ -26,11 +26,11 @@ export function MainNavLinks() {
   );
 }
 
-export function UtilityNavLinks() {
+export function UtilityNavLinks({ plain = false }: { plain?: boolean } = {}) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <a href="/vod.html" style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #eadcf7', background: '#faf5ff', color: '#7350a1', borderRadius: '20px', padding: '7px 11px', fontWeight: 800, fontSize: '13px', textDecoration: 'none', whiteSpace: 'nowrap' }}>💜 몽다살</a>
-      <a href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #eadcf7', background: '#faf5ff', color: '#7350a1', borderRadius: '20px', padding: '7px 11px', fontWeight: 800, fontSize: '13px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📊 대시보드</a>
+      <a href="/vod.html" style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #eadcf7', background: '#faf5ff', color: '#7350a1', borderRadius: '20px', padding: '7px 11px', fontWeight: 800, fontSize: '13px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{plain ? '몽다살' : '💜 몽다살'}</a>
+      <a href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #eadcf7', background: '#faf5ff', color: '#7350a1', borderRadius: '20px', padding: '7px 11px', fontWeight: 800, fontSize: '13px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{plain ? '대시보드' : '📊 대시보드'}</a>
     </div>
   );
 }

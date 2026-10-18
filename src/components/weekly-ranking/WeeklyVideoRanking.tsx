@@ -40,7 +40,7 @@ export default function WeeklyVideoRanking() {
       {(['clip', 'catch'] as VideoKind[]).map(kind => {
         const group = data?.rankings[kind];
         return <section key={kind} className={styles.panel} aria-label={`${names[kind]} 조회수 TOP 5`}>
-          <div className={styles.panelHeader}><h3><span>{kind === 'clip' ? '🎬' : '✨'}</span> {names[kind]} <small>TOP 5</small></h3><a href={channelUrls[kind]} target="_blank" rel="noopener noreferrer">전체 보기 ↗</a></div>
+          <div className={styles.panelHeader}><h3><span>{kind === 'clip' ? '▶' : '✦'}</span> {names[kind]} <small>TOP 5</small></h3><a href={channelUrls[kind]} target="_blank" rel="noopener noreferrer">전체 보기 ↗</a></div>
           {group?.status === 'partial' && <p className={styles.warning}>일부 영상만 확인됐어요. 현재 수집된 영상 기준 순위예요.</p>}
           {group?.status === 'error' ? <p role="status" className={styles.empty}>SOOP에서 {names[kind]} 목록을 받아오지 못했어요.</p> : group?.items.length ? <ol className={styles.list}>
             {group.items.map((video, index) => <li key={video.id}>

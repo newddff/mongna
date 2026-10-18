@@ -5,6 +5,7 @@ const dom=new JSDOM('<div id="root"></div>',{url:'https://mongna.vercel.app/cale
 global.window=dom.window;global.self=dom.window;global.document=dom.window.document;global.navigator=dom.window.navigator;global.localStorage=dom.window.localStorage;global.IS_REACT_ACT_ENVIRONMENT=true;global.alert=()=>{};
 const React=require('react'),{act}=React,{createRoot}=require('react-dom/client');
 const cache=new Map();
+let snapshots={category_colors:{방송:'#123456'}};
 function load(relative){
  const file=path.resolve(root,relative);if(cache.has(file))return cache.get(file).exports;
  const mod=new Module(file,module);mod.filename=file;mod.paths=Module._nodeModulePaths(path.dirname(file));cache.set(file,mod);const native=mod.require.bind(mod);
@@ -12,13 +13,14 @@ function load(relative){
   if(name.endsWith('.css'))return{__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
   if(name==='next/navigation')return{usePathname:()=>'/calendar'};
   if(name==='firebase/app')return{initializeApp:()=>({})};
-  if(name==='firebase/firestore')return{getFirestore:()=>({}),doc:(_,collection,id)=>({id}),onSnapshot:(ref,cb)=>{cb({exists:()=>ref.id==='category_colors',data:()=>({방송:'#123456'})});return()=>{};}};
+  if(name==='firebase/firestore')return{getFirestore:()=>({}),doc:(_,collection,id)=>({id}),onSnapshot:(ref,cb)=>{cb({exists:()=>Boolean(snapshots[ref.id]),data:()=>snapshots[ref.id]});return()=>{};}};
   if(name.startsWith('.')){const target=path.resolve(path.dirname(file),name);return load(path.relative(root,fs.existsSync(target+'.ts')?target+'.ts':target+'.tsx'));}
   return native(name);
  };mod._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,file);return mod.exports;
 }
 const Ranking=load('src/components/weekly-ranking/WeeklyVideoRanking.tsx').default;
 const Calendar=load('src/app/calendar/page.tsx').default;
+const Home=load('src/app/page.tsx').default;
 const fixture={period:{from:'2026-10-11T10:00:00Z',to:'2026-10-18T10:00:00Z'},rankings:{clip:{status:'ready',items:[{id:'1',title:'팬이 만든 클립',creator:'달구',publishedAt:'2026-10-18T09:00:00Z',thumb:'',views:1234,url:'https://vod.sooplive.com/player/1'}]},catch:{status:'ready',items:[]}}};
 async function mount(Component){const node=document.getElementById('root'),r=createRoot(node);await act(async()=>r.render(React.createElement(Component)));return{node,close:async()=>act(async()=>r.unmount())};}
 function button(node,text){return Array.from(node.querySelectorAll('button')).find(x=>x.textContent.trim()===text);}
@@ -45,3 +47,20 @@ test('calendar category selector and color settings include 구플 after loading
  await act(async()=>click(m.node.querySelector('[title="카테고리 색상 설정"]')));assert.ok(m.node.textContent.includes('구플 색상'));
  const labels=Array.from(m.node.querySelectorAll('label'));assert.equal(labels.find(x=>x.textContent==='구플 색상').parentElement.querySelector('input').value,'#ec4899');
  }finally{await m.close();localStorage.clear();window.innerWidth=1024;}});
+
+test('redesigned home preserves live status, today schedules, ranking and navigation',async()=>{
+ const date=new Date(),key=`${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+ snapshots.home_settings_v2={heroImg:'https://example.com/existing-mongna.jpg',ytChannelId:'existing-channel',isLive:false,links:[{title:'몽나 방송국',url:'https://play.sooplive.co.kr/pinktape8'}]};
+ snapshots.schedule_data={data:{[key]:{legacy:{id:1,type:'구플',title:'구플 함께 보기',time:'오후 8:00'}}}};
+ const urls=[];global.fetch=async url=>{urls.push(url);return Response.json(url==='/api/live'?{isLive:true}:url==='/api/clips'?fixture:{items:[]});};
+ const m=await mount(Home);try{
+ assert.ok(m.node.textContent.includes('ON AIR'));assert.ok(m.node.textContent.includes('구플 함께 보기'));assert.ok(m.node.textContent.includes('팬이 만든 클립'));assert.ok(m.node.querySelector('a[href="/minigames"]'));assert.ok(m.node.querySelector('a[href="/calendar"]'));assert.equal(m.node.querySelector('img[alt="몽나 메인 사진"]').src,'https://example.com/existing-mongna.jpg');assert.ok(urls.includes('/api/live'));assert.ok(!urls.includes('/api/soop'));
+ }finally{await m.close();delete snapshots.schedule_data;delete snapshots.home_settings_v2;}});
+test('redesigned home settings still submit image, channel, live override and links to the admin API',async()=>{
+ localStorage.setItem('mongna_secure_admin_v2','true');let saved;
+ global.fetch=async(url,init)=>{if(url==='/api/admin/home-settings')saved=JSON.parse(init.body);return Response.json(url==='/api/live'?{isLive:false}:url==='/api/clips'?fixture:{items:[]});};
+ const m=await mount(Home);try{
+ await act(async()=>click(m.node.querySelector('[aria-label="홈페이지 설정"]')));const dialog=m.node.querySelector('[role="dialog"]');assert.ok(dialog);
+ const label=Array.from(dialog.querySelectorAll('label')).find(x=>x.textContent==='메인 사진 URL');const input=label.querySelector('input');await act(async()=>{input.value='https://example.com/mongna.jpg';require('react-dom/test-utils').Simulate.change(input);});
+ await act(async()=>click(button(dialog,'설정 저장 및 적용하기')));assert.equal(saved.heroImg,'https://example.com/mongna.jpg');assert.equal(saved.links.length,4);assert.equal(saved.isLive,false);assert.equal(typeof saved.ytChannelId,'string');
+ }finally{await m.close();localStorage.clear();}});
