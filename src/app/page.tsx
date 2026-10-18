@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import WeeklyVideoRanking from '../components/weekly-ranking/WeeklyVideoRanking';
+import { CALENDAR_CATEGORY_COLORS } from '../lib/calendar-categories';
 import { MainNavLinks, UtilityNavLinks } from '../components/SiteNavigation';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
@@ -22,9 +24,7 @@ export default function HomePage() {
   });
   
   const [scheduleData, setScheduleData] = useState<any>({});
-  const [categoryColors, setCategoryColors] = useState<any>({
-    합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
-  });
+  const [categoryColors, setCategoryColors] = useState<any>({ ...CALENDAR_CATEGORY_COLORS });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +38,6 @@ export default function HomePage() {
 
   const [autoIsLive, setAutoIsLive] = useState(false); 
   const [liveThumb, setLiveThumb] = useState(''); // 💡 실시간 썸네일 URL을 저장할 공간
-  const [hotClips, setHotClips] = useState<any[]>([]); // 💡 캐치 랭킹 데이터 저장소
   const { isBirthdayToday, isDebutToday, debutDays } = getMongnaAnniversaries();
   
   // 수동 켜기(homeData.isLive) 또는 자동 감지(autoIsLive) 중 하나라도 켜지면 방송중으로 표시
@@ -69,16 +68,6 @@ export default function HomePage() {
     checkSoopLive();
     const interval = setInterval(checkSoopLive, 60000); 
     return () => clearInterval(interval);
-  }, []);
-
-  // 💡 주간 베스트 캐치 불러오기 (추가됨)
-  useEffect(() => {
-    fetch('/api/catch')
-      .then(res => res.json())
-      .then(data => {
-        if (data.clips) setHotClips(data.clips);
-      })
-      .catch(err => console.error("캐치 로딩 실패:", err));
   }, []);
 
   // 💡 브라우저 사이즈 감지
@@ -470,40 +459,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* 🏆 주간 레전드 캐치 랭킹 섹션 */}
-            {hotClips.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px' }}>🏆 이번 주 레전드 캐치 TOP 3</div>
-                <div className="yt-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                  {hotClips.map((clip, idx) => {
-                    const medals = ['🥇', '🥈', '🥉'];
-                    const medalColors = ['#fbbf24', '#94a3b8', '#b45309'];
-
-                    return (
-                      <a key={idx} href={clip.url} target="_blank" rel="noreferrer" style={{ background: '#ffffff', borderRadius: '20px', padding: '15px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', position: 'relative', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                        
-                        {/* 순위 금/은/동 배지 */}
-                        <div style={{ position: 'absolute', top: '-10px', left: '-10px', background: medalColors[idx], color: 'white', padding: '8px 14px', borderRadius: '16px', fontWeight: 900, zIndex: 10, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
-                          {medals[idx]} {idx + 1}위
-                        </div>
-                        
-                        <div style={{ position: 'relative', marginTop: '10px' }}>
-                           <img src={clip.thumb} alt="썸네일" style={{ width: '100%', aspectRatio: '16/9', background: '#f1f5f9', borderRadius: '12px', marginBottom: '15px', objectFit: 'cover' }} />
-                           {/* 조회수 표시 */}
-                           <div style={{ position: 'absolute', bottom: '22px', right: '8px', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
-                              👀 {clip.views.toLocaleString()}회
-                           </div>
-                        </div>
-                        
-                        <div style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {clip.title}
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <WeeklyVideoRanking />
 
             {/* 유튜브 섹션 */}
             <div>
