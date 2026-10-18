@@ -279,7 +279,7 @@ export default function HomePage() {
         </div>
 
         <section className={styles.scheduleSection} aria-label="이번 주 일정">
-          <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>WEEKLY SCHEDULE</span><h2>이번 주, 함께할 시간</h2></div><a href="/calendar">전체 일정 <span>↗</span></a></div>
+          <div className={styles.sectionHeading}><div><h2 className={styles.eyebrow}>WEEKLY SCHEDULE</h2></div><a href="/calendar">전체 일정 <span>↗</span></a></div>
           <div className={styles.weekGrid}>
             {thisWeekKeys.map(day => {
               const rows = scheduleRows(day.key), isToday = day.key === todayStr;
@@ -294,7 +294,7 @@ export default function HomePage() {
         <WeeklyVideoRanking />
 
         <section className={styles.videoSection} aria-label="몽튜브 최신 영상">
-          <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>MONGTUBE</span><h2>다시 꺼내보는 순간</h2></div><a href="https://www.youtube.com/@mongnaaa" target="_blank" rel="noopener noreferrer">몽튜브 <span>↗</span></a></div>
+          <div className={styles.sectionHeading}><div><h2 className={styles.eyebrow}>MONGTUBE</h2></div><a href="https://www.youtube.com/@mongnaaa" target="_blank" rel="noopener noreferrer">몽튜브 <span>↗</span></a></div>
           {ytError ? <div className={styles.emptyVideos}><p>{ytError}</p><a href="https://www.youtube.com/@mongnaaa" target="_blank" rel="noopener noreferrer">몽튜브에서 직접 보기 ↗</a></div> : <div className={styles.videoGrid}>{ytVideos.map((item, index) => {
             const video = item.snippet, id = item.id?.videoId || video?.resourceId?.videoId;
             if (!video || !id) return null;
@@ -303,7 +303,7 @@ export default function HomePage() {
         </section>
 
         <section className={styles.linksSection} aria-label="몽나 바로가기">
-          <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>STAY CONNECTED</span><h2>몽나를 만나는 곳</h2></div></div>
+          <div className={styles.sectionHeading}><div><h2 className={styles.eyebrow}>STAY CONNECTED</h2></div></div>
           <div className={styles.linkGrid}>{homeData.links.map((link: any, index: number) => <a key={index} href={link.url || '#'} target="_blank" rel="noopener noreferrer" className={styles.socialCard}><div className={styles.socialIcon}>{link.icon?.startsWith('http') ? <img src={link.icon} alt="" /> : <span>{link.icon || ['S', 'Y', 'C', 'I'][index] || '↗'}</span>}</div><div><strong>{link.title}</strong><span>{link.sub}</span></div><b>↗</b></a>)}</div>
         </section>
       </main>
