@@ -1,4 +1,4 @@
-.section { box-sizing: border-box; }
+.section { box-sizing: border-box; width: 100%; margin-inline: auto; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .card {
   --accent: #8061a7; --tint: #eee6f7; --edge: #dfd1ee;
