@@ -266,7 +266,7 @@ export default function HomePage() {
         <div className={styles.heroGrid}>
           <section className={styles.portraitCard} aria-label="몽나 메인 사진">
             <div className={styles.portraitTop}><span>OUR MONGNA</span><span>✦</span></div>
-            <div className={styles.portraitImage}><img src={homeData.heroImg || '/mongna.png'} alt="몽나 메인 사진" data-fallback={!homeData.heroImg || undefined} onError={event => { if (!event.currentTarget.src.endsWith('/mongna.png')) { event.currentTarget.src = '/mongna.png'; event.currentTarget.dataset.fallback = 'true'; } }} /></div>
+            <div className={styles.portraitImage}><img src={homeData.heroImg || '/mongna.png'} alt="몽나 메인 사진" data-fallback={!homeData.heroImg || undefined} onError={event => { if (event.currentTarget.dataset.fallback !== 'true') { event.currentTarget.src = '/mongna.png'; event.currentTarget.dataset.fallback = 'true'; } }} /></div>
             <div className={styles.portraitCaption}><div><strong>몽나</strong><span>달구와 함께 만드는 하루</span></div><span className={styles.captionStar}>✦</span></div>
           </section>
 
@@ -311,7 +311,7 @@ export default function HomePage() {
 
         <section className={styles.linksSection} aria-label="몽나 바로가기">
           <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>STAY CONNECTED</span><h2>몽나를 만나는 곳</h2></div></div>
-          <div className={styles.linkGrid}>{homeData.links.map((link: any, index: number) => <a key={index} href={link.url || '#'} target="_blank" rel="noopener noreferrer" className={styles.socialCard}><div className={styles.socialIcon}>{link.icon?.startsWith('http') ? <img src={link.icon} alt="" /> : <span>{['S', 'Y', 'C', 'I'][index] || '↗'}</span>}</div><div><strong>{link.title}</strong><span>{link.sub}</span></div><b>↗</b></a>)}</div>
+          <div className={styles.linkGrid}>{homeData.links.map((link: any, index: number) => <a key={index} href={link.url || '#'} target="_blank" rel="noopener noreferrer" className={styles.socialCard}><div className={styles.socialIcon}>{link.icon?.startsWith('http') ? <img src={link.icon} alt="" /> : <span>{link.icon || ['S', 'Y', 'C', 'I'][index] || '↗'}</span>}</div><div><strong>{link.title}</strong><span>{link.sub}</span></div><b>↗</b></a>)}</div>
         </section>
       </main>
       <footer className={styles.footer}><img src="/logo-new.png" alt="몽나" /><p>몽나와 달구가 함께 모아가는 순간들.</p><span>UNOFFICIAL FANPAGE · MADE WITH DALGU</span></footer>
