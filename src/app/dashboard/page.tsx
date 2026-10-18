@@ -173,7 +173,7 @@ export default function Dashboard() {
     ? status.favorCnt.toLocaleString('ko-KR') + '명' : '확인 불가';
 
   return (
-    <div className={`min-h-screen p-4 sm:p-8 font-sans transition-colors duration-200 ${shell}`}>
+    <div data-fan-page="dashboard" data-fan-theme={isDarkMode ? 'dark' : 'light'} className={`min-h-screen p-4 sm:p-8 font-sans transition-colors duration-200 ${shell}`}>
       <header className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4 mb-7">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="flex h-[56px] w-[102px] sm:h-[68px] sm:w-[128px] shrink-0 items-center justify-center rounded-2xl border border-[#EEE1FA] bg-white px-2.5 py-2 shadow-[0_6px_24px_rgba(138,99,182,0.10)]">

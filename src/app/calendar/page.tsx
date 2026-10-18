@@ -482,7 +482,7 @@ export default function CalendarPage() {
         }
       `}} />
 
-      <div style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      <div data-fan-page="calendar" style={{ backgroundColor: '#C1ACD7', color: '#333', minHeight: '100vh', fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
         
         {isLoading && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fdfcff', zIndex: 99999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
@@ -513,7 +513,7 @@ export default function CalendarPage() {
         </nav>
 
         {/* 🌟🌟🌟 업그레이드된 디데이 위젯 시작 🌟🌟🌟 */}
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px', marginBottom: '35px' }}>
+        <div className="calendar-anniversaries" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px', marginBottom: '35px' }}>
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
             
             {/* 1. 방송 데뷔일 카드 */}
@@ -563,7 +563,7 @@ export default function CalendarPage() {
               
               <div className="calendar-area" style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
                 
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
+                <div className="calendar-month-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '35px' }}>
                   <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '24px', color: '#333', cursor: 'pointer', transition: '0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>◀</button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f0fa', border: '2px solid #e4dceb', borderRadius: '99px', padding: '8px 25px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
                     <select value={selectedYear} onChange={(e) => jumpToDate(parseInt(e.target.value), selectedMonth)} style={{ background: 'transparent', border: 'none', fontSize: '22px', fontWeight: 800, color: '#4a3b5c', cursor: 'pointer', outline: 'none' }}>
@@ -699,6 +699,7 @@ export default function CalendarPage() {
                         return (
                           <div 
                             key={idx}
+                            className="calendar-day-cell"
                             onDoubleClick={() => openAddModal(dateKey)}
                             onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.backgroundColor = '#f3e8ff'; }}
                             onDragLeave={(e) => { e.currentTarget.style.backgroundColor = isToday ? '#f3e8ff' : '#ffffff'; }}

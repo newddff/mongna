@@ -14,6 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head><link rel="stylesheet" href="/fan-theme.css" /></head>
       <body><SecondaryPageNavigation />{children}</body>
     </html>
   )
