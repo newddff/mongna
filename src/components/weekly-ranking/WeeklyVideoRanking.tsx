@@ -30,7 +30,7 @@ export default function WeeklyVideoRanking() {
   }, []);
   return <section className={styles.section} aria-label="주간 클립·캐치 조회수 랭킹" aria-busy={loading}>
     <div className={styles.header}>
-      <div><span className={styles.eyebrow}>MONGNA WEEKLY</span><h2>주간 클립 · 캐치 랭킹</h2></div>
+      <div><h2 className={styles.eyebrow}>MONGNA WEEKLY</h2></div>
       <button className={styles.refresh} disabled={loading} onClick={() => setReload(value => value + 1)}>{loading ? '불러오는 중…' : '새로고침'}</button>
     </div>
     <p className={styles.description}>최근 7일에 올라온 몽나 방송 클립·캐치의 누적 조회수 TOP 5</p>
