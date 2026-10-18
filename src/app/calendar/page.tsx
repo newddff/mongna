@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { CALENDAR_CATEGORY_COLORS, CALENDAR_CATEGORIES } from '../../lib/calendar-categories';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
 import { initializeApp } from "firebase/app";
@@ -18,9 +19,7 @@ export default function CalendarPage() {
   const [memoList, setMemoList] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any>({});
   const [streamerDirectory, setStreamerDirectory] = useState<any>({});
-  const [categoryColors, setCategoryColors] = useState({
-    합방: "#4dabf7", 방송: "#ff9eb5", 휴방: "#9ca3af", 겜방: "#f59e0b", LCK: "#8b5cf6", 같이보기: "#20c997"
-  });
+  const [categoryColors, setCategoryColors] = useState({ ...CALENDAR_CATEGORY_COLORS });
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
@@ -838,8 +837,8 @@ export default function CalendarPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#666' }}>방송 분류</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
-                  {['합방', '방송', '휴방', '겜방', 'LCK', '같이보기'].map((type) => (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '6px' }}>
+                  {CALENDAR_CATEGORIES.map((type) => (
                     <button 
                       key={type} type="button" onClick={() => setCurrentSchType(type)} 
                       style={{ border: 'none', padding: '12px 0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', backgroundColor: currentSchType === type ? (categoryColors as any)[type] || '#8b5cf6' : '#f2f2f2', color: currentSchType === type ? '#fff' : '#777', boxShadow: currentSchType === type ? '0 4px 10px rgba(0,0,0,0.15)' : 'none' }}
