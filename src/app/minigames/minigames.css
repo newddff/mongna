@@ -1,0 +1,30 @@
+.arcade-container { min-height: 100vh; background-color: #f3f0f8; color: #2d3748; padding: 24px 18px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; }
+        .arcade-inner { max-width: 1060px; margin: 0 auto; }
+        .arcade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 2px solid rgba(139, 92, 246, 0.2); }
+        .arcade-title { font-size: 22px; font-weight: 800; color: #2d3748; background: #ffffff; padding: 10px 22px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); margin: 0; }
+        .back-btn { background: #ffffff; border: none; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; color: #7c3aed; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); transition: all 0.2s; }
+        .back-btn:hover { background: #f5f3ff; transform: translateY(-2px); }
+        
+        .game-group + .game-group { margin-top: 26px; }
+        .game-group-title { font-size: 18px; font-weight: 800; color: #4a5568; margin: 0 0 16px; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+        .game-card { background-color: #ffffff; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; min-height: 145px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; text-decoration: none; }
+        .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
+        .game-icon-box { width: 42px; height: 42px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 23px; margin-bottom: 12px; }
+        .game-name { font-size: 17px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
+        .game-desc { font-size: 14px; color: #718096; line-height: 1.5; margin: 0; word-break: keep-all; }
+        .game-link { margin-top: 14px; font-size: 13px; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 4px; }
+        
+        .board-wrapper { background: #ffffff; border-radius: 28px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
+        .pill-input { width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 13px; font-weight: 700; text-align: center; color: #4a5568; outline: none; transition: all 0.2s; background: #ffffff; }
+        .pill-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2); }
+
+        .game-layout { display: flex; flex-direction: column; gap: 30px; align-items: center; }
+        .mascot-area { width: 260px; flex-shrink: 0; animation: float 3s ease-in-out infinite; display: flex; justify-content: center; align-items: center;}
+        .mascot-area img { width: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(139, 92, 246, 0.15)); }
+        .content-area { flex: 1; width: 100%; min-width: 0; }
+        
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0px); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-2deg); } 75% { transform: translateX(5px) rotate(2deg); } }
+        
+        @media (min-width: 950px) { .game-layout { flex-direction: row; align-items: center; } }

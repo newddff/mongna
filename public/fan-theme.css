@@ -1,0 +1,151 @@
+/* Shared presentation for navigation pages. Keep data colors, visibility and game geometry local. */
+@font-face {
+  font-family: 'Mongna Pretendard'; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/packages/pretendard/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2');
+}
+[data-fan-page] {
+  --fan-bg: #f8f6fc; --fan-paper: #fff; --fan-soft: #f3eef8; --fan-line: #e7dff0;
+  --fan-ink: #3e3350; --fan-muted: #9482a5; --fan-primary: #8c72b3; --fan-hover: #7859a6;
+  --fan-shadow: 0 5px 20px #6a4e8608;
+  background: var(--fan-bg) !important; color: var(--fan-ink) !important;
+  font-family: 'Mongna Pretendard', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  letter-spacing: -.02em;
+}
+[data-fan-page] :is(button, input, select, textarea) { font-family: inherit; }
+[data-fan-page] :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--fan-primary); outline-offset: 3px; }
+/* Header footprint matches the home page; selectors exclude the home header. */
+:is([data-fan-page] .nav-container, [data-fan-page] .top-bar, [data-fan-page] .top-nav .nav-inner, nav[aria-label="몽나 공통 상단 메뉴"]) {
+  min-height: 76px !important; padding: 14px max(28px, calc((100vw - 1184px) / 2)) !important;
+  background: #fff !important; border-bottom: 1px solid #e7dff0 !important;
+  column-gap: 22px !important; font-family: 'Mongna Pretendard', Pretendard, sans-serif !important;
+}
+[data-fan-page] .top-nav { background: #fff; border-bottom-color: #e7dff0; }
+:is([data-fan-page], nav[aria-label="몽나 공통 상단 메뉴"]) :is(.nav-links, .nav-menu) {
+  gap: clamp(12px, 1.5vw, 24px) !important; font-size: 13px !important; font-weight: 650 !important;
+}
+:is([data-fan-page], nav[aria-label="몽나 공통 상단 메뉴"]) :is(.nav-links, .nav-menu) a {
+  color: #8c7a9e !important; font-size: 13px !important; font-weight: 650 !important;
+}
+:is([data-fan-page], nav[aria-label="몽나 공통 상단 메뉴"]) :is(.nav-links, .nav-menu) :is(a:hover, a.active, a[aria-current="page"]) { color: #7859a6 !important; }
+:is([data-fan-page], nav[aria-label="몽나 공통 상단 메뉴"]) :is(.logo-img, a[aria-label="몽나 홈"] img) { filter: none !important; }
+:is([data-fan-page] .top-btn-group, [data-fan-page] .nav-actions, [data-fan-page] .right-menu, nav[aria-label="몽나 공통 상단 메뉴"] > div:last-child) a {
+  background: #f7f3fc !important; border-color: #e7dff0 !important; border-radius: 8px !important;
+  color: #846ca2 !important; padding: 7px 9px !important; font-size: 11px !important; font-weight: 650 !important;
+}
+[data-fan-page] .admin-btn:not(.on) { background: #fff; border: 1px solid #e7dff0; color: #79658f; border-radius: 8px; box-shadow: none; font-size: 11px; }
+/* Cards and controls retain their original layout and state classes. */
+[data-fan-page] :is(.modal-box, .modal-content) { border-radius: 16px !important; border: 1px solid var(--fan-line); }
+[data-fan-page] :is(.main-container, .wiki-layout, .arcade-inner) { max-width: 1184px !important; }
+[data-fan-page] :is(.header-title, .panel-header h2, .arcade-title) { font-weight: 750; letter-spacing: -.035em; color: var(--fan-ink); }
+[data-fan-page] :is(.search-wrap, .large-search-wrap, .sort-select, .pill-input) { border: 1px solid var(--fan-line); border-radius: 9px; box-shadow: none; background: var(--fan-paper); }
+[data-fan-page] :is(.filter-btn.active, .cat-tab.active, .menu-btn.active) { background: var(--fan-primary) !important; border-color: var(--fan-primary) !important; color: white !important; box-shadow: none !important; }
+/* Wiki */
+[data-fan-page="wiki"] .wiki-layout { padding: 36px 28px 80px !important; gap: 24px !important; }
+[data-fan-page="wiki"] .sidebar-menu { width: 174px !important; }
+[data-fan-page="wiki"] .sidebar-title { color: var(--fan-muted) !important; font-size: 13px !important; font-weight: 650; }
+[data-fan-page="wiki"] .menu-btn { font-size: 13px; border-radius: 9px; font-weight: 650; color: var(--fan-muted); }
+[data-fan-page="wiki"] .menu-btn:hover { background: var(--fan-soft); }
+[data-fan-page="wiki"] :is(.profile-section-wrap, .history-card) { border: 1px solid var(--fan-line) !important; border-radius: 16px !important; box-shadow: var(--fan-shadow) !important; }
+[data-fan-page="wiki"] .profile-section-wrap { padding: 28px !important; gap: 24px !important; }
+[data-fan-page="wiki"] .book-divider { background: var(--fan-line) !important; box-shadow: none !important; margin: 0 !important; }
+[data-fan-page="wiki"] .profile-info-wrap { min-width: 0; }
+[data-fan-page="wiki"] .profile-info-wrap h3 { color: var(--fan-ink) !important; border-bottom: 1px solid var(--fan-line) !important; font-size: 15px !important; font-weight: 750; }
+/* Calendar: intentionally do not override event/category background or text colors. */
+[data-fan-page="calendar"] .calendar-anniversaries { max-width: 1184px !important; padding: 32px 28px 0 !important; margin-bottom: 24px !important; }
+[data-fan-page="calendar"] .dday-card { background: var(--fan-paper) !important; border-color: var(--fan-line) !important; border-radius: 16px !important; box-shadow: var(--fan-shadow) !important; padding: 20px 24px !important; }
+[data-fan-page="calendar"] .dday-icon { background: var(--fan-soft) !important; box-shadow: none !important; border-radius: 14px !important; }
+[data-fan-page="calendar"] .dday-title { color: var(--fan-muted) !important; font-size: 13px !important; font-weight: 650 !important; }
+[data-fan-page="calendar"] .dday-number { color: var(--fan-hover) !important; font-size: 28px !important; font-weight: 750 !important; }
+[data-fan-page="calendar"] .dday-badge { box-shadow: none !important; border-color: var(--fan-line) !important; }
+[data-fan-page="calendar"] .main-wrapper { max-width: 1128px !important; width: calc(100% - 56px) !important; padding: 28px !important; border: 1px solid var(--fan-line); border-radius: 16px !important; box-shadow: var(--fan-shadow) !important; }
+[data-fan-page="calendar"] .flex-layout { gap: 24px !important; }
+[data-fan-page="calendar"] .sidebar-area { border-color: var(--fan-line) !important; border-radius: 12px !important; background: #faf8fd !important; padding: 22px !important; }
+/* Song book */
+[data-fan-page="song"] { --primary: var(--fan-primary); --primary-hover: var(--fan-hover); --primary-light: var(--fan-soft); --text-main: var(--fan-ink); --text-sub: var(--fan-muted); }
+[data-fan-page="song"] .main-container { margin: 36px auto; width: calc(100% - 56px); box-sizing: border-box; padding: 26px; border: 1px solid var(--fan-line); border-radius: 16px; box-shadow: var(--fan-shadow); }
+[data-fan-page="song"] .header-title { font-size: 20px; }
+[data-fan-page="song"] .filter-btn { border-color: var(--fan-line); color: var(--fan-muted); border-radius: 8px; font-weight: 650; }
+[data-fan-page="song"] :is(.detail-view, .song-card) { border: 1px solid var(--fan-line); border-radius: 12px; box-shadow: none; }
+[data-fan-page="song"] .song-card.selected { border-color: var(--fan-primary); background: var(--fan-soft); }
+[data-fan-page="song"] .song-card:hover { border-color: var(--fan-primary); box-shadow: var(--fan-shadow); }
+[data-fan-page="song"] .detail-view { background: #faf8fd; padding: 22px; }
+[data-fan-page="song"] :is(.detail-title, .song-title-sm) { font-weight: 750; }
+[data-fan-page="song"] .roulette-btn { background: var(--fan-primary); box-shadow: none; border-radius: 9px; font-weight: 650; }
+/* Rewards: completed/pending badges retain their semantic colors. */
+[data-fan-page="reward"] { --primary: var(--fan-primary); --primary-light: var(--fan-soft); --text-main: var(--fan-ink); --text-sub: var(--fan-muted); --tab-active: var(--fan-primary); }
+[data-fan-page="reward"] .main-container { margin: 36px auto; padding: 0 28px 80px; box-sizing: border-box; }
+[data-fan-page="reward"] .cat-tab { border: 1px solid var(--fan-line); border-radius: 9px; font-size: 13px; font-weight: 650; }
+[data-fan-page="reward"] :is(.left-panel-card, .user-card, .price-card) { border: 1px solid var(--fan-line); border-radius: 16px; box-shadow: var(--fan-shadow); }
+[data-fan-page="reward"] .split-container { gap: 24px; }
+[data-fan-page="reward"] .l-tab.active { color: var(--fan-hover); border-bottom-color: var(--fan-primary); }
+[data-fan-page="reward"] .panel-header h2 { font-size: 18px; }
+[data-fan-page="reward"] .user-name { font-weight: 750; font-size: 16px; }
+[data-fan-page="reward"] .user-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 16px; }
+[data-fan-page="reward"] .search-icon { color: var(--fan-primary); }
+/* Mini games: style the lobby and surrounding panels, leaving boards/canvas alone. */
+[data-fan-page="minigames"] { padding: 36px 28px 80px; }
+[data-fan-page="minigames"] .arcade-header { border-bottom: 1px solid var(--fan-line); margin-bottom: 28px; padding-bottom: 20px; }
+[data-fan-page="minigames"] .arcade-title { background: transparent; box-shadow: none; padding: 0; font-size: 22px; }
+[data-fan-page="minigames"] .game-group-title { font-size: 14px; font-weight: 650; color: var(--fan-muted); }
+[data-fan-page="minigames"] .game-card { border: 1px solid var(--fan-line); border-radius: 14px; box-shadow: var(--fan-shadow); }
+[data-fan-page="minigames"] .game-card:hover { border-color: #c6b3de; box-shadow: 0 8px 22px #6a4e8612; }
+[data-fan-page="minigames"] .game-icon-box { background: var(--fan-soft); border-radius: 12px; }
+[data-fan-page="minigames"] .game-name { color: var(--fan-ink); font-size: 16px; }
+[data-fan-page="minigames"] .game-desc { color: var(--fan-muted); font-size: 13px; }
+[data-fan-page="minigames"] .game-link { color: var(--fan-primary); font-weight: 650; }
+[data-fan-page="minigames"] .board-wrapper { border: 1px solid var(--fan-line); border-radius: 16px; box-shadow: var(--fan-shadow); }
+/* VOD keeps the existing light/dark preference and all playback states. */
+[data-fan-page="vod"] {
+  --fan-bg: #211b2b; --fan-paper: #2b2337; --fan-soft: #352c42; --fan-line: #493c59;
+  --fan-ink: #eee7f6; --fan-muted: #bcaccd; --fan-primary: #c1acd7; --fan-hover: #d8c7e9;
+  --bg-color: var(--fan-bg); --card-bg: var(--fan-paper); --input-bg: var(--fan-soft); --border-color: var(--fan-line);
+  --text-main: var(--fan-ink); --text-sub: var(--fan-muted); --text-dim: #a08db3;
+  --primary: var(--fan-primary); --primary-hover: var(--fan-hover); --primary-dim: #b69ad21a;
+  --radius-box: 16px; --radius-pill: 9px; --shadow-soft: var(--fan-shadow);
+}
+html[data-theme="light"] [data-fan-page="vod"] {
+  --fan-bg: #f8f6fc; --fan-paper: #fff; --fan-soft: #f3eef8; --fan-line: #e7dff0;
+  --fan-ink: #3e3350; --fan-muted: #9482a5; --fan-primary: #8c72b3; --fan-hover: #7859a6;
+}
+[data-fan-page="vod"] .app-container { max-width: 1184px; box-sizing: border-box; padding: 36px 28px 80px; }
+[data-fan-page="vod"] .profile-section { border: 1px solid var(--fan-line); box-shadow: var(--fan-shadow); }
+[data-fan-page="vod"] :is(.profile-text h2, .player-top h3) { font-weight: 750; }
+[data-fan-page="vod"] :is(.video-item, .stat-card) { border-radius: 12px; }
+[data-fan-page="vod"] .primary-action-btn { color: var(--fan-bg); box-shadow: none; }
+html[data-theme="light"] [data-fan-page="vod"] .primary-action-btn { color: #fff; }
+/* Dashboard: never change the heatmap cells' data-derived colors. */
+[data-fan-page="dashboard"][data-fan-theme="dark"] { --fan-bg: #211b2b; --fan-paper: #2b2337; --fan-soft: #352c42; --fan-line: #493c59; --fan-ink: #eee7f6; --fan-muted: #bcaccd; }
+[data-fan-page="dashboard"] { padding-top: 36px; }
+[data-fan-page="dashboard"] > :is(header, div) { max-width: 1128px; }
+[data-fan-page="dashboard"] :is(main > section, aside > div), [data-fan-page="dashboard"] > div.rounded-\[22px\] { border-color: var(--fan-line); background: var(--fan-paper); border-radius: 16px; box-shadow: var(--fan-shadow); }
+[data-fan-page="dashboard"] h1 { font-weight: 750; font-size: 22px; }
+[data-fan-page="dashboard"] h3 { font-size: 17px; font-weight: 750; }
+[data-fan-page="dashboard"] input[type="month"] { background: #8c72b3; border-radius: 9px; box-shadow: none; }
+@media (max-width: 1050px) {
+  :is([data-fan-page] .nav-container, [data-fan-page] .top-bar, [data-fan-page] .top-nav .nav-inner, nav[aria-label="몽나 공통 상단 메뉴"]) { padding: 14px 20px !important; gap: 12px !important; }
+}
+@media (max-width: 768px) {
+  [data-fan-page="wiki"] .wiki-layout { padding: 24px 16px 60px !important; }
+  [data-fan-page="wiki"] .sidebar-menu { width: 100% !important; }
+  [data-fan-page="wiki"] .profile-section-wrap { padding: 22px !important; }
+  [data-fan-page="calendar"] .calendar-anniversaries { padding: 24px 16px 0 !important; }
+  [data-fan-page="calendar"] .dday-card { min-width: 0 !important; flex-basis: 100% !important; }
+  [data-fan-page="calendar"] .main-wrapper { width: calc(100% - 32px) !important; padding: 16px 12px !important; }
+  [data-fan-page="calendar"] .calendar-area { min-width: 0 !important; }
+  [data-fan-page="song"] .main-container { width: calc(100% - 32px); padding: 18px; margin: 24px auto; }
+  [data-fan-page="song"] .search-wrap { min-width: 0; }
+  [data-fan-page="song"] .song-grid { grid-template-columns: minmax(0, 1fr); }
+  [data-fan-page="reward"] .main-container { margin-top: 24px; padding: 0 16px 60px; }
+  [data-fan-page="reward"] .left-panel-card { min-width: 0; max-width: 100%; }
+  [data-fan-page="minigames"] { padding: 24px 16px 60px; }
+  [data-fan-page="vod"] .app-container { padding: 24px 16px 60px; }
+  [data-fan-page="vod"] .controls-grid { grid-template-columns: minmax(0, 1fr); }
+  [data-fan-page="vod"] .profile-section { padding: 20px; }
+}
+
+/* Calendar chrome uses quieter edges; event colors and drag states stay untouched. */
+[data-fan-page="calendar"] .calendar-month-controls { gap: 24px !important; margin-bottom: 24px !important; }
+[data-fan-page="calendar"] .calendar-month-controls > div { border: 1px solid var(--fan-line) !important; border-radius: 9px !important; box-shadow: none !important; background: var(--fan-soft) !important; }
+[data-fan-page="calendar"] .calendar-month-controls select { font-size: 18px !important; font-weight: 750 !important; color: var(--fan-ink) !important; }
+[data-fan-page="calendar"] .calendar-day-cell { border-radius: 12px !important; box-shadow: none !important; }
+[data-fan-page="reward"] .left-panel-card { box-sizing: border-box; }
