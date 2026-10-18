@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from '../components/home/home.module.css';
+import LatestBroadcastNotice from '../components/home/LatestBroadcastNotice';
 import WeeklyVideoRanking from '../components/weekly-ranking/WeeklyVideoRanking';
 import { CALENDAR_CATEGORY_COLORS } from '../lib/calendar-categories';
 import { MainNavLinks, UtilityNavLinks } from '../components/SiteNavigation';
@@ -234,7 +235,6 @@ export default function HomePage() {
     const raw = scheduleData[key];
     return (Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : []).filter(Boolean);
   };
-  const todaySchedules = scheduleRows(todayStr);
   const displayDate = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(todayObj);
 
   return (
@@ -252,10 +252,8 @@ export default function HomePage() {
       </header>
 
       <main className={styles.main}>
-        <div className={styles.intro}>
-          <div><p className={styles.eyebrow}>MONGNA · DALGU</p><h1>몽나, 그리고 달구</h1><p className={styles.introText}>방송부터 작은 순간까지, 함께 모아두는 공간.</p></div>
-          <span className={styles.todayDate}>{displayDate}<i /></span>
-        </div>
+        <h1 className={styles.srOnly}>몽나 팬페이지</h1>
+        <div className={styles.dateStrip}><span className={styles.todayDate}>{displayDate}<i /></span></div>
 
         {(isBirthdayToday || isDebutToday) && <aside className={styles.anniversary}>
           <span>함께 기념하는 오늘</span>
@@ -267,7 +265,6 @@ export default function HomePage() {
           <section className={styles.portraitCard} aria-label="몽나 메인 사진">
             <div className={styles.portraitTop}><span>OUR MONGNA</span><span>✦</span></div>
             <div className={styles.portraitImage}><img src={homeData.heroImg || '/mongna.png'} alt="몽나 메인 사진" data-fallback={!homeData.heroImg || undefined} onError={event => { if (event.currentTarget.dataset.fallback !== 'true') { event.currentTarget.src = '/mongna.png'; event.currentTarget.dataset.fallback = 'true'; } }} /></div>
-            <div className={styles.portraitCaption}><div><strong>몽나</strong><span>달구와 함께 만드는 하루</span></div><span className={styles.captionStar}>✦</span></div>
           </section>
 
           <div className={styles.heroSide}>
@@ -277,11 +274,7 @@ export default function HomePage() {
               <a className={styles.primaryLink} href="https://play.sooplive.co.kr/pinktape8" target="_blank" rel="noopener noreferrer">{currentlyLive ? '생방송 보러가기' : '몽나 방송국 가기'}<span>↗</span></a>
             </section>
 
-            <section className={`${styles.panel} ${styles.todayPanel}`} aria-label="오늘의 일정">
-              <div className={styles.panelHeading}><h2>오늘의 일정</h2><span>{todayObj.getMonth() + 1}.{String(todayObj.getDate()).padStart(2, '0')}</span></div>
-              {todaySchedules.length ? <div className={styles.todayEvents}>{todaySchedules.map((sch, index) => <div className={styles.todayEvent} key={sch.id || index} style={{ '--event-color': getEventColor(sch) } as React.CSSProperties}><span>{sch.time || '시간 미정'}</span><strong>{sch.title}</strong><small>{sch.type || '방송'}</small></div>)}</div> : <div className={styles.noSchedule}><span>◇</span><p>오늘 등록된 일정이 없어요.</p><small>새 소식은 캘린더에서 확인해 주세요.</small></div>}
-              <a href="/calendar" className={styles.subtleLink}>캘린더 전체 보기 <span>→</span></a>
-            </section>
+            <LatestBroadcastNotice />
           </div>
         </div>
 
@@ -292,7 +285,7 @@ export default function HomePage() {
               const rows = scheduleRows(day.key), isToday = day.key === todayStr;
               return <a href="/calendar" className={`${styles.dayCard} ${isToday ? styles.selectedDay : ''}`} key={day.key} aria-label={`${day.dateNum}일 ${dayNames[day.dayIdx]}요일 일정${isToday ? ', 오늘' : ''}`}>
                 <div className={styles.dayHeader}><span className={day.dayIdx === 0 ? styles.sunday : day.dayIdx === 6 ? styles.saturday : ''}>{dayNames[day.dayIdx]}</span>{isToday && <small>오늘</small>}<strong>{day.dateNum}</strong></div>
-                <div className={styles.dayEvents}>{rows.length ? rows.map((sch, index) => <div className={styles.weekEvent} key={sch.id || index} style={{ '--event-color': getEventColor(sch) } as React.CSSProperties}><span>{sch.time || '시간 미정'}</span><strong>{sch.title}</strong></div>) : <span className={styles.emptyDay}>등록된 일정 없음</span>}</div>
+                <div className={styles.dayEvents}>{rows.length ? rows.map((sch, index) => <div className={styles.weekEvent} key={sch.id || index} style={{ backgroundColor: getEventColor(sch), color: sch.textColor || sch.extendedProps?.textColor || '#fff' }}><span>{sch.time || '시간 미정'}</span><strong>{sch.title}</strong></div>) : <span className={styles.emptyDay}>등록된 일정 없음</span>}</div>
               </a>;
             })}
           </div>
