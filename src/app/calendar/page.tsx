@@ -6,6 +6,7 @@ import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import CalendarAnniversaries from '../../components/calendar/CalendarAnniversaries';
 import { getMongnaAnniversaries } from '../../utils/dday'; 
 
 export default function CalendarPage() {
@@ -512,50 +513,7 @@ export default function CalendarPage() {
           </div>
         </nav>
 
-        {/* 🌟🌟🌟 업그레이드된 디데이 위젯 시작 🌟🌟🌟 */}
-        <div className="calendar-anniversaries" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px', marginBottom: '35px' }}>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            
-            {/* 1. 방송 데뷔일 카드 */}
-            <div className="dday-card" style={{ flex: '1', minWidth: '300px', background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)', border: '1px solid #ede9fe', padding: '24px 30px', borderRadius: '28px', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 10px 40px rgba(139, 92, 246, 0.08)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', right: '-15px', bottom: '-15px', fontSize: '100px', opacity: 0.03, transform: 'rotate(-10deg)', pointerEvents: 'none' }}>🎙️</div>
-              
-              <div className="dday-icon" style={{ fontSize: '36px', backgroundColor: '#fff', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '22px', boxShadow: '0 8px 20px rgba(139, 92, 246, 0.12)', zIndex: 1 }}>🎙️</div>
-              <div style={{ zIndex: 1, flex: 1, minWidth: 0 }}>
-                <div className="dday-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div className="dday-title" style={{ fontSize: '15px', fontWeight: 800, color: '#64748b', whiteSpace: 'nowrap' }}>몽나 방송 시작한 지</div>
-                  <div className="dday-badge" style={{ fontSize: '12px', fontWeight: 800, color: '#8b5cf6', backgroundColor: '#fff', padding: '5px 12px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(139, 92, 246, 0.15)', border: '1px solid #ede9fe', whiteSpace: 'nowrap' }}>
-                    📅 2023. 11. 18
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <div className="dday-number" style={{ fontSize: '32px', fontWeight: 900, color: '#7c3aed', letterSpacing: '-1px' }}>D+{debutDays}</div>
-                  <div className="dday-unit" style={{ fontSize: '18px', fontWeight: 800, color: '#8b5cf6' }}>일</div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. 생일 카드 */}
-            <div className="dday-card" style={{ flex: '1', minWidth: '300px', background: 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)', border: '1px solid #fce7f3', padding: '24px 30px', borderRadius: '28px', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 10px 40px rgba(236, 72, 153, 0.08)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', right: '-10px', bottom: '-20px', fontSize: '100px', opacity: 0.03, transform: 'rotate(10deg)', pointerEvents: 'none' }}>🎂</div>
-              
-              <div className="dday-icon" style={{ fontSize: '36px', backgroundColor: '#fff', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '22px', boxShadow: '0 8px 20px rgba(236, 72, 153, 0.12)', zIndex: 1 }}>🎂</div>
-              <div style={{ zIndex: 1, flex: 1, minWidth: 0 }}>
-                <div className="dday-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div className="dday-title" style={{ fontSize: '15px', fontWeight: 800, color: '#64748b', whiteSpace: 'nowrap' }}>다가오는 생일</div>
-                  <div className="dday-badge" style={{ fontSize: '12px', fontWeight: 800, color: '#ec4899', backgroundColor: '#fff', padding: '5px 12px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(236, 72, 153, 0.15)', border: '1px solid #fce7f3', whiteSpace: 'nowrap' }}>
-                    🎂 2000. 03. 05
-                  </div>
-                </div>
-                <div className="dday-number" style={{ fontSize: '32px', fontWeight: 900, color: '#db2777', letterSpacing: '-1px' }}>
-                  {birthDDay === 0 ? '오늘이 바로 생일! 🥳' : `D-${birthDDay}`}
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-        {/* 🌟🌟🌟 업그레이드된 디데이 위젯 끝 🌟🌟🌟 */}
+        <CalendarAnniversaries debutDays={debutDays} birthDDay={birthDDay} />
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '50px' }}>
           <div className="main-wrapper" style={{ backgroundColor: '#ffffff', width: '96vw', maxWidth: '1400px', borderRadius: '32px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08)', padding: '50px', boxSizing: 'border-box' }}>

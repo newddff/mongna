@@ -1,0 +1,48 @@
+.section { box-sizing: border-box; width: 100%; margin-inline: auto; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.card {
+  --accent: #8061a7; --tint: #eee6f7; --edge: #dfd1ee;
+  position: relative; min-width: 0; overflow: hidden; padding: 16px 26px 18px;
+  border: 1px solid var(--edge); border-radius: 18px;
+  background: radial-gradient(ellipse at 100% 0, #eee5f85c, transparent 65%), #fff;
+  box-shadow: 0 5px 20px #6a4e8605;
+}
+.card::before { content: ''; position: absolute; left: 0; top: 21px; bottom: 21px; width: 3px; border-radius: 0 3px 3px 0; background: #b29acb; }
+.birthday { --accent: #9b749f; --tint: #f4eaf4; --edge: #e8d9ec; background: radial-gradient(ellipse at 100% 0, #f5e9f45c, transparent 65%), #fff; }
+.birthday::before { background: #c4a0c5; }
+.heading { position: relative; display: flex; align-items: center; gap: 11px; }
+.heading h2 { margin: 0; color: #756282; font-size: 13px; font-weight: 650; letter-spacing: -.025em; line-height: 1.5; }
+.icon { width: 36px; height: 36px; display: grid; place-items: center; flex: 0 0 auto; color: var(--accent); border: 1px solid var(--edge); background: var(--tint); border-radius: 11px; }
+.icon svg { display: block; width: 24px; height: 24px; }
+.sparkle { margin-left: auto; padding: 0 2px; color: #c6b4da; font-size: 17px; }
+.birthday .sparkle { color: #d0b7d0; }
+.details { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 12px; }
+.count { display: flex; align-items: baseline; gap: 5px; margin: 0; color: var(--accent); font-size: 38px; line-height: 1.1; font-weight: 750; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.prefix { color: #a18ab9; font-size: 21px; font-weight: 550; letter-spacing: -.04em; margin-right: 2px; }
+.birthday .prefix { color: #b79bbb; }
+.unit { padding-left: 2px; color: #a18ab9; font-size: 12px; font-weight: 550; letter-spacing: 0; }
+.date { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; gap: 5px; padding: 2px 0 3px 18px; border-left: 1px solid var(--edge); }
+.date > span { color: #a293af; font-size: 10px; font-weight: 550; }
+.date time { color: #84738f; font-size: 12px; font-weight: 600; letter-spacing: .015em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.birthdayToday { min-width: 0; margin: 0; color: var(--accent); font-size: 22px; font-weight: 750; line-height: 1.5; letter-spacing: -.035em; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .card { padding: 16px 20px; }
+  .count { font-size: 32px; }
+  .prefix { font-size: 18px; }
+  .date { padding-left: 12px; }
+  .details { gap: 12px; }
+  .birthdayToday { font-size: 18px; }
+}
+@media (max-width: 640px) {
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .card { padding: 14px 20px 16px; border-radius: 15px; }
+  .details { margin-top: 12px; }
+  .count { font-size: 34px; }
+}
+@media (max-width: 350px) {
+  .card { padding-inline: 16px; }
+  .count { font-size: 29px; gap: 3px; }
+  .prefix { font-size: 17px; }
+  .date { padding-left: 9px; }
+  .date time { font-size: 11px; }
+}
