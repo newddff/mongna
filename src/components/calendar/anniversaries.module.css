@@ -2,12 +2,12 @@
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .card {
   --accent: #8061a7; --tint: #eee6f7; --edge: #dfd1ee;
-  position: relative; min-width: 0; overflow: hidden; padding: 22px 26px 24px;
+  position: relative; min-width: 0; overflow: hidden; padding: 16px 26px 18px;
   border: 1px solid var(--edge); border-radius: 18px;
   background: radial-gradient(ellipse at 100% 0, #eee5f85c, transparent 65%), #fff;
   box-shadow: 0 5px 20px #6a4e8605;
 }
-.card::before { content: ''; position: absolute; left: 0; top: 27px; bottom: 27px; width: 3px; border-radius: 0 3px 3px 0; background: #b29acb; }
+.card::before { content: ''; position: absolute; left: 0; top: 21px; bottom: 21px; width: 3px; border-radius: 0 3px 3px 0; background: #b29acb; }
 .birthday { --accent: #9b749f; --tint: #f4eaf4; --edge: #e8d9ec; background: radial-gradient(ellipse at 100% 0, #f5e9f45c, transparent 65%), #fff; }
 .birthday::before { background: #c4a0c5; }
 .heading { position: relative; display: flex; align-items: center; gap: 11px; }
@@ -16,7 +16,7 @@
 .icon svg { display: block; width: 24px; height: 24px; }
 .sparkle { margin-left: auto; padding: 0 2px; color: #c6b4da; font-size: 17px; }
 .birthday .sparkle { color: #d0b7d0; }
-.details { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.details { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 12px; }
 .count { display: flex; align-items: baseline; gap: 5px; margin: 0; color: var(--accent); font-size: 38px; line-height: 1.1; font-weight: 750; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
 .prefix { color: #a18ab9; font-size: 21px; font-weight: 550; letter-spacing: -.04em; margin-right: 2px; }
 .birthday .prefix { color: #b79bbb; }
@@ -26,7 +26,7 @@
 .date time { color: #84738f; font-size: 12px; font-weight: 600; letter-spacing: .015em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .birthdayToday { min-width: 0; margin: 0; color: var(--accent); font-size: 22px; font-weight: 750; line-height: 1.5; letter-spacing: -.035em; overflow-wrap: anywhere; }
 @media (max-width: 900px) {
-  .card { padding: 20px; }
+  .card { padding: 16px 20px; }
   .count { font-size: 32px; }
   .prefix { font-size: 18px; }
   .date { padding-left: 12px; }
@@ -35,8 +35,8 @@
 }
 @media (max-width: 640px) {
   .grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .card { padding: 18px 20px 20px; border-radius: 15px; }
-  .details { margin-top: 16px; }
+  .card { padding: 14px 20px 16px; border-radius: 15px; }
+  .details { margin-top: 12px; }
   .count { font-size: 34px; }
 }
 @media (max-width: 350px) {
