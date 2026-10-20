@@ -53,8 +53,8 @@
 .liveMessage p{font-size:12px;line-height:1.7;color:#a08eaf;margin:7px 0 0;}
 .primaryLink{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:#8c72b3;color:#fff;border-radius:9px;font-size:12px;font-weight:650;text-decoration:none;transition:background .15s;}
 .primaryLink:hover{background:#785d9f;}
-.liveThumb{display:block;max-height:140px;overflow:hidden;border-radius:10px;margin-bottom:15px;}
-.liveThumb img{width:100%;height:140px;object-fit:cover;}
+.liveThumb{display:block;aspect-ratio:16/9;overflow:hidden;border-radius:10px;margin-bottom:15px;background:#f6f3f9;}
+.liveThumb img{display:block;width:100%;height:100%;object-fit:contain;}
 
 
 

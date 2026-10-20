@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { db } from '../../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import WikiChapterEditor, { readWikiChapters, type WikiChapter } from '../../components/wiki/WikiChapterEditor';
+import chapterStyles from '../../components/wiki/wiki-chapters.module.css';
 
 export default function WikiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -33,6 +35,7 @@ export default function WikiPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<any>(null);
+  const [chapterEditor, setChapterEditor] = useState<{ chapter: WikiChapter | null } | null>(null);
 
   const [epName, setEpName] = useState('');
   const [epImg, setEpImg] = useState('');
@@ -62,21 +65,11 @@ export default function WikiPage() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true');
-    }
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
-      authDomain: "mongna-vod.firebaseapp.com",
-      projectId: "mongna-vod",
-      storageBucket: "mongna-vod.firebasestorage.app",
-      messagingSenderId: "310663611402",
-      appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    let active = true;
+    void fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async response => response.ok ? response.json() : null)
+      .then(session => { if (active) setIsAdmin(session?.authenticated === true); })
+      .catch(() => { if (active) setIsAdmin(false); });
     const wikiRef = doc(db, 'mongna_calendar_data', 'wiki_data');
 
     const unsubWiki = onSnapshot(wikiRef, (docSnap) => {
@@ -91,17 +84,22 @@ export default function WikiPage() {
       }
     });
 
-    return () => unsubWiki();
+    return () => { active = false; unsubWiki(); };
   }, []);
 
   // ✨ Vercel 서버 인증 API로 교체된 관리자 로그인 기능
   const toggleAdmin = async () => {
     if (isAdmin) {
       if (confirm("관리자 모드를 종료하시겠습니까?")) {
-        setIsAdmin(false);
-        if (typeof window !== 'undefined') {
+        try {
+          const response = await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+          if (!response.ok) throw new Error('logout failed');
+          setIsAdmin(false);
+          setChapterEditor(null);
+          setIsProfileModalOpen(false);
+          setIsCardModalOpen(false);
           localStorage.removeItem('mongna_secure_admin_v2');
-        }
+        } catch { alert('로그아웃하지 못했습니다. 다시 시도해주세요.'); }
       }
     } else {
       const password = prompt("관리자 비밀번호를 입력해주세요.");
@@ -129,13 +127,6 @@ export default function WikiPage() {
     }
   };
 
-  const getFirebaseRef = () => {
-    const firebaseConfig = { apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3" };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    return doc(db, 'mongna_calendar_data', 'wiki_data');
-  };
-
   const getSafeSections = () => {
     const rawSections = wikiData?.profile?.sections || [];
     return (Array.isArray(rawSections) ? rawSections : Object.values(rawSections))
@@ -161,7 +152,7 @@ export default function WikiPage() {
         { title: '🗣️ 유행어 & 밈', content: p.meme || '' }
       );
     }
-    setEpSections(loadedSections);
+    setEpSections(loadedSections.map((section: any) => ({ ...section })));
     setIsProfileModalOpen(true);
   };
 
@@ -252,6 +243,40 @@ export default function WikiPage() {
   };
 
   const safeSections = getSafeSections();
+  const chapters = readWikiChapters(wikiData.chapters);
+  const selectedChapter = chapters.find(chapter => chapter.id === activeTab);
+
+  useEffect(() => {
+    if (!isLoading && activeTab !== 'wiki' && activeTab !== 'history' &&
+        !readWikiChapters(wikiData.chapters).some(chapter => chapter.id === activeTab)) {
+      setActiveTab('wiki');
+    }
+  }, [activeTab, isLoading, wikiData]);
+
+  const saveChapters = async (nextChapters: WikiChapter[]) => {
+    if (!isAdmin) throw new Error('관리자 로그인이 필요합니다.');
+    // 수정한 필드만 병합해 기존 백과사전·역사 데이터를 보존합니다.
+    await saveAdminCalendarDocument('wiki_data', { data: { chapters: nextChapters } });
+    setWikiData((current: any) => ({ ...current, chapters: nextChapters }));
+  };
+
+  const saveChapter = async (draft: { title: string; content: string }) => {
+    const original = chapterEditor?.chapter;
+    const chapter = { id: original?.id || `chapter-${crypto.randomUUID()}`, ...draft };
+    const nextChapters = original
+      ? chapters.map(item => item.id === original.id ? chapter : item)
+      : [...chapters, chapter];
+    await saveChapters(nextChapters);
+    setActiveTab(chapter.id);
+  };
+
+  const deleteChapter = async () => {
+    const id = chapterEditor?.chapter?.id;
+    if (!id) return;
+    await saveChapters(chapters.filter(chapter => chapter.id !== id));
+    if (activeTab === id) setActiveTab('wiki');
+  };
+
   const sortedHistory = getSafeHistory().sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
   if (!isMounted) return null;
@@ -347,10 +372,26 @@ export default function WikiPage() {
             >
               📅 2. 몽나의 역사
             </button>
+            {chapters.map((chapter, index) => <button key={chapter.id}
+              className={`menu-btn ${activeTab === chapter.id ? 'active' : ''}`}
+              style={{ overflowWrap: 'anywhere' }}
+              onClick={() => { playPageSound(); setActiveTab(chapter.id); }}>
+              {index + 3}. {chapter.title}
+            </button>)}
+            {isAdmin && <button className={chapterStyles.addButton} onClick={() => setChapterEditor({ chapter: null })}>+ 목차 추가</button>}
           </div>
 
           {/* 우측 콘텐츠 영역 */}
-          <div style={{ flex: 1, width: '100%' }}>
+          <div style={{ flex: 1, width: '100%', minWidth: 0 }}>
+            {selectedChapter && <section className={chapterStyles.content} aria-label={selectedChapter.title}>
+              <div className={chapterStyles.heading}>
+                <h2>{selectedChapter.title}</h2>
+                {isAdmin && <button onClick={() => setChapterEditor({ chapter: selectedChapter })}>✏️ 내용 편집</button>}
+              </div>
+              <div className={`${chapterStyles.body} ${!selectedChapter.content ? chapterStyles.empty : ''}`}>
+                {selectedChapter.content || '아직 작성된 내용이 없어요.'}
+              </div>
+            </section>}
             
             {/* 탭 1: 백과사전 */}
             {activeTab === 'wiki' && (
@@ -463,6 +504,13 @@ export default function WikiPage() {
         </div>
 
         {/* ---------------- 모달 창 (상세 & 설정) ---------------- */}
+
+        {isAdmin && chapterEditor && <WikiChapterEditor
+          chapter={chapterEditor.chapter}
+          onSave={saveChapter}
+          onDelete={chapterEditor.chapter ? deleteChapter : null}
+          onClose={() => setChapterEditor(null)}
+        />}
 
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px', boxSizing: 'border-box' }} 
