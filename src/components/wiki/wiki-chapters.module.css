@@ -22,4 +22,10 @@
 .actions .primary{background:#8c72b3;border-color:#8c72b3;color:#fff;}
 .actions .delete{color:#b45173;border-color:#efdae3;}
 .dialog button:disabled{cursor:wait;opacity:.6;}
+.orderList{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.orderRow{display:flex;align-items:center;gap:10px;padding:12px;background:#f8f5fc;border:1px solid #e9e0f1;border-radius:12px;}
+.orderNumber{width:24px;flex-shrink:0;text-align:center;color:#a18ab7;font-size:13px;font-weight:700;}
+.orderTitle{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.5;}
+.orderRow button{width:34px;height:34px;flex-shrink:0;border:1px solid #ded0eb;border-radius:8px;background:#fff;color:#785b9e;cursor:pointer;font-size:18px;}
+.orderRow button:disabled{cursor:default;opacity:.35;}
 @media(max-width:768px){.content{padding:22px;}.heading h2{font-size:21px;}.dialog{padding:22px 18px;}.actions{gap:8px;}.actions button{padding:10px 12px;}.addButton{flex-shrink:0;}}

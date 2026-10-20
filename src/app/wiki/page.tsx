@@ -7,6 +7,7 @@ import { db } from '../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import WikiChapterEditor, { readWikiChapters, type WikiChapter } from '../../components/wiki/WikiChapterEditor';
 import chapterStyles from '../../components/wiki/wiki-chapters.module.css';
+import WikiOrderEditor, { orderWikiItems } from '../../components/wiki/WikiOrderEditor';
 
 export default function WikiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,6 +37,7 @@ export default function WikiPage() {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<any>(null);
   const [chapterEditor, setChapterEditor] = useState<{ chapter: WikiChapter | null } | null>(null);
+  const [isOrderEditorOpen, setIsOrderEditorOpen] = useState(false);
 
   const [epName, setEpName] = useState('');
   const [epImg, setEpImg] = useState('');
@@ -96,6 +98,7 @@ export default function WikiPage() {
           if (!response.ok) throw new Error('logout failed');
           setIsAdmin(false);
           setChapterEditor(null);
+          setIsOrderEditorOpen(false);
           setIsProfileModalOpen(false);
           setIsCardModalOpen(false);
           localStorage.removeItem('mongna_secure_admin_v2');
@@ -245,6 +248,19 @@ export default function WikiPage() {
   const safeSections = getSafeSections();
   const chapters = readWikiChapters(wikiData.chapters);
   const selectedChapter = chapters.find(chapter => chapter.id === activeTab);
+  const navigationItems = [
+    { id: 'wiki', title: '몽나 백과사전', icon: '📖' },
+    { id: 'history', title: '몽나의 역사', icon: '📅' },
+    ...chapters.map(chapter => ({ id: chapter.id, title: chapter.title }))
+  ];
+  const orderedNavigation = orderWikiItems(navigationItems, wikiData.chapterOrder);
+
+  const saveChapterOrder = async (ids: string[]) => {
+    if (!isAdmin) throw new Error('관리자 로그인이 필요합니다.');
+    const chapterOrder = orderWikiItems(navigationItems, ids).map(item => item.id);
+    await saveAdminCalendarDocument('wiki_data', { data: { chapterOrder } });
+    setWikiData((current: any) => ({ ...current, chapterOrder }));
+  };
 
   useEffect(() => {
     if (!isLoading && activeTab !== 'wiki' && activeTab !== 'history' &&
@@ -360,25 +376,14 @@ export default function WikiPage() {
           {/* 좌측 사이드바 (모바일에서는 가로 탭으로 변신) */}
           <div className="sidebar-menu" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '220px', flexShrink: 0 }}>
             <h3 className="sidebar-title" style={{ margin: '0 0 10px 10px', fontSize: '18px', color: '#0f172a' }}>📑 목차</h3>
-            <button 
-              className={`menu-btn ${activeTab === 'wiki' ? 'active' : ''}`}
-              onClick={() => { playPageSound(); setActiveTab('wiki'); setCurrentPageIndex(0); }}
-            >
-              📖 1. 몽나 백과사전
-            </button>
-            <button 
-              className={`menu-btn ${activeTab === 'history' ? 'active' : ''}`}
-              onClick={() => { playPageSound(); setActiveTab('history'); }}
-            >
-              📅 2. 몽나의 역사
-            </button>
-            {chapters.map((chapter, index) => <button key={chapter.id}
-              className={`menu-btn ${activeTab === chapter.id ? 'active' : ''}`}
+            {orderedNavigation.map((item, index) => <button key={item.id}
+              className={`menu-btn ${activeTab === item.id ? 'active' : ''}`}
               style={{ overflowWrap: 'anywhere' }}
-              onClick={() => { playPageSound(); setActiveTab(chapter.id); }}>
-              {index + 3}. {chapter.title}
+              onClick={() => { playPageSound(); setActiveTab(item.id); if (item.id === 'wiki') setCurrentPageIndex(0); }}>
+              {item.icon ? `${item.icon} ` : ''}{index + 1}. {item.title}
             </button>)}
             {isAdmin && <button className={chapterStyles.addButton} onClick={() => setChapterEditor({ chapter: null })}>+ 목차 추가</button>}
+            {isAdmin && <button className={chapterStyles.addButton} onClick={() => setIsOrderEditorOpen(true)}>↕ 목차 순서 편집</button>}
           </div>
 
           {/* 우측 콘텐츠 영역 */}
@@ -511,6 +516,8 @@ export default function WikiPage() {
           onDelete={chapterEditor.chapter ? deleteChapter : null}
           onClose={() => setChapterEditor(null)}
         />}
+        {isAdmin && isOrderEditorOpen && <WikiOrderEditor items={orderedNavigation}
+          onSave={saveChapterOrder} onClose={() => setIsOrderEditorOpen(false)} />}
 
         {viewModalData && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px', boxSizing: 'border-box' }} 

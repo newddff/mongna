@@ -67,11 +67,76 @@ test('visitors read saved chapters but cannot enable editing with a local flag',
   localStorage.setItem('mongna_secure_admin_v2', 'true');
   const m = await mount(); try {
     assert.equal(button(m.node, '+ 목차 추가'), undefined);
+    assert.equal(button(m.node, '↕ 목차 순서 편집'), undefined);
     await click(button(m.node, '3. 취향'));
     assert.ok(m.node.textContent.includes('첫 줄\n<script>내용</script>'));
     assert.equal(m.node.querySelector('script'), null);
     assert.equal(button(m.node, '✏️ 내용 편집'), undefined);
     assert.equal(writes.length, 0);
+  } finally { await m.close(); }
+});
+
+function menuTitles(node) { return [...node.querySelectorAll('.sidebar-menu .menu-btn')].map(item => item.textContent.trim()); }
+async function moveChapter(node, title, direction) {
+  await click(node.querySelector(`dialog button[aria-label="${title} ${direction}로 이동"]`));
+}
+
+test('admin reorders built-in and custom chapters, preserving selected content and order after reload', async () => {
+  setup(true, [{ id: 'chapter-one', title: '취향', content: '취향 내용' }, { id: 'chapter-two', title: '명언', content: '명언 내용' }]);
+  const originalProfile = wiki.profile, originalHistory = wiki.history, originalChapters = wiki.chapters;
+  const m = await mount(); try {
+    await click(button(m.node, '3. 취향'));
+    await click(button(m.node, '↕ 목차 순서 편집'));
+    assert.ok(m.node.querySelector('dialog button[aria-label="몽나 백과사전 위로 이동"]').disabled);
+    assert.ok(m.node.querySelector('dialog button[aria-label="명언 아래로 이동"]').disabled);
+    await moveChapter(m.node, '몽나의 역사', '위');
+    await moveChapter(m.node, '명언', '위');
+    await moveChapter(m.node, '명언', '위');
+    await moveChapter(m.node, '명언', '위');
+    await submit(m.node.querySelector('dialog'));
+    assert.deepEqual(menuTitles(m.node), ['1. 명언', '📅 2. 몽나의 역사', '📖 3. 몽나 백과사전', '4. 취향']);
+    assert.ok(button(m.node, '4. 취향').className.includes('active'));
+    assert.ok(m.node.textContent.includes('취향 내용'));
+    assert.deepEqual(writes[0].data.data, { chapterOrder: ['chapter-two', 'history', 'wiki', 'chapter-one'] });
+    assert.equal(wiki.profile, originalProfile); assert.equal(wiki.history, originalHistory); assert.equal(wiki.chapters, originalChapters);
+  } finally { await m.close(); }
+  const reloaded = await mount(); try {
+    assert.deepEqual(menuTitles(reloaded.node), ['1. 명언', '📅 2. 몽나의 역사', '📖 3. 몽나 백과사전', '4. 취향']);
+    await click(button(reloaded.node, '1. 명언')); assert.ok(reloaded.node.textContent.includes('명언 내용'));
+  } finally { await reloaded.close(); }
+});
+
+test('order cancel and failed save keep published order; retry saves the draft', async () => {
+  setup(); const m = await mount(); try {
+    await click(button(m.node, '↕ 목차 순서 편집'));
+    await moveChapter(m.node, '몽나의 역사', '위');
+    await click(button(m.node.querySelector('dialog'), '취소'));
+    assert.deepEqual(menuTitles(m.node), ['📖 1. 몽나 백과사전', '📅 2. 몽나의 역사']);
+    assert.equal(writes.length, 0);
+    await click(button(m.node, '↕ 목차 순서 편집'));
+    await moveChapter(m.node, '몽나의 역사', '위');
+    failSave = true; await submit(m.node.querySelector('dialog'));
+    assert.ok(m.node.querySelector('dialog [role="alert"]').textContent.includes('관리자 로그인'));
+    assert.deepEqual(menuTitles(m.node), ['📖 1. 몽나 백과사전', '📅 2. 몽나의 역사']);
+    failSave = false; await submit(m.node.querySelector('dialog'));
+    assert.deepEqual(menuTitles(m.node), ['📅 1. 몽나의 역사', '📖 2. 몽나 백과사전']);
+  } finally { await m.close(); }
+});
+
+test('saved order ignores duplicate/deleted IDs, appends new chapters and renumbers after deletion', async () => {
+  setup(true, [{ id: 'chapter-one', title: '취향', content: '내용' }]);
+  wiki.chapterOrder = ['chapter-one', 'chapter-deleted', 'history', 'chapter-one', 'wiki'];
+  const m = await mount(); try {
+    assert.deepEqual(menuTitles(m.node), ['1. 취향', '📅 2. 몽나의 역사', '📖 3. 몽나 백과사전']);
+    await click(button(m.node, '+ 목차 추가'));
+    await change(m.node.querySelector('dialog input'), '새 목차');
+    await submit(m.node.querySelector('dialog'));
+    assert.deepEqual(menuTitles(m.node), ['1. 취향', '📅 2. 몽나의 역사', '📖 3. 몽나 백과사전', '4. 새 목차']);
+    await click(button(m.node, '1. 취향'));
+    await click(button(m.node, '✏️ 내용 편집'));
+    window.confirm = () => true;
+    await click(button(m.node.querySelector('dialog'), '목차 삭제'));
+    assert.deepEqual(menuTitles(m.node), ['📅 1. 몽나의 역사', '📖 2. 몽나 백과사전', '3. 새 목차']);
   } finally { await m.close(); }
 });
 
