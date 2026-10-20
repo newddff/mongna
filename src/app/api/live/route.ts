@@ -14,14 +14,28 @@ export async function GET() {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
       }
     });
+
+    if (!res.ok) {
+      throw new Error(`SOOP station API returned ${res.status}`);
+    }
     
     const data = await res.json();
 
     // broad_no(방송 번호)가 존재하면 생방송 중인 것으로 판단
-    const isLive = !!data?.broad?.broad_no; 
+    const broad = data?.broad;
+    const isLive = !!broad?.broad_no;
+    const rawThumbnail = typeof broad?.broad_thumb === 'string'
+      ? broad.broad_thumb.trim()
+      : '';
+    // station 응답에는 broad_thumb가 빠질 수 있어, SOOP의 방송 썸네일 경로를 broad_no로 구성
+    const thumbnail = !isLive
+      ? ''
+      : rawThumbnail
+        ? rawThumbnail.startsWith('//') ? `https:${rawThumbnail}` : rawThumbnail
+        : `https://liveimg.sooplive.com/m/${encodeURIComponent(String(broad.broad_no))}`;
 
-    return NextResponse.json({ isLive });
+    return NextResponse.json({ isLive, thumbnail });
   } catch (error) {
-    return NextResponse.json({ isLive: false }, { status: 500 });
+    return NextResponse.json({ isLive: false, thumbnail: '' }, { status: 500 });
   }
 }
