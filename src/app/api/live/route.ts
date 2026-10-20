@@ -18,10 +18,14 @@ export async function GET() {
     const data = await res.json();
 
     // broad_no(방송 번호)가 존재하면 생방송 중인 것으로 판단
-    const isLive = !!data?.broad?.broad_no; 
+    const broad = data?.broad;
+    const isLive = !!broad?.broad_no;
+    const thumbnail = isLive && typeof broad?.broad_thumb === 'string'
+      ? broad.broad_thumb
+      : '';
 
-    return NextResponse.json({ isLive });
+    return NextResponse.json({ isLive, thumbnail });
   } catch (error) {
-    return NextResponse.json({ isLive: false }, { status: 500 });
+    return NextResponse.json({ isLive: false, thumbnail: '' }, { status: 500 });
   }
 }
