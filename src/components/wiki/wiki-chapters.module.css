@@ -1,0 +1,25 @@
+.addButton{border:1px dashed #cbb9e2;border-radius:12px;padding:12px 16px;background:#f7f3fc;color:#785b9e;font-size:14px;font-weight:700;cursor:pointer;text-align:left;white-space:nowrap;}
+.content{min-width:0;background:#fff;border:1px solid #e9e0f1;border-radius:24px;padding:32px;}
+.heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid #eee7f5;}
+.heading h2{font-size:24px;line-height:1.4;color:#49365f;margin:0;overflow-wrap:anywhere;}
+.heading button{flex-shrink:0;border:1px solid #dfd1ed;border-radius:9px;background:#f8f5fc;color:#785b9e;padding:8px 12px;cursor:pointer;font-weight:650;}
+.body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.9;color:#51455f;padding-top:24px;}
+.empty{color:#a092ac;}
+.dialog{box-sizing:border-box;width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;border:1px solid #e6dbf0;border-radius:22px;padding:28px;color:#49365f;background:#fff;box-shadow:0 20px 80px #38234733;}
+.dialog::backdrop{background:#2c193c66;backdrop-filter:blur(3px);}
+.editorHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;}
+.editorHeader h2{font-size:21px;margin:0;}
+.editorHeader button{border:0;background:#f5f0f9;border-radius:50%;width:32px;height:32px;cursor:pointer;}
+.field{display:flex;flex-direction:column;gap:9px;font-size:14px;font-weight:700;margin-top:18px;}
+.field input,.field textarea{box-sizing:border-box;width:100%;min-width:0;padding:12px 14px;border:1px solid #dcd0e9;border-radius:10px;background:#fefcff;color:#49365f;font:inherit;font-weight:400;}
+.field input:focus,.field textarea:focus{outline:2px solid #bba0d9;outline-offset:2px;}
+.field textarea{min-height:240px;max-height:45vh;resize:vertical;line-height:1.8;}
+.hint{font-size:12px;color:#9483a3;line-height:1.6;}
+.error{font-size:14px;color:#ac345a;}
+.actions{display:flex;align-items:center;gap:10px;margin-top:24px;flex-wrap:wrap;}
+.actions span{flex:1;}
+.actions button{border:1px solid #e1d6ec;border-radius:10px;padding:10px 16px;background:#fff;color:#756286;font-weight:700;cursor:pointer;}
+.actions .primary{background:#8c72b3;border-color:#8c72b3;color:#fff;}
+.actions .delete{color:#b45173;border-color:#efdae3;}
+.dialog button:disabled{cursor:wait;opacity:.6;}
+@media(max-width:768px){.content{padding:22px;}.heading h2{font-size:21px;}.dialog{padding:22px 18px;}.actions{gap:8px;}.actions button{padding:10px 12px;}.addButton{flex-shrink:0;}}
