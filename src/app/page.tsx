@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAdminSession } from '../lib/use-admin-session';
 import styles from '../components/home/home.module.css';
 import LatestBroadcastNotice from '../components/home/LatestBroadcastNotice';
 import WeeklyVideoRanking from '../components/weekly-ranking/WeeklyVideoRanking';
@@ -11,7 +12,7 @@ import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 import { getMongnaAnniversaries } from '../utils/dday'; 
 
 export default function HomePage() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loginAdmin, logoutAdmin } = useAdminSession();
   const [isMounted, setIsMounted] = useState(false);
 
   const [homeData, setHomeData] = useState({
@@ -66,10 +67,6 @@ export default function HomePage() {
 
   // 💡 파이어베이스 데이터 연동
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true');
-    }
-
     const firebaseConfig = {
       apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso",
       authDomain: "mongna-vod.firebaseapp.com",
@@ -132,30 +129,25 @@ export default function HomePage() {
       .catch(() => setYtError("서버 오류가 발생했습니다."));
   }, [homeData.ytChannelId]);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsModalOpen(false);
+    }
+  }, [isAdmin]);
+
   // 💡 관리자 로그인 로직 (안전한 백엔드 API 호출)
   const toggleAdmin = async () => {
-    if (isAdmin) {
-      if (confirm("관리자 모드를 종료하시겠습니까?")) {
-        setIsAdmin(false);
-        if (typeof window !== 'undefined') localStorage.removeItem('mongna_secure_admin_v2');
-      }
-    } else {
-      const pwd = prompt("관리자 비밀번호 입력:");
-      if (!pwd) return;
-
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd })
-      });
-
-      if (res.ok) {
-        setIsAdmin(true);
-        if (typeof window !== 'undefined') localStorage.setItem('mongna_secure_admin_v2', 'true');
-        alert("관리자 인증 성공!");
+    try {
+      if (isAdmin) {
+        if (confirm("관리자 모드를 종료하시겠습니까?")) await logoutAdmin();
       } else {
-        alert("비밀번호 오류");
+        const password = prompt("관리자 비밀번호를 입력해주세요.");
+        if (!password) return;
+        await loginAdmin(password);
+        alert("관리자 인증 성공!");
       }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '서버 연결에 실패했습니다.');
     }
   };
 

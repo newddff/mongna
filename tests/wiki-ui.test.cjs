@@ -27,7 +27,7 @@ function load(relative) {
     } };
     if (name.startsWith('.')) {
       const target = path.resolve(path.dirname(file), name);
-      return load(path.relative(root, fs.existsSync(target + '.ts') ? target + '.ts' : target + '.tsx'));
+      return load(path.relative(root, fs.existsSync(target) ? target : fs.existsSync(target + '.ts') ? target + '.ts' : target + '.tsx'));
     }
     return native(name);
   };
