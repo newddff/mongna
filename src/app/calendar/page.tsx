@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAdminSession } from '../../lib/use-admin-session';
 import { CALENDAR_CATEGORY_COLORS, CALENDAR_CATEGORIES } from '../../lib/calendar-categories';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
@@ -12,7 +13,7 @@ import { getMongnaAnniversaries } from '../../utils/dday';
 export default function CalendarPage() {
   const { debutDays, birthDDay } = getMongnaAnniversaries();
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loginAdmin, logoutAdmin } = useAdminSession();
   const [isMobile, setIsMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -172,10 +173,6 @@ export default function CalendarPage() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsAdmin(localStorage.getItem('mongna_secure_admin_v2') === 'true' || localStorage.getItem('mongna_secure_admin_v2') === 'true');
-    }
-
     const firebaseConfig = {
       apiKey: "AIzaSyDAdur1FhGkbibSexAu0xCjlQyFzQcQCso", authDomain: "mongna-vod.firebaseapp.com", projectId: "mongna-vod", storageBucket: "mongna-vod.firebasestorage.app", messagingSenderId: "310663611402", appId: "1:310663611402:web:1d607304ce4d7331b5cbf3"
     };
@@ -218,35 +215,27 @@ export default function CalendarPage() {
     return () => { unsubColors(); unsubSidebar(); unsubSchedule(); unsubStreamerDir(); };
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsAddModalOpen(false);
+      setIsEditMode(false);
+      setIsColorModalOpen(false);
+      setIsStreamerManagerOpen(false);
+    }
+  }, [isAdmin]);
+
   const toggleAdmin = async () => {
-    if (isAdmin) {
-      if (confirm("관리자 모드를 종료하시겠습니까?")) {
-        setIsAdmin(false);
-        if (typeof window !== 'undefined') { 
-          localStorage.removeItem('mongna_secure_admin_v2'); 
-          localStorage.removeItem('mongna_secure_admin_v2'); 
-        }
-      }
-    } else {
-      const pwd = prompt("관리자 비밀번호를 입력해주세요.");
-      if (!pwd) return;
-
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd })
-      });
-
-      if (res.ok) {
-        setIsAdmin(true);
-        if (typeof window !== 'undefined') { 
-          localStorage.setItem('mongna_secure_admin_v2', 'true'); 
-          localStorage.setItem('mongna_secure_admin_v2', 'true'); 
-        }
-        alert("관리자 인증 성공!");
+    try {
+      if (isAdmin) {
+        if (confirm("관리자 모드를 종료하시겠습니까?")) await logoutAdmin();
       } else {
-        alert("비밀번호가 틀렸습니다.");
+        const password = prompt("관리자 비밀번호를 입력해주세요.");
+        if (!password) return;
+        await loginAdmin(password);
+        alert("관리자 인증 성공!");
       }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '서버 연결에 실패했습니다.');
     }
   };
 
@@ -387,7 +376,7 @@ export default function CalendarPage() {
     await saveAdminCalendarDocument('sidebar_state', { searchHistory: newHistory, memoList });
   };
 
-  const dropGame = async (e: React.DragEvent, dateKey: string) => {
+  const dropGame = async (e: React.DragEvent<HTMLDivElement>, dateKey: string) => {
     if (!isAdmin) return;
     e.preventDefault(); e.currentTarget.style.backgroundColor = '#fff';
     const query = e.dataTransfer.getData("gameName"); const link = e.dataTransfer.getData("gameLink"); const index = e.dataTransfer.getData("gameIndex");

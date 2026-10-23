@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAdminSession } from '../../lib/use-admin-session';
 import { MainNavLinks, UtilityNavLinks } from '../../components/SiteNavigation';
 import { saveAdminCalendarDocument } from '../../lib/save-admin-calendar';
 import { db } from '../../lib/firebase';
@@ -10,7 +11,7 @@ import chapterStyles from '../../components/wiki/wiki-chapters.module.css';
 import WikiOrderEditor, { orderWikiItems } from '../../components/wiki/WikiOrderEditor';
 
 export default function WikiPage() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loginAdmin, logoutAdmin } = useAdminSession();
   const [isMobile, setIsMobile] = useState(false); 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -67,11 +68,6 @@ export default function WikiPage() {
   };
 
   useEffect(() => {
-    let active = true;
-    void fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
-      .then(async response => response.ok ? response.json() : null)
-      .then(session => { if (active) setIsAdmin(session?.authenticated === true); })
-      .catch(() => { if (active) setIsAdmin(false); });
     const wikiRef = doc(db, 'mongna_calendar_data', 'wiki_data');
 
     const unsubWiki = onSnapshot(wikiRef, (docSnap) => {
@@ -86,47 +82,31 @@ export default function WikiPage() {
       }
     });
 
-    return () => { active = false; unsubWiki(); };
+    return () => unsubWiki();
   }, []);
 
   // ✨ Vercel 서버 인증 API로 교체된 관리자 로그인 기능
+  useEffect(() => {
+    if (!isAdmin) {
+      setChapterEditor(null);
+      setIsOrderEditorOpen(false);
+      setIsProfileModalOpen(false);
+      setIsCardModalOpen(false);
+    }
+  }, [isAdmin]);
+
   const toggleAdmin = async () => {
-    if (isAdmin) {
-      if (confirm("관리자 모드를 종료하시겠습니까?")) {
-        try {
-          const response = await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
-          if (!response.ok) throw new Error('logout failed');
-          setIsAdmin(false);
-          setChapterEditor(null);
-          setIsOrderEditorOpen(false);
-          setIsProfileModalOpen(false);
-          setIsCardModalOpen(false);
-          localStorage.removeItem('mongna_secure_admin_v2');
-        } catch { alert('로그아웃하지 못했습니다. 다시 시도해주세요.'); }
+    try {
+      if (isAdmin) {
+        if (confirm("관리자 모드를 종료하시겠습니까?")) await logoutAdmin();
+      } else {
+        const password = prompt("관리자 비밀번호를 입력해주세요.");
+        if (!password) return;
+        await loginAdmin(password);
+        alert("관리자 인증 성공!");
       }
-    } else {
-      const password = prompt("관리자 비밀번호를 입력해주세요.");
-      if (!password) return;
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
-
-        if (res.ok) {
-          setIsAdmin(true);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('mongna_secure_admin_v2', 'true');
-          }
-          alert("인증 성공! 연필 모양 버튼을 눌러 위키를 꾸며보세요.");
-        } else {
-          alert("비밀번호가 틀렸습니다.");
-        }
-      } catch (e) {
-        alert("서버 연결에 실패했습니다.");
-      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '서버 연결에 실패했습니다.');
     }
   };
 

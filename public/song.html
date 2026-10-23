@@ -394,6 +394,7 @@
 </div>
 
 <script type="module">
+  import { subscribeAdminSession, loginAdmin, logoutAdmin, invalidateAdminSession } from "/admin-session.js";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
   import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
@@ -424,18 +425,13 @@
     });
     if (!response.ok) {
       if (response.status === 401) {
-        isAdmin = false;
-        localStorage.removeItem('mongna_secure_admin_v2');
-        updateAdminUI();
+        invalidateAdminSession();
       }
       throw new Error('관리자 저장 실패: HTTP ' + response.status);
     }
   }
 
-  fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
-    .then(response => response.ok ? response.json() : { authenticated: false })
-    .then(result => { isAdmin = result.authenticated === true; updateAdminUI(); })
-    .catch(() => { isAdmin = false; updateAdminUI(); });
+
 
 
   let currentFilter = '전체';
@@ -483,36 +479,17 @@
 
   // ✨ Vercel 금고와 통신하는 완벽 보안 로그인
   window.toggleAdmin = async function() {
-    if(isAdmin) {
-      if(confirm("관리자 모드를 종료하시겠습니까?")) {
-        isAdmin = false; 
-        localStorage.removeItem('mongna_secure_admin_v2');
-        updateAdminUI(); 
-        renderSongs();
+    try {
+      if (isAdmin) {
+        if (confirm("관리자 모드를 종료하시겠습니까?")) await logoutAdmin();
+      } else {
+        const password = prompt("관리자 비밀번호를 입력해주세요.");
+        if (!password) return;
+        await loginAdmin(password);
+        alert("관리자 인증 성공!");
       }
-    } else {
-      const pwd = prompt("관리자 비밀번호 입력:");
-      if(!pwd) return;
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pwd })
-        });
-
-        if (res.ok) {
-          isAdmin = true; 
-          localStorage.setItem('mongna_secure_admin_v2', 'true');
-          alert("관리자 인증 성공!"); 
-          updateAdminUI(); 
-          renderSongs();
-        } else {
-          alert("비밀번호 오류");
-        }
-      } catch(e) {
-        alert("서버 연결에 실패했습니다.");
-      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '서버 연결에 실패했습니다.');
     }
   };
 
@@ -964,7 +941,14 @@
     if (selectedSongId) renderDetailView();
   });
 
-  updateAdminUI();
+  subscribeAdminSession(authenticated => {
+    isAdmin = authenticated;
+    updateAdminUI();
+    renderSongs();
+    if (!isAdmin) {
+      document.getElementById('editModal').style.display = 'none';
+    }
+  });
 
 </script>
 <script src="/shared-nav.js" defer></script>\n</body>
