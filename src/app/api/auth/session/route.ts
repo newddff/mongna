@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
-import { expiredAdminSessionCookie, isAdminSession } from '../../../../lib/server/admin-session';
+import { adminSessionNeedsRenewal, createAdminSessionCookie, expiredAdminSessionCookie, isAdminSession } from '../../../../lib/server/admin-session';
 
 export async function GET(request: Request) {
-  return NextResponse.json({ authenticated: isAdminSession(request) }, {
+  const response = NextResponse.json({ authenticated: isAdminSession(request) }, {
     headers: { 'Cache-Control': 'no-store' }
   });
+  if (adminSessionNeedsRenewal(request)) {
+    const cookie = createAdminSessionCookie();
+    if (cookie) response.headers.set('Set-Cookie', cookie);
+  }
+  return response;
 }
 
 export async function DELETE() {

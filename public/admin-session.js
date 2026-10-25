@@ -27,12 +27,19 @@ export function refreshAdminSession(force = false) {
   const current = ++revision;
   const request = Promise.resolve().then(() => fetch('/api/auth/session', {
     credentials: 'same-origin', cache: 'no-store'
-  })).then(async response => response.ok ? response.json() : null)
+  })).then(async response => {
+    if (response.status === 401 || response.status === 403) return { authenticated: false };
+    if (!response.ok) throw new Error('Session check unavailable');
+    const session = await response.json();
+    if (typeof session?.authenticated !== 'boolean') throw new Error('Invalid session response');
+    return session;
+  })
     .then(session => {
       if (current === revision) publish(session?.authenticated === true);
       return authenticated;
     }).catch(() => {
-      if (current === revision) publish(false);
+      // 통신 실패는 로그아웃 확인이 아닙니다. 기존 화면/편집 내용을 유지합니다.
+      // false를 반환해 로그인 직후 검증은 실패하도록 하고, 다음 확인 때 재시도합니다.
       return false;
     }).finally(() => { if (pending === request) pending = null; });
   pending = request;

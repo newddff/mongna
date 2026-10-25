@@ -115,6 +115,58 @@ test('login requires an actual server session and failed logout preserves a vali
   } finally { stop(); env.close(); }
 });
 
+test('temporary check failures preserve verified UI, while confirmed expiry and rejection revoke it', async () => {
+  const env = environment(); let failure;
+  const a = env.create(undefined, (url, init) => !init.method && failure ? failure() : env.server(url, init));
+  const states = [], off = a.session.subscribeAdminSession(value => states.push(value));
+  try {
+    await a.session.loginAdmin('test-password');
+    for (const fail of [
+      () => Promise.reject(new Error('offline')),
+      () => Response.json({}, { status: 503 }),
+      () => new Response('<html>gateway error</html>'),
+      () => Response.json({}),
+      () => Response.json({ authenticated: 'false' })
+    ]) {
+      failure = fail;
+      a.win.dispatchEvent(new a.win.Event('focus'));
+      assert.equal(await a.session.refreshAdminSession(), false);
+      assert.equal(states.at(-1), true);
+    }
+    assert.deepEqual(states, [false, true]);
+    failure = undefined;
+    assert.equal(await a.session.refreshAdminSession(true), true);
+    env.expire();
+    await a.session.refreshAdminSession(true);
+    assert.equal(states.at(-1), false);
+    for (const status of [401, 403]) {
+      await a.session.loginAdmin('test-password');
+      failure = () => Response.json({}, { status });
+      await a.session.refreshAdminSession(true);
+      assert.equal(states.at(-1), false);
+      failure = undefined;
+    }
+  } finally { off(); env.close(); }
+});
+
+test('failed checks never grant initial access or count as successful login verification', async () => {
+  const env = environment(); let unavailable = true;
+  const a = env.create(undefined, (url, init) => !init.method && unavailable
+    ? Response.json({}, { status: 503 }) : env.server(url, init));
+  const states = [], off = a.session.subscribeAdminSession(value => states.push(value));
+  try {
+    await a.session.refreshAdminSession();
+    assert.equal(states.at(-1), false);
+    await assert.rejects(a.session.loginAdmin('test-password'), /세션을 확인하지 못했습니다/);
+    assert.equal(states.at(-1), false);
+    unavailable = false;
+    await a.session.loginAdmin('test-password');
+    unavailable = true;
+    await assert.rejects(a.session.loginAdmin('test-password'), /세션을 확인하지 못했습니다/);
+    assert.equal(states.at(-1), true);
+  } finally { off(); env.close(); }
+});
+
 test('real song and reward page adapters share login and logout through the common client', async () => {
   const env = environment();
   function page(name) {
