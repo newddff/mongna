@@ -22,7 +22,7 @@ export default function ChatSyncPage() {
   const [timeLeft, setTimeLeft] = useState(10); 
 
   // ✨ 실제 연동을 위한 웹소켓 Ref 및 상태 동기화 Ref
-  const wsRef = useRef<WebSocket | null>(null);
+  const streamRef = useRef<EventSource | null>(null);
   const testIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const votesRef = useRef(votes);
@@ -109,60 +109,51 @@ export default function ChatSyncPage() {
     }
   }, [timeLeft, turn, winner]);
 
-  // ✨ 진짜 봇(웹소켓) 연동 함수
+  // Render bridge receives signed votes from a separately approved SOOP chat adapter.
+  // Browser connects READ-ONLY via SSE; no SOOP or bridge secret is ever exposed here.
   const connectToBot = () => {
-    if (wsRef.current) wsRef.current.close();
-
+    if (streamRef.current) streamRef.current.close();
+    const bridgeUrl = bjId.trim();
+    let parsed: URL;
     try {
-      // 종우님 봇이 켜져 있는 로컬호스트 8080 포트로 접속 시도
-      const ws = new WebSocket('ws://localhost:8080');
-
-      ws.onopen = () => {
-        setIsConnected(true);
-        setChatLogs(prev => [{ id: Date.now().toString(), nickname: '시스템', text: '🟢 봇과 연동 완료! 진짜 채팅을 기다립니다.' }, ...prev]);
-      };
-
-      // 봇이 채팅을 보내줄 때마다 실행되는 함수!
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const text = data.text.trim();
-          const num = parseInt(text);
-
-          // 화면에 채팅 로그 띄우기
-          setChatLogs(prev => [{ id: Date.now().toString() + Math.random(), nickname: data.nickname, text: text }, ...prev].slice(0, 15));
-
-          // 시청자 턴이고, 채팅이 1~7 사이 숫자면 투표 1 올려주기
-          if (turnRef.current === 'viewers' && num >= 1 && num <= 7) {
-            setVotes(prev => ({ ...prev, [num]: prev[num] + 1 }));
-          }
-        } catch (error) {
-          console.error("데이터 파싱 에러", error);
-        }
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        setChatLogs(prev => [{ id: Date.now().toString(), nickname: '시스템', text: '🔴 봇과의 연결이 끊어졌습니다.' }, ...prev]);
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      alert('봇 서버에 연결할 수 없습니다. 봇을 켰는지 확인해주세요!');
+      parsed = new URL(bridgeUrl);
+      if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost') throw new Error('HTTPS required');
+    } catch {
+      alert('Render 서버의 HTTPS 주소를 입력해 주세요. 예: https://your-service.onrender.com');
+      return;
     }
+    const source = new EventSource(parsed.origin + '/api/soop-chat/events');
+    source.onopen = () => {
+      setIsConnected(true);
+      setChatLogs(prev => [{ id: 'connection-' + Date.now(), nickname: '시스템', text: '🟢 투표 서버 연결 완료 (SOOP 채팅 연결 여부는 별도 확인)' }, ...prev].slice(0, 15));
+    };
+    source.onmessage = (event) => {
+      try {
+        const vote = JSON.parse(event.data);
+        if (!Number.isInteger(vote.vote) || vote.vote < 1 || vote.vote > 7 ||
+            typeof vote.nickname !== 'string') return;
+        setChatLogs(prev => [{ id: String(vote.eventId || Date.now()), nickname: vote.nickname, text: String(vote.vote) }, ...prev].slice(0, 15));
+        if (turnRef.current === 'viewers') {
+          setVotes(prev => ({ ...prev, [vote.vote]: prev[vote.vote] + 1 }));
+        }
+      } catch (error) { console.error('투표 이벤트 파싱 실패', error); }
+    };
+    source.onerror = () => {
+      setIsConnected(false);
+      // EventSource automatically reconnects while the page is open.
+    };
+    streamRef.current = source;
   };
 
   const stopConnection = () => {
-    if (wsRef.current) wsRef.current.close();
+    if (streamRef.current) { streamRef.current.close(); streamRef.current = null; }
     if (testIntervalRef.current) clearInterval(testIntervalRef.current);
     setIsConnected(false);
   };
 
-  useEffect(() => {
-    return () => { 
-      if (testIntervalRef.current) clearInterval(testIntervalRef.current); 
-      if (wsRef.current) wsRef.current.close();
-    };
+  useEffect(() => () => {
+    if (testIntervalRef.current) clearInterval(testIntervalRef.current);
+    if (streamRef.current) streamRef.current.close();
   }, []);
 
   const resetGame = () => {
@@ -192,7 +183,7 @@ export default function ChatSyncPage() {
               <h2 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: '#1e293b' }}>봇 서버 연결</h2>
               
               <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                <input type="text" value={bjId} onChange={(e) => setBjId(e.target.value)} disabled={isConnected} placeholder="SOOP 봇 준비 완료?" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '2px solid #cbd5e1', outline: 'none', fontWeight: 700 }} />
+                <input type="text" value={bjId} onChange={(e) => setBjId(e.target.value)} disabled={isConnected} placeholder="Render HTTPS 주소 (예: https://서비스.onrender.com)" style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '2px solid #cbd5e1', outline: 'none', fontWeight: 700 }} />
                 {!isConnected ? (
                   <button onClick={connectToBot} style={{ background: '#facc15', border: '2px solid #1e293b', borderRadius: '10px', padding: '0 16px', fontWeight: 800, cursor: 'pointer', boxShadow: '2px 2px 0px #1e293b' }}>봇 연결</button>
                 ) : (
