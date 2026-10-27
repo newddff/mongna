@@ -93,6 +93,23 @@ async function route(request: Request, context: Context) {
   try { return await handle(request, context); }
   catch (error) {
     console.error('Bangsel request failed', error instanceof Error ? error.message : 'unknown');
+    // Only authenticated administrators receive setup diagnostics; never return raw SDK errors.
+    if (isAdminSession(request)) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('FIREBASE_SERVICE_ACCOUNT is not configured')) {
+        return json({ code: 'FIREBASE_ACCOUNT_MISSING', error: '저장 서버 설정이 빠져 있습니다. Vercel의 mongna 프로젝트 → Production 환경변수에 FIREBASE_SERVICE_ACCOUNT가 필요합니다.' }, 503);
+      }
+      if (message.includes('FIREBASE_SERVICE_ACCOUNT') || /private key|PEM|invalid_grant|invalid credential/i.test(message)) {
+        return json({ code: 'FIREBASE_ACCOUNT_INVALID', error: '서버의 Firebase 서비스 계정 설정을 읽거나 인증하지 못했습니다. FIREBASE_SERVICE_ACCOUNT의 JSON 형식과 키 유효성을 확인해주세요.' }, 503);
+      }
+      const code = Number((error as { code?: number | string })?.code);
+      if (code === 401 || code === 16) {
+        return json({ code: 'FIREBASE_AUTH_FAILED', error: '서버의 Firebase 서비스 계정 인증에 실패했습니다. 서비스 계정 키가 유효한지 확인해주세요.' }, 503);
+      }
+      if (code === 403 || code === 7) {
+        return json({ code: 'FIREBASE_PERMISSION_DENIED', error: '서버의 Firebase 서비스 계정에 저장소 접근 권한이 없습니다. Firestore 또는 Storage 권한을 확인해주세요.' }, 503);
+      }
+    }
     if (context.params.path.join('/') === 'media' && (error as { code?: number })?.code === 404) {
       return json({ error: 'Firebase의 mongna-vod 프로젝트에서 Storage를 먼저 시작해주세요. 파일 저장소가 아직 준비되지 않았습니다.' }, 503);
     }

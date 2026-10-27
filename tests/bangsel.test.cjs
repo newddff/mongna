@@ -8,12 +8,12 @@ function load(file, dependencies, globals = {}) {
   const source = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
   }).outputText;
-  vm.runInNewContext(source, { exports, Buffer, URL, Date, console, process: { env: {
+  vm.runInNewContext(source, { exports, Buffer, URL, Date, Error, console, process: { env: {
     ADMIN_SESSION_SECRET: 'a-test-only-secret-at-least-32-characters', ADMIN_PASSWORD: 'test-password'
   } }, require(name) { assert.ok(Object.hasOwn(dependencies, name), name); return dependencies[name]; }, ...globals });
   return exports;
 }
-function setup() {
+function setup(storageError) {
   const records = new Map();
   const collection = {
     doc(id) { return {
@@ -31,7 +31,7 @@ function setup() {
   const helper = load('src/lib/server/bangsel.ts', {
     'server-only': {}, 'node:crypto': crypto, 'firebase-admin/app': { getApp: () => ({}) },
     'firebase-admin/storage': { getStorage: () => ({ bucket: () => ({ file: () => ({
-      createResumableUpload: async () => ['https://storage.googleapis.com/upload/storage/v1/b/test?upload_id=test']
+      createResumableUpload: async () => { if (storageError) throw storageError; return ['https://storage.googleapis.com/upload/storage/v1/b/test?upload_id=test']; }
     }) }) }) }, './admin-firestore': db
   });
   const uploadRequests = [];
@@ -101,4 +101,20 @@ test('uploads require authentication, validate MIME/size and reject tampered or 
   assert.equal((await e.request('media', 'PUT', new Uint8Array([1]), { headers: { 'x-upload-token': upload + 'x', 'x-upload-offset': '0' } })).status, 400);
   const info = e.helper.openUpload(upload); info.expires = Date.now() - 1;
   assert.throws(() => e.helper.openUpload(e.helper.sealUpload(info)));
+});
+
+test('upload setup errors expose only safe administrator diagnostics', async () => {
+  for (const [error, expected] of [
+    [new Error('FIREBASE_SERVICE_ACCOUNT is not configured'), 'FIREBASE_ACCOUNT_MISSING'],
+    [new Error('FIREBASE_SERVICE_ACCOUNT must be a service-account JSON object'), 'FIREBASE_ACCOUNT_INVALID'],
+    [Object.assign(new Error('private SDK message'), { code: 403 }), 'FIREBASE_PERMISSION_DENIED'],
+  ]) {
+    const e = setup(error);
+    await e.request('session', 'POST', { password: 'test-password' });
+    const response = await e.request('media', 'POST', { mime: 'image/png', size: 3 });
+    assert.equal(response.status, 503);
+    const data = await response.json();
+    assert.equal(data.code, expected);
+    assert.ok(!data.error.includes('private SDK message'));
+  }
 });
