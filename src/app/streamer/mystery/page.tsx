@@ -9,7 +9,7 @@ const KEY='mongna-mystery-cheongugwan-v1';
 const clueName=(id:string)=>spots.find(v=>v.clue===id)?.name||id;
 const prologues=['prologue_01','prologue_02','prologue_03','prologue_04','prologue_05','prologue_06'];
 const facts=['21:40~21:45 한수와 대화했다. 책상 위에는 원본 번호 0716과 한수의 서명이 있는 파란 서류철이 있었다.','21:45~22:00 서재 정문과 중앙 계단을 지켜봤다. 아무도 드나들지 않았다. 뒷계단과 서고 옆문은 이 자리에서 보이지 않는다.','22:00 노크 직후 즉시 문을 열고 사망을 확인했다. 파란 서류철은 없고, 창문과 서고 옆문이 열려 있었다.','22:00 정전, 22:05 복구. 문하윤은 22:10 지하에서 마지막으로 합류했다.','서재에서 뒷계단·주방을 거쳐 현관까지는 서둘러도 2분 이상 걸린다. 외부 출입문과 다리 상황을 확인했으며, 현재 저택에 남은 사람은 몽나와 네 용의자다.'];
-function Lines({id}:{id:string}){return <>{blocks[id]?.lines.map((line,i)=><p key={i}>{line}</p>)}</>}
+function Lines({id}:{id:string}){return <>{blocks[id]?.lines.map((line,i)=>{const match=/^(상황 설명|힌트|사건 해설|에필로그): (.*)$/.exec(line);return match?<div key={i} className={s.narration}><small>{match[1]}</small><p>{match[2]}</p></div>:<p key={i}>{line}</p>})}</>}
 export default function MysteryPage(){
  const [game,setGame]=useState<GameState>(fresh),[ready,setReady]=useState(false),[storageError,setStorageError]=useState(false);
  const [tab,setTab]=useState('scene'),[room,setRoom]=useState('study'),[spot,setSpot]=useState(''),[person,setPerson]=useState('dohyeon'),[dialogue,setDialogue]=useState(''),[evidence,setEvidence]=useState(''),[message,setMessage]=useState(''),[code,setCode]=useState('');
