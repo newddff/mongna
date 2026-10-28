@@ -24,6 +24,7 @@ export default function StreamerMinigamesPage() {
         </>}</div>
         {!connection.authenticated && <p className={styles.connectionNote}>방송 중 몽나 계정으로 처음 한 번 연결해주세요. 이후 같은 브라우저에서 자동 연결됩니다.</p>}
       </section></div>
+    <p style={{ marginBottom: 20 }}><Link className={styles.homeLink} href="/streamer/mystery">🔎 달빛 탐정 사무소 · 추리게임 시작하기 →</Link></p>
     <nav className={styles.gameTabs} aria-label="게임 선택">{GAMES.map(kind => <button type="button" key={kind} className={`${styles.gameTab} ${game === kind ? styles.gameTabActive : ''}`} aria-pressed={game === kind} onClick={() => setGame(kind)}><span className={styles.tabIcon}>{GAME_INFO[kind].icon}</span><span><strong>{GAME_INFO[kind].title}</strong><small>{GAME_INFO[kind].subtitle}</small></span></button>)}</nav>
     {GAMES.map(kind => <div key={kind} hidden={kind !== game}><ChatBoardGame kind={kind} enabled={connection.connected && kind === game} subscribe={subscribe} /></div>)}
     <footer className={styles.footer}>사용자당 한 턴에 한 표 · 유효한 수만 집계 · 동률은 몽나가 선택<br />게임을 바꿔도 채팅 연결과 게임별 대국은 유지됩니다.</footer>
