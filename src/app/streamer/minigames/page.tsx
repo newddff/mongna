@@ -14,7 +14,7 @@ export default function StreamerMinigamesPage() {
   const onMessage = useCallback((chat: ChatMessage) => { listeners.current.forEach(listener => listener(chat)); }, []);
   const connection = useSoopChat(onMessage);
   return <main className={styles.room}><div className={styles.inner}>
-    <header className={styles.topbar}><div className={styles.brand}><span className={styles.brandMark}>✦</span>MONGNA PLAYROOM</div><Link className={styles.homeLink} href="/">팬페이지로 돌아가기 ↗</Link></header>
+    <header className={styles.topbar}><div className={styles.brand}><span className={styles.brandMark}>✦</span>MONGNA PLAYROOM</div><Link className={styles.homeLink} href="/streamer/song-requests">신청곡 플레이어 ↗</Link><Link className={styles.homeLink} href="/">팬페이지로 돌아가기 ↗</Link></header>
     <div className={styles.hero}><div><span className={styles.eyebrow}>몽나와 달구가 함께 두는 한 수</span><h1>오늘은 어떤 승부를 할까?</h1><p>몽나는 보드 위에서, 달구는 채팅으로.<br />함께 생각하고 한 수씩 겨뤄보세요.</p></div>
       <section className={styles.connectionCard}><div className={styles.connectionStatus} role="status" aria-live="polite"><i className={`${styles.statusDot} ${connection.connected ? styles.liveDot : ''}`} />{connection.status}</div>
         <div className={styles.connectionButtons}>{!connection.authenticated ? <button disabled={connection.busy} onClick={connection.startAuth}>SOOP 계정 연결</button> : <>

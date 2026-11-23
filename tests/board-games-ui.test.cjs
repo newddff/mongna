@@ -83,3 +83,66 @@ await act(async()=>instance.message('MESSAGE',{userId:'x',userNickname:'x',messa
 await act(async()=>click(tab('오목')));assert.ok(square(panel('오목'),'h8').getAttribute('aria-label').includes('몽나'));
 await act(async()=>instance.message('MESSAGE',{userId:'x',userNickname:'x',message:'h9'}));assert.ok(panel('오목').querySelector('.chatPanel').textContent.includes('x'));assert.equal(count,1);
 }finally{await act(async()=>reactRoot.unmount());global.fetch=originalFetch;delete window.SOOP;}});
+
+test('SOOP song player queues requests in order and advances on end and playback error', async () => {
+  const SongPage = load('src/app/streamer/song-requests/page.tsx').default;
+  const originalFetch = global.fetch;
+  const originalBroadcast = global.BroadcastChannel;
+  global.BroadcastChannel = undefined;
+  let sdk, events, yt;
+  const loads = [];
+  window.SOOP = { ChatSDK: class {
+    constructor() { sdk = this; }
+    handleReady(cb) { this.ready = cb; }
+    handleMessageReceived(cb) { this.message = cb; }
+    handleChatClosed() {}
+    handleError() {}
+    setAuth() {}
+    getRoomInfo() { return { bjId: 'pinktape8' }; }
+    async connect() { this.ready(); }
+    destroy() {}
+  }};
+  window.YT = { Player: class {
+    constructor(el, options) {
+      yt = this; events = options.events;
+      queueMicrotask(() => events.onReady({ target: this }));
+    }
+    loadVideoById(id) { loads.push(id); }
+    getVideoData() { return { title: '영상 ' + loads.at(-1), video_id: loads.at(-1) }; }
+    destroy() {}
+    stopVideo() {}
+  }};
+  let releaseSearch;
+  global.fetch = async url => {
+    if (url === '/api/soop/chat/session') return Response.json({ authenticated: true, live: true, clientId: 'mock', streamerId: 'pinktape8', accessToken: 'mock' });
+    return new Promise(resolve => { releaseSearch = resolve; });
+  };
+  const container = document.getElementById('root');
+  const reactRoot = createRoot(container);
+  const send = (userId, message) => sdk.message('MESSAGE', { userId, userNickname: userId, message });
+  try {
+    await act(async () => reactRoot.render(React.createElement(SongPage)));
+    await act(async () => send('closed', '!신청곡 https://youtu.be/00000000000'));
+    await act(async () => click(button(container, '채팅 접수 열기')));
+    await act(async () => {
+      send('first', '!신청곡 아이유 - 밤편지');
+      send('second', '!신청곡 https://youtu.be/22222222222');
+      send('third', '!신청곡 https://youtu.be/33333333333');
+    });
+    assert.equal(container.querySelectorAll('ol li').length, 0);
+    await act(async () => releaseSearch(Response.json({ videoId: '11111111111', title: '밤편지' })));
+    assert.equal(container.querySelectorAll('ol li').length, 3);
+    await act(async () => click(button(container, '재생 시작')));
+    assert.deepEqual(loads, ['11111111111']);
+    await act(async () => {
+      events.onStateChange({ target: yt, data: 1 });
+      events.onStateChange({ target: yt, data: 0 });
+    });
+    await act(async () => events.onError({ target: yt, data: 150 }));
+    assert.deepEqual(loads, ['11111111111', '22222222222', '33333333333']);
+  } finally {
+    await act(async () => reactRoot.unmount());
+    global.fetch = originalFetch; global.BroadcastChannel = originalBroadcast;
+    delete window.YT; delete window.SOOP;
+  }
+});
