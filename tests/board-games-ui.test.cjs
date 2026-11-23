@@ -84,11 +84,20 @@ await act(async()=>click(tab('오목')));assert.ok(square(panel('오목'),'h8').
 await act(async()=>instance.message('MESSAGE',{userId:'x',userNickname:'x',message:'h9'}));assert.ok(panel('오목').querySelector('.chatPanel').textContent.includes('x'));assert.equal(count,1);
 }finally{await act(async()=>reactRoot.unmount());global.fetch=originalFetch;delete window.SOOP;}});
 
-test('SOOP song player queues requests in order and advances on end and playback error', async () => {
+test('SOOP song player gates intake, shows the next three and advances while intake is closed', async () => {
   const SongPage = load('src/app/streamer/song-requests/page.tsx').default;
   const originalFetch = global.fetch;
   const originalBroadcast = global.BroadcastChannel;
-  global.BroadcastChannel = undefined;
+  const channelPeers = new Set();
+  global.BroadcastChannel = class {
+    constructor() { channelPeers.add(this); }
+    postMessage(data) {
+      for (const peer of channelPeers) {
+        if (peer !== this) queueMicrotask(() => peer.onmessage?.({ data }));
+      }
+    }
+    close() { this.onmessage = null; channelPeers.delete(this); }
+  };
   let sdk, events, yt;
   const loads = [];
   window.SOOP = { ChatSDK: class {
@@ -119,21 +128,37 @@ test('SOOP song player queues requests in order and advances on end and playback
   };
   const container = document.getElementById('root');
   const reactRoot = createRoot(container);
+  const overlayContainer = document.createElement('div');
+  document.body.append(overlayContainer);
+  const overlayRoot = createRoot(overlayContainer);
+  const Overlay = load('src/app/streamer/song-requests/overlay/page.tsx').default;
   const send = (userId, message) => sdk.message('MESSAGE', { userId, userNickname: userId, message });
   try {
-    await act(async () => reactRoot.render(React.createElement(SongPage)));
+    await act(async () => {
+      reactRoot.render(React.createElement(SongPage));
+      overlayRoot.render(React.createElement(Overlay));
+    });
     await act(async () => send('closed', '!신청곡 https://youtu.be/00000000000'));
     await act(async () => click(button(container, '채팅 접수 열기')));
     await act(async () => {
       send('first', '!신청곡 아이유 - 밤편지');
       send('second', '!신청곡 https://youtu.be/22222222222');
       send('third', '!신청곡 https://youtu.be/33333333333');
+      send('fourth', '!신청곡 https://youtu.be/44444444444');
+      send('fifth', '!신청곡 https://youtu.be/55555555555');
     });
     assert.equal(container.querySelectorAll('ol li').length, 0);
     await act(async () => releaseSearch(Response.json({ videoId: '11111111111', title: '밤편지' })));
-    assert.equal(container.querySelectorAll('ol li').length, 3);
+    assert.equal(container.querySelectorAll('ol li').length, 5);
     await act(async () => click(button(container, '재생 시작')));
     assert.deepEqual(loads, ['11111111111']);
+    assert.deepEqual(Array.from(overlayContainer.querySelectorAll('li small'), el => el.textContent),
+      ['second', 'third', 'fourth']);
+    assert.match(overlayContainer.textContent, /외 1곡/);
+    await act(async () => click(button(container, '채팅 접수 닫기')));
+    await act(async () => send('closed', '!신청곡 https://youtu.be/00000000000'));
+    assert.equal(container.querySelectorAll('ol li').length, 4);
+    assert.equal(overlayContainer.querySelectorAll('li').length, 3);
     await act(async () => {
       events.onStateChange({ target: yt, data: 1 });
       events.onStateChange({ target: yt, data: 0 });
@@ -141,7 +166,8 @@ test('SOOP song player queues requests in order and advances on end and playback
     await act(async () => events.onError({ target: yt, data: 150 }));
     assert.deepEqual(loads, ['11111111111', '22222222222', '33333333333']);
   } finally {
-    await act(async () => reactRoot.unmount());
+    await act(async () => { overlayRoot.unmount(); reactRoot.unmount(); });
+    overlayContainer.remove();
     global.fetch = originalFetch; global.BroadcastChannel = originalBroadcast;
     delete window.YT; delete window.SOOP;
   }

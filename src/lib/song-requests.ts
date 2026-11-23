@@ -1,5 +1,10 @@
 export type SongRequest = { kind: 'link'; videoId: string } | { kind: 'search'; query: string };
 export type Song = { videoId: string; title: string; requestedBy: string; userId: string };
+export type SongOverlaySnapshot = {
+  current: Pick<Song, 'title' | 'requestedBy'> | null;
+  upcoming: Pick<Song, 'title' | 'requestedBy'>[];
+  remaining: number;
+};
 export const SONG_OVERLAY_CHANNEL = 'mongna-song-overlay';
 export const MAX_QUEUE = 20;
 
