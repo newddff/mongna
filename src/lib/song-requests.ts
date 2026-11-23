@@ -6,6 +6,7 @@ export type SongOverlaySnapshot = {
   remaining: number;
 };
 export const SONG_OVERLAY_CHANNEL = 'mongna-song-overlay';
+export const DEMO_SONG_OVERLAY_CHANNEL = 'mongna-song-overlay-demo';
 export const MAX_QUEUE = 20;
 
 export function parseSongRequest(message: unknown): SongRequest | null {

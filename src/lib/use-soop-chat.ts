@@ -30,7 +30,7 @@ export function loadChatSdk() {
   });
   return sdkLoading;
 }
-export function useSoopChat(onMessage: (message: ChatMessage) => void, returnTo = DEFAULT_SOOP_RETURN_TO) {
+export function useSoopChat(onMessage: (message: ChatMessage) => void, returnTo = DEFAULT_SOOP_RETURN_TO, enabled = true) {
   const [status, setStatus] = useState('SOOP 연결을 확인하고 있습니다.');
   const [connected, setConnected] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -111,9 +111,10 @@ export function useSoopChat(onMessage: (message: ChatMessage) => void, returnTo 
   }, [clearRetry, dispose]);
   connectRef.current = connect;
   useEffect(() => {
+    if (!enabled) return;
     active.current = true; stopped.current = false; void connect();
     return () => { active.current = false; ++generation.current; clearRetry(); dispose(); };
-  }, [connect, clearRetry, dispose]);
+  }, [connect, clearRetry, dispose, enabled]);
 
   const startAuth = async () => {
     setBusy(true); setStatus('SOOP 로그인 화면으로 이동합니다.');
