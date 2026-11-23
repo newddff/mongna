@@ -30,7 +30,7 @@ export function loadChatSdk() {
   });
   return sdkLoading;
 }
-export function useSoopChat(onMessage: (message: ChatMessage) => void) {
+export function useSoopChat(onMessage: (message: ChatMessage) => void, returnTo = DEFAULT_SOOP_RETURN_TO, enabled = true) {
   const [status, setStatus] = useState('SOOP 연결을 확인하고 있습니다.');
   const [connected, setConnected] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -94,7 +94,7 @@ export function useSoopChat(onMessage: (message: ChatMessage) => void) {
         ready = true; clearRetry(); setConnected(true); setBusy(false); setStatus('채팅 연결 완료');
       });
       sdk.handleMessageReceived((action, message) => {
-        if (!valid() || action !== 'MESSAGE' || typeof message?.message !== 'string') return;
+        if (!valid() || !ready || action !== 'MESSAGE' || typeof message?.message !== 'string') return;
         callbackRef.current({ userId: String(message.userId || ''), nickname: String(message.userNickname || ''), text: message.message });
       });
       sdk.handleChatClosed(() => retry('채팅 연결이 끊어졌습니다. 다시 연결하고 있습니다.'));
@@ -111,14 +111,15 @@ export function useSoopChat(onMessage: (message: ChatMessage) => void) {
   }, [clearRetry, dispose]);
   connectRef.current = connect;
   useEffect(() => {
+    if (!enabled) return;
     active.current = true; stopped.current = false; void connect();
     return () => { active.current = false; ++generation.current; clearRetry(); dispose(); };
-  }, [connect, clearRetry, dispose]);
+  }, [connect, clearRetry, dispose, enabled]);
 
   const startAuth = async () => {
     setBusy(true); setStatus('SOOP 로그인 화면으로 이동합니다.');
     try {
-      await beginSoopAuth({ purpose: 'chat', returnTo: DEFAULT_SOOP_RETURN_TO });
+      await beginSoopAuth({ purpose: 'chat', returnTo });
     } catch (error) { setStatus(error instanceof Error ? error.message : '연결을 시작할 수 없습니다.'); setBusy(false); }
   };
   const retryNow = () => { stopped.current = false; void connect(); };

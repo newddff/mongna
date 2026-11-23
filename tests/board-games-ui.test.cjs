@@ -83,3 +83,122 @@ await act(async()=>instance.message('MESSAGE',{userId:'x',userNickname:'x',messa
 await act(async()=>click(tab('오목')));assert.ok(square(panel('오목'),'h8').getAttribute('aria-label').includes('몽나'));
 await act(async()=>instance.message('MESSAGE',{userId:'x',userNickname:'x',message:'h9'}));assert.ok(panel('오목').querySelector('.chatPanel').textContent.includes('x'));assert.equal(count,1);
 }finally{await act(async()=>reactRoot.unmount());global.fetch=originalFetch;delete window.SOOP;}});
+
+test('SOOP song player gates intake, shows the next three and advances while intake is closed', async () => {
+  const SongPage = load('src/app/streamer/song-requests/SongRequests.tsx').default;
+  const originalFetch = global.fetch;
+  const originalBroadcast = global.BroadcastChannel;
+  const channelPeers = new Set();
+  global.BroadcastChannel = class {
+    constructor() { channelPeers.add(this); }
+    postMessage(data) {
+      for (const peer of channelPeers) {
+        if (peer !== this) queueMicrotask(() => peer.onmessage?.({ data }));
+      }
+    }
+    close() { this.onmessage = null; channelPeers.delete(this); }
+  };
+  let sdk, events, yt;
+  const loads = [];
+  window.SOOP = { ChatSDK: class {
+    constructor() { sdk = this; }
+    handleReady(cb) { this.ready = cb; }
+    handleMessageReceived(cb) { this.message = cb; }
+    handleChatClosed() {}
+    handleError() {}
+    setAuth() {}
+    getRoomInfo() { return { bjId: 'pinktape8' }; }
+    async connect() { this.ready(); }
+    destroy() {}
+  }};
+  window.YT = { Player: class {
+    constructor(el, options) {
+      yt = this; events = options.events;
+      queueMicrotask(() => events.onReady({ target: this }));
+    }
+    loadVideoById(id) { loads.push(id); }
+    getVideoData() { return { title: '영상 ' + loads.at(-1), video_id: loads.at(-1) }; }
+    destroy() {}
+    stopVideo() {}
+  }};
+  let releaseSearch;
+  global.fetch = async url => {
+    if (url === '/api/soop/chat/session') return Response.json({ authenticated: true, live: true, clientId: 'mock', streamerId: 'pinktape8', accessToken: 'mock' });
+    return new Promise(resolve => { releaseSearch = resolve; });
+  };
+  const container = document.getElementById('root');
+  const reactRoot = createRoot(container);
+  const overlayContainer = document.createElement('div');
+  document.body.append(overlayContainer);
+  const overlayRoot = createRoot(overlayContainer);
+  const Overlay = load('src/app/streamer/song-requests/overlay/SongOverlay.tsx').default;
+  const send = (userId, message) => sdk.message('MESSAGE', { userId, userNickname: userId, message });
+  try {
+    await act(async () => {
+      reactRoot.render(React.createElement(SongPage));
+      overlayRoot.render(React.createElement(Overlay));
+    });
+    await act(async () => send('closed', '!신청곡 https://youtu.be/00000000000'));
+    await act(async () => click(button(container, '채팅 접수 열기')));
+    await act(async () => {
+      send('first', '!신청곡 아이유 - 밤편지');
+      send('second', '!신청곡 https://youtu.be/22222222222');
+      send('third', '!신청곡 https://youtu.be/33333333333');
+      send('fourth', '!신청곡 https://youtu.be/44444444444');
+      send('fifth', '!신청곡 https://youtu.be/55555555555');
+    });
+    assert.equal(container.querySelectorAll('ol li').length, 0);
+    await act(async () => releaseSearch(Response.json({ videoId: '11111111111', title: '밤편지' })));
+    assert.equal(container.querySelectorAll('ol li').length, 5);
+    await act(async () => click(button(container, '재생 시작')));
+    assert.deepEqual(loads, ['11111111111']);
+    assert.deepEqual(Array.from(overlayContainer.querySelectorAll('li small'), el => el.textContent),
+      ['second', 'third', 'fourth']);
+    assert.match(overlayContainer.textContent, /외 1곡/);
+    await act(async () => click(button(container, '채팅 접수 닫기')));
+    await act(async () => send('closed', '!신청곡 https://youtu.be/00000000000'));
+    assert.equal(container.querySelectorAll('ol li').length, 4);
+    assert.equal(overlayContainer.querySelectorAll('li').length, 3);
+    await act(async () => {
+      events.onStateChange({ target: yt, data: 1 });
+      events.onStateChange({ target: yt, data: 0 });
+    });
+    await act(async () => events.onError({ target: yt, data: 150 }));
+    assert.deepEqual(loads, ['11111111111', '22222222222', '33333333333']);
+  } finally {
+    await act(async () => { overlayRoot.unmount(); reactRoot.unmount(); });
+    overlayContainer.remove();
+    global.fetch = originalFetch; global.BroadcastChannel = originalBroadcast;
+    delete window.YT; delete window.SOOP;
+  }
+});
+
+test('preview demo accepts simulated links without contacting the SOOP or search API', async () => {
+  const SongPage = load('src/app/streamer/song-requests/SongRequests.tsx').default;
+  const originalFetch = global.fetch;
+  const originalBroadcast = global.BroadcastChannel;
+  let calls = 0;
+  global.fetch = async () => { calls++; throw new Error('unexpected network request'); };
+  global.BroadcastChannel = undefined;
+  window.YT = { Player: class { destroy() {} } };
+  const container = document.getElementById('root');
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(React.createElement(SongPage, { demo: true })));
+    assert.equal(button(container, 'SOOP 계정 연결'), undefined);
+    await act(async () => click(button(container, '예시 영상 1 신청')));
+    assert.equal(container.querySelectorAll('ol li').length, 0);
+    await act(async () => click(button(container, '채팅 접수 열기')));
+    await act(async () => {
+      click(button(container, '예시 영상 1 신청'));
+      click(button(container, '예시 영상 2 신청'));
+    });
+    assert.equal(container.querySelectorAll('ol li').length, 2);
+    assert.equal(calls, 0);
+    assert.match(container.querySelector('a[target="_blank"]').href, /\/demo\/overlay$/);
+  } finally {
+    await act(async () => root.unmount());
+    global.fetch = originalFetch; global.BroadcastChannel = originalBroadcast;
+    delete window.YT;
+  }
+});

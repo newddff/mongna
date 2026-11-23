@@ -265,3 +265,40 @@ test('tampered retry storage cannot make the shared client leave the site', () =
     assert.equal(values.size, 0);
   } finally { global.sessionStorage = previousStorage; }
 });
+
+const { parseSongRequest } = load('src/lib/song-requests.ts');
+const songSearch = load('src/app/api/soop/song-search/route.ts');
+
+test('song requests recognize artist and title or a supported YouTube link', () => {
+  assert.deepEqual(parseSongRequest('!신청곡 아이유 - 밤편지'), { kind: 'search', query: '아이유 밤편지' });
+  assert.deepEqual(parseSongRequest('!신청곡 https://music.youtube.com/watch?v=BzYnNdJhZQw'), { kind: 'link', videoId: 'BzYnNdJhZQw' });
+  assert.deepEqual(parseSongRequest('!신청곡 https://youtu.be/BzYnNdJhZQw?t=5'), { kind: 'link', videoId: 'BzYnNdJhZQw' });
+  for (const invalid of ['!신청곡', '!신청곡 아이유', '!신청곡 https://youtube.com.invalid/watch?v=BzYnNdJhZQw',
+    '!신청곡 https://youtu.be@invalid/BzYnNdJhZQw', '!신청곡 https://www.youtube.com/playlist?list=abc']) {
+    assert.equal(parseSongRequest(invalid), null);
+  }
+});
+
+test('YouTube search requires the verified SOOP session and same origin before using API quota', async () => {
+  process.env.YOUTUBE_DATA_API_KEY = 'test-key';
+  const url = '/api/soop/song-search';
+  const cookie = (value) => auth.SESSION_COOKIE + '=' + auth.seal(value, 'session');
+  let calls = 0;
+  global.fetch = async (input) => {
+    calls++;
+    const query = new URL(input).searchParams;
+    assert.equal(query.get('q'), '아이유 밤편지');
+    assert.equal(query.get('videoEmbeddable'), 'true');
+    return Response.json({ items: [{ id: { videoId: 'BzYnNdJhZQw' }, snippet: { title: '밤편지' } }] });
+  };
+  const body = { query: '아이유 밤편지' };
+  assert.equal((await songSearch.POST(req(url, body))).status, 401);
+  assert.equal((await songSearch.POST(req(url, body, cookie({ ...activeSession(), streamerId: 'another' })))).status, 401);
+  assert.equal((await songSearch.POST(req(url, body, cookie(activeSession()), 'https://other.example'))).status, 403);
+  assert.equal(calls, 0);
+  for (let i = 0; i < 2; i++) {
+    assert.deepEqual(await (await songSearch.POST(req(url, body, cookie(activeSession())))).json(),
+      { videoId: 'BzYnNdJhZQw', title: '밤편지' });
+  }
+  assert.equal(calls, 1);
+});

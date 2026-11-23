@@ -1,0 +1,34 @@
+.page { min-height: 100vh; padding: 28px 16px 56px; background: #f7f2ff; color: #271b35; }
+.wrap { max-width: 1040px; margin: auto; }
+.page h1 { margin: 22px 0 4px; font-size: 2.2rem; font-weight: 800; }
+.page h2 { font-size: 1.25rem; font-weight: 750; }
+.page p { margin: 8px 0; color: #574766; overflow-wrap: anywhere; }
+.top, .actions, .form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.top { justify-content: space-between; }
+.top a { color: #603a89; font-weight: 650; }
+.card { background: #fff; border: 1px solid #ded1ef; border-radius: 18px; padding: 18px; margin-top: 14px; min-width: 0; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; }
+.actions, .form { margin-top: 12px; }
+.page button, .form input { border: 1px solid #d5c4ec; border-radius: 8px; padding: 7px 11px; }
+.page button { background: #f1e7fb; color: #45256a; font-weight: 650; }
+.page button:disabled { opacity: .48; }
+.page button[aria-pressed="true"] { background: #653e92; color: white; }
+.form input { flex: 1; min-width: 150px; color: #271b35; background: white; }
+.video { margin-top: 12px; min-height: 200px; aspect-ratio: 16 / 9; background: #21192d; border-radius: 12px; overflow: hidden; }
+.video iframe { display: block; width: 100%; height: 100%; min-height: 200px; border: 0; }
+.queue li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid #eee6f6; overflow-wrap: anywhere; }
+.queue small { display: block; color: #635475; }
+.queue button { flex: none; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+.overlay { background: #171024; color: #fff; display: flex; flex-direction: column; overflow-wrap: anywhere; max-width: 440px; margin: 12px; padding: 14px 18px; gap: 2px; border: 1px solid #684c8a; border-radius: 16px; }
+.overlay header { display: grid; gap: 2px; padding-bottom: 8px; }
+.overlay header strong { font-size: clamp(18px, 4vw, 24px); }
+.overlay header span, .overlay h2 { font-size: 13px; font-weight: 700; color: #e0c9fe; }
+.overlay h2 { margin-top: 3px; }
+.overlay ol { list-style: decimal inside; padding: 0; margin: 0; }
+.overlay li { padding: 4px 0; }
+.overlay li strong { font-size: 15px; }
+.overlay small { color: #d8c6ed; font-size: 12px; }
+.overlay li small { margin-left: 8px; }
+.overlayRemaining { align-self: flex-end; }
