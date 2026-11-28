@@ -25,6 +25,7 @@ fieldset{min-width:0;margin:8px 0;padding:8px 12px;border:1px solid #746d61;bord
   <div>
     <p id="chapter">1장 · 저택 조사</p>
     <h1>비 내리는 저택, 마지막 초대</h1>
+    <p>한태규의 마지막 초대장을 받고 손님들이 저택에 모였다. 그는 오늘 밤 유언장 이야기를 하겠다고 했다.</p>
     <p>20:00 정전. 20:30 전력이 돌아온 직후, 윤 집사가 서재에서 한태규를 발견했다.</p>
   </div>
 </header>
@@ -45,7 +46,7 @@ fieldset{min-width:0;margin:8px 0;padding:8px 12px;border:1px solid #746d61;bord
 <p id="response" role="status" tabindex="-1"></p></section>
 <section id="deduction" hidden aria-labelledby="deduction-title">
 <h2 id="deduction-title">최종 추리</h2>
-<form id="deduction-form"><fieldset id="deduction-options"></fieldset><button class="primary">선택 확정</button></form>
+<form id="deduction-form"><fieldset id="deduction-options"></fieldset><button class="primary">선택 확정</button> <button id="skip-shortlist" type="button" hidden>잠정 지목 건너뛰기</button></form>
 <p id="deduction-feedback" role="status"></p><div id="ending" hidden><h3>마지막 초대</h3><p id="ending-proof"></p><p id="ending-butler"></p><p id="ending-mongna"></p><button id="restart" type="button">처음부터 다시 조사</button></div>
 </section>
 <section class="audience" aria-labelledby="audience-title">
@@ -64,6 +65,8 @@ const rooms = {
   '서재': [
     ['lamp','책상 위 스탠드','스탠드다.'],
     ['books','책장','오래된 책들이 빼곡히 꽂혀 있다.'],
+    ['will','책상 위 유언장 초안','이전 판본과 초안이 함께 펼쳐져 있다.', '이전 판본엔 집사님 이름이 있어. 새 초안에는 없고, 수장고를 넘긴다는 조항이 추가됐네.', 'archive-refuted',
+      '이전 유언장과 달리 새 초안에는 집사의 이름이 없다. 수장고는 통째로 넘길 예정이다. 집사가 이 초안을 언제 읽었는지는 확인되지 않았다.'],
     ['glasses','안경','한태규의 안경이다. 렌즈는 깨지지 않았다.'],
     ['clock','서재 벽시계','태엽으로 움직이는 괘종시계다.', '집사님이 봤다는 게 이거네. 정전 때도 움직였는지 확인해 봐야겠다.', 'butler',
       '윤 집사의 퇴실 진술에 쓰인 태엽시계. 표시 시각은 19:50.'],
@@ -75,6 +78,7 @@ const rooms = {
   ],
   '현관': [
     ['umbrella','젖은 우산','젖은 우산이다.'],
+    ['invitation','현관 탁자의 초대장','한태규의 초대장이다. “오늘 저녁, 유언장 건으로 모시겠습니다. 이 집에서의 마지막 초대가 되겠지요.”'],
     ['shoes','신발장','손님용 슬리퍼 몇 켤레가 놓여 있다.'],
     ['coat','옷걸이의 젖은 외투','외투 소매가 젖어 있다.', '언제 입고 나갔는지 지민 씨한테 물어봐야겠다.'],
     ['envelope','우편함 속 고지서','전력회사 고지서다.'],
@@ -94,12 +98,12 @@ const rooms = {
     ['letter','복도 서랍 속 편지','서랍에 수신인 이름이 없는 편지 봉투가 있다.', '지민 씨랑 소윤 씨가 주고받은 편지네. 그래서 같이 있었다는 걸 숨겼구나.', 'resolved',
       '편지에서 두 사람이 관계를 비밀로 해 왔다는 사실을 확인했다.'],
     ['cloth','세탁 바구니 속 손수건','모서리가 찢어진 손수건이다. 푸른 얼룩 옆에 ‘윤’이라는 이름이 수놓여 있다.', '한쪽 모서리가 통째로 없네. 그 조각은 어디 갔을까?', 'archive-open',
-      '윤 집사의 손수건. 찢어진 모서리와 자물쇠에서 본 것과 비슷한 푸른 얼룩이 있다.'],
+      '윤 집사의 손수건. 찢어진 모서리에 남색 감침질과 푸른 얼룩이 있다.'],
   ],
 };
 const art = {
-  '서재': ['study', [[94,51],[18,37],[70,83],[54,22],[61,66],[82,68],[27,52]]],
-  '현관': ['foyer', [[33,69],[22,63],[83,44],[94,46]]],
+  '서재': ['study', [[94,51],[18,37],[67,72],[70,83],[54,22],[61,66],[82,68],[27,52]]],
+  '현관': ['foyer', [[33,69],[44,73],[22,63],[83,44],[94,46]]],
   '수장고': ['archive', [[17,45],[75,88],[53,63],[83,43],[85,77]]],
   '응접실·복도': ['lounge', [[19,66],[53,20],[62,59],[88,74]]],
 };
@@ -151,9 +155,9 @@ function inspect([id,title,description,brief,condition,note], selected) {
     line(box, '몽나 · 문진의 둥근 모서리와 녹청이 소견서와 맞아. 문진이 흉기일 수 있지만 자물쇠에도 녹청은 있어.');
   }
   if (id === 'glasses' && flags.has('found-scene') && flags.has('archive-refuted')) {
-    line(box, '몽나 · 안경 옆에 한태규 씨가 쥐고 있던 천 조각이 있어. 찢어진 가장자리에 흰색 감침질이 남아 있네.');
+    line(box, '몽나 · 안경 옆에 한태규 씨가 쥐고 있던 천 조각이 있어. 찢어진 가장자리에 남색 감침질이 남아 있네.');
     flags.add('fragment');
-    record('fragment', '한태규가 쥐고 있던 천 조각', '서 여사가 발견 직후 한태규의 손에서 본 천 조각. 찢어진 가장자리 끝에 흰색 감침질이 남아 있다.', false);
+    record('fragment', '한태규가 쥐고 있던 천 조각', '서 여사가 발견 직후 한태규의 손에서 본 천 조각. 찢어진 가장자리 끝에 남색 감침질과 푸른 녹청이 남아 있다.', false);
     renderQuestions();
   }
 }
@@ -250,11 +254,19 @@ function renderQuestions() {
       '수장고 문 앞이었습니다. 촛대를 한 손에 들고, 다른 손으로 자물쇠를 만지고 계셨어요. 제가 지나가니 돌아보시더군요.',
       '20:20 무렵, 전기가 돌아오기 전에 최 변호사가 윤 집사가 수장고 자물쇠를 직접 만지는 모습을 봤다.', false)));
   }
+  if (flags.has('matched-fragment')) options.push(button('최 변호사 · 자물쇠를 만질 때 손에 뭐가 있었어요?', () => ask('torn-sighting','최 변호사','20:20 무렵 찢어진 손수건 목격',
+    '하얀 손수건으로 자물쇠를 감싸 쥐고 있었어요. 촛불에 잘 보였는데, 한쪽 귀퉁이가 뜯겨 있더군요.',
+    '20:20 무렵 윤 집사가 한쪽 모서리가 찢어진 흰 손수건을 갖고 있었다.', false)));
+  if (flags.has('torn-sighting')) options.push(button('서 여사 · 정전 전에 손수건 보셨어요?', () => ask('intact-sighting','서 여사','정전 직전 온전한 손수건 목격',
+    '불 나가기 조금 전에 집사님이 응접실에 차를 내오셨어요. 주전자를 닦고 흰 손수건을 안주머니에 넣으셨는데, 그땐 멀쩡했어요.',
+    '정전 직전 윤 집사는 찢어진 곳이 없는 흰 손수건을 안주머니에 넣었다.', false)));
   el('questions').replaceChildren(...options);
   el('cross').hidden = !flags.has('denial') || !flags.has('witness') || flags.has('resolved');
   el('alibi-cross').hidden = !flags.has('lawyer') || !flags.has('madam') || flags.has('alibi-gap');
   const chapterTwo = flags.has('resolved') || flags.has('clock-checked') || flags.has('alibi-gap');
-  el('chapter').textContent = flags.has('archive-checked') ? '3장 · 최종 추리' : chapterTwo ? '2장 · 교차 심문' : '1장 · 저택 조사';
+  if (el('ending').hidden) {
+    el('chapter').textContent = flags.has('archive-checked') ? '3장 · 최종 추리' : chapterTwo ? '2장 · 교차 심문' : '1장 · 저택 조사';
+  }
   if (flags.has('denial') && flags.has('butler') && flags.has('alibi')) unlockPoll(1);
   renderComparisons();
   if (el('deduction').hidden && ['archive-refuted','last-alive','found-scene','cloth','fragment','report','case'].every(id => flags.has(id))) {
@@ -266,6 +278,7 @@ function renderQuestions() {
     unlockPoll(2);
     renderDeduction();
   }
+  if (el('ending').hidden && (deductionStep === 3 || deductionStep === 5) && el('deduction-form').hidden) renderDeduction();
 }
 el('cross').addEventListener('submit', event => {
   event.preventDefault();
@@ -391,74 +404,125 @@ const deductions = [
     ['butler-window','20:10~20:30 무렵','8시 10분까지 생존했다는 근거는 집사님의 진술뿐이야. 정전과 복구 때 직접 본 증언을 비교해 봐.'],
     ['after','20:30 이후','서 여사는 전기가 돌아온 직후 이미 쓰러진 한태규 씨를 봤어.'],
   ]],
-  ['지금까지 모은 증언과 단서를 보면 가장 의심되는 사람은?', [
-    ['0',suspects[0],'지민 씨가 숨긴 외출은 확인했어. 이제 천 조각이 누구 물건과 맞는지 살펴보자.'],
-    ['1',suspects[1],'오현석 씨의 행적엔 여전히 공백이 있어. 피해자 손의 조각과 이어지는 물증을 다시 확인해 봐.'],
-    ['2',suspects[2],'소윤 씨 진술은 정전 전 외출을 설명했어. 범인 판단에는 피해자와 연결되는 물증이 필요해.'],
-    ['3',suspects[3]],
+  ['물증 대조 전, 지금 가장 의심되는 사람은?', suspects.map((name, index) => [String(index), name])],
+  ['찢어진 가장자리가 이어지는 두 물건을 함께 고르세요.', [
+    ['cloth','윤 집사의 손수건'], ['fragment','피해자 손의 천 조각'], ['coat','젖은 외투'], ['lock','청동 자물쇠'],
   ]],
-  ['피해자와 용의자를 연결하려면 어떤 증거를 대조해야 할까?', [
-    ['coat','젖은 외투','외투는 정전 전 외출 질문을 열어줬어. 서재에서 발견된 물건을 확인해 봐.'],
-    ['lock','청동 자물쇠','자물쇠의 녹청은 접촉을 설명할 수 있어. 발견 직후 피해자의 손에 있던 물건은 뭐였지?'],
-    ['cloth','윤 집사의 손수건','손수건에 남은 녹청만으로는 출처를 가를 수 없어. 서재에서 찾은 조각을 대조해 봐.'],
-    ['fragment','피해자 손의 천 조각'],
+  ['손수건이 찢어진 시점을 어떤 증언으로 좁힐 수 있을까?', [
+    ['early','정전 직전 온전한 손수건을 봤다 · 서 여사'],
+    ['torn','20:20 무렵 찢어진 손수건을 봤다 · 최 변호사'],
+    ['found','20:30 무렵 피해자 손의 천 조각을 봤다 · 서 여사'],
+  ]],
+  ['손수건이 자물쇠 말고도 다른 물건에 닿았는지 확인하려면?', [
+    ['lock','청동 자물쇠','자물쇠에도 녹청이 있어. 검시 소견에 나온 둥근 모서리와 대조할 수 있는 물건을 보자.'],
+    ['case','진열장 속 청동 문진'],
+    ['lighter','오현석의 라이터','라이터가 알려주는 건 오현석의 동선이야. 손수건과 이어지는 흔적을 찾자.'],
+  ]],
+  ['증언과 물증을 종합하면 가장 근거가 강한 용의자는?', [
+    ['0',suspects[0],'지민 씨가 숨긴 외출은 확인했어. 문진과 직접 이어지는 물증을 다시 보자.'],
+    ['1',suspects[1],'오현석 씨에게 공백은 남아 있어. 피해자와 문진, 손수건을 함께 잇는 증거를 다시 확인해 보자.'],
+    ['2',suspects[2],'소윤 씨의 정전 전 행적은 확인했어. 문진에 남은 실이 어떤 물건과 이어지는지 보자.'],
+    ['3',suspects[3]],
   ]],
 ];
 let deductionStep = 0;
-let finalVoted = false;
 function renderDeduction() {
   const [prompt, entries] = deductions[deductionStep];
-  choices(el('deduction-options'), prompt, 'answer', entries, 'radio');
+  const waitingForWitness = deductionStep === 3 && !flags.has('intact-sighting');
+  const waitingForWill = deductionStep === 5 && !flags.has('will');
+  el('deduction-form').hidden = waitingForWitness || waitingForWill;
+  if (waitingForWitness || waitingForWill) {
+    el('deduction-feedback').textContent = waitingForWitness
+      ? '몽나 · 그날 손수건이 언제 찢어졌을까? 최 변호사에게 자물쇠를 만질 때 뭘 봤는지 다시 물어보자.'
+      : '몽나 · 물증은 연결됐어. 최 변호사가 말한 유언장 초안도 서재에서 확인해 보자.';
+    return;
+  }
+  el('deduction-feedback').textContent = '';
+  el('skip-shortlist').hidden = deductionStep !== 1;
+  choices(el('deduction-options'), prompt, 'answer', entries, [2,3].includes(deductionStep) ? 'checkbox' : 'radio');
 }
-function judgeDeduction(value) {
+function advanceDeduction() {
+  deductionStep += 1;
+  renderDeduction();
+  if (!el('deduction-form').hidden) el('deduction-options').querySelector('input').focus();
+}
+function judgeDeduction(values) {
+  const [value] = values;
+  if (deductionStep === 2) {
+    if (values.length !== 2 || !values.includes('cloth') || !values.includes('fragment')) {
+      el('deduction-feedback').textContent = '몽나 · 발견 직후 피해자 손에 있던 조각과, 찢어진 모서리가 있는 물건을 함께 보자.';
+      return;
+    }
+    const proof = '천 조각과 손수건의 찢어진 가장자리가 맞고, 남색 감침질이 끊긴 곳에서 이어진다.';
+    record('matched-fragment','천 조각과 손수건 대조',proof,false);
+    flags.add('matched-fragment');
+    advanceDeduction();
+    renderQuestions();
+    el('deduction-feedback').textContent = proof + ' 이제 최 변호사에게 자물쇠를 만질 때 손에 무엇이 있었는지 다시 물어보자.';
+    return;
+  }
+  if (deductionStep === 3) {
+    if (values.length !== 2 || !values.includes('early') || !values.includes('torn')) {
+      el('deduction-feedback').textContent = '몽나 · 조각이 발견된 때와 손수건이 찢어진 때를 구분하자. 같은 손수건이 온전했을 때와 찢어졌을 때를 비교해 봐.';
+      return;
+    }
+    record('tear-window','손수건이 찢어진 구간',
+      '정전 직전에는 온전했고 20:20 무렵에는 이미 찢어져 있었다. 피해자 손의 천 조각은 복구 직후에 목격됐다.', false);
+    advanceDeduction();
+    el('deduction-feedback').textContent = '몽나 · 8시 20분에 자물쇠를 만졌을 땐 조각이 이미 떨어져 있었어. 그때 묻은 녹청이 조각까지 갈 수는 없어.';
+    return;
+  }
   const entry = deductions[deductionStep][1].find(([id]) => id === value);
   if (!entry) return;
   if (entry[2]) {
     el('deduction-feedback').textContent = '몽나 · ' + entry[2];
     return;
   }
-  el('deduction-feedback').textContent = '';
-  if (value === 'fragment') {
-    const proof = '천 조각을 손수건 모서리에 맞대자 찢어진 윤곽이 맞고, 흰 감침질이 끊긴 자리에서 이어진다.';
-    record('matched-fragment','천 조각 대조 결과',proof,false);
+  if (deductionStep === 4) {
+    const proof = '문진의 둥근 모서리에 닦인 흔적이 있다. 홈의 남은 혈흔 곁에 걸린 남색 실은 손수건 감침질의 끝과 이어진다.';
+    record('matched-thread','청동 문진과 남색 실 대조',proof,false);
     el('ending-proof').textContent = proof;
-  }
-  deductionStep += 1;
-  if (deductionStep < deductions.length) {
-    renderDeduction();
-    el('deduction-options').querySelector('input').focus();
+    advanceDeduction();
+    el('deduction-feedback').textContent = proof + (flags.has('will') ? ' 이 근거를 모아 최종 지목을 하자.' : ' 서재에서 유언장 초안도 확인하자.');
     return;
   }
+  if (deductionStep < deductions.length - 1) {
+    advanceDeduction();
+    return;
+  }
+  el('deduction-feedback').textContent = '';
   el('deduction-form').hidden = true;
   el('chapter').textContent = '결말 · 마지막 초대';
-  el('ending-butler').textContent = '윤 집사 · 어르신은 수장고를 통째로 넘기겠다고 하셨습니다. 사십 년을 이 집에서 보냈는데, 유언장에는 제 이름 한 줄이 없더군요. 불이 꺼지고 나서 이제 아무도 보지 않는다는 생각이 들었습니다.';
-  el('ending-mongna').textContent = '몽나 · 집사님 말을 처음엔 그냥 믿었어요. 서 여사님이 처음부터 그 조각을 봐 주셔서 여기까지 온 거예요.';
+  el('ending-butler').textContent = '윤 집사 · 책상에 펼쳐진 초안을 봤습니다. 사십 년을 이 집에서 보냈는데, 제 이름 한 줄이 없더군요. …제가 어르신을 죽였습니다.';
+  el('ending-mongna').textContent = '몽나 · 정전 전엔 멀쩡했던 손수건이 여덟 시 이십 분엔 집사님 손에서 찢어진 채로 발견됐어요. 어르신 손의 조각과 문진에 남은 실이 그 손수건에 이어집니다.';
   el('ending').hidden = false;
   el('restart').focus();
   renderPollResults();
 }
+el('skip-shortlist').addEventListener('click', advanceDeduction);
 el('deduction-form').addEventListener('submit', event => {
   event.preventDefault();
-  const value = new FormData(event.currentTarget).get('answer');
-  if (deductionStep === 1 && chatConnected && !finalVoted) {
-    finalVoted = true;
+  const values = new FormData(event.currentTarget).getAll('answer');
+  if (deductionStep === 1 && chatConnected) {
     finishPoll();
     el('deduction-options').disabled = true;
     event.currentTarget.querySelector('button').disabled = true;
+    el('skip-shortlist').disabled = true;
     openPoll(3);
-    startPoll(Number(value), () => {
+    startPoll(Number(values[0]), () => {
       el('deduction-options').disabled = false;
       el('deduction-form').querySelector('button').disabled = false;
-      judgeDeduction(value);
+      el('skip-shortlist').disabled = false;
+      advanceDeduction();
     });
     el('poll-skip').focus();
     return;
   }
-  judgeDeduction(value);
+  judgeDeduction(values);
 });
 el('restart').addEventListener('click', () => location.reload());
 
-const pollTitles = ['','1장 · 지금 가장 의심되는 사람은?','2장 · 지금 가장 의심되는 사람은?','최종 투표 · 범인은 누구?'];
+const pollTitles = ['','1장 · 지금 가장 의심되는 사람은?','2장 · 지금 가장 의심되는 사람은?','잠정 투표 · 지금 가장 의심되는 사람은?'];
 const pollHistory = new Map();
 let pollRound = 0;
 let activePoll;
