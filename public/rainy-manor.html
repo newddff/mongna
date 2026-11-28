@@ -15,13 +15,18 @@ button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;colo
 #observation p{margin:6px 0}#response{min-height:28px;color:#edcf96}li{margin-bottom:10px}ul{padding-left:22px}select{max-width:100%}.dim{color:#d3c4ab}[hidden]{display:none!important}
 @media(max-width:740px){.layout{grid-template-columns:1fr}main{padding-top:24px}}
 </style>
+<link rel="stylesheet" href="rainy-manor-art/scenes.css">
 <main>
 <header><p>1장 · 조사 및 첫 교차 심문</p><h1>비 내리는 저택, 마지막 초대</h1>
 <p>20:00 정전. 20:30 전력이 돌아온 직후, 윤 집사가 서재에서 한태규를 발견했다.</p></header>
 <nav id="rooms" aria-label="조사할 장소"></nav>
 <div class="layout"><div>
-<section><h2 id="room-title"></h2><div id="objects" class="grid"></div><div id="observation" aria-live="polite">물건을 선택해 조사하세요.</div></section>
-<section><h2>증언과 심문</h2><div id="questions" class="actions"></div><p id="dialogue" aria-live="polite"></p>
+<section class="room-panel" aria-labelledby="room-title">
+<figure class="scene"><img id="room-image" alt=""><figcaption id="room-title"></figcaption><div id="objects"></div></figure>
+<div id="observation" aria-live="polite">그림 속 점을 눌러 물건을 조사하세요.</div>
+</section>
+<section class="interview"><h2>증언과 심문</h2><div id="questions" class="actions"></div>
+<div id="speaking" class="speaking" hidden><img id="portrait" alt=""><p id="dialogue" aria-live="polite"><strong id="speaker-name"></strong><span id="speech"></span></p></div>
 <form id="cross" hidden><label for="evidence">“불이 꺼지기 전에는 밖에 나간 적 없어요.”에 제시할 기록</label><div class="actions"><select id="evidence" required></select><button class="primary">증거 제시</button></div></form>
 <p id="response" role="status"></p></section>
 </div><aside><h2>사건 노트</h2><p id="empty" class="dim">조사 중 확인한 단서와 증언이 여기에 기록됩니다.</p><ul id="notes"></ul></aside></div>
@@ -55,6 +60,13 @@ const rooms = {
       '자물쇠와 손수건의 얼룩을 비교할 수 있다. 성분과 손수건 주인은 미확인.'],
   ],
 };
+const art = {
+  '서재': ['study', [[94,51],[18,37],[70,83],[54,22]]],
+  '현관': ['foyer', [[33,69],[22,63],[83,44],[94,46]]],
+  '수장고': ['archive', [[17,45],[53,63],[83,43],[85,77]]],
+  '응접실·복도': ['lounge', [[19,66],[53,20],[62,59],[88,74]]],
+};
+const portraits = {'윤 집사':'butler','오현석':'investor','한지민':'guest','강소윤':'witness'};
 const flags = new Set();
 const notes = new Map();
 const el = id => document.getElementById(id);
@@ -79,7 +91,8 @@ function record(id, title, detail) {
   option.value = id; option.textContent = title;
   el('evidence').append(option);
 }
-function inspect([id,title,description,brief,condition,note]) {
+function inspect([id,title,description,brief,condition,note], selected) {
+  for (const item of el('objects').children) item.setAttribute('aria-pressed', String(item === selected));
   const box = el('observation');
   box.replaceChildren();
   line(box, description);
@@ -97,12 +110,33 @@ function renderRoom() {
     node.setAttribute('aria-pressed', String(name === room));
     return node;
   }));
-  el('objects').replaceChildren(...rooms[room].map(prop => button(prop[1], () => inspect(prop))));
-  el('observation').textContent = '물건을 선택해 조사하세요.';
+  const [scene, spots] = art[room];
+  el('room-image').src = 'rainy-manor-art/' + scene + '.webp';
+  el('objects').replaceChildren(...rooms[room].map((prop, index) => {
+    const node = button('', () => inspect(prop, node));
+    const label = document.createElement('span');
+    label.className = 'object-label';
+    label.textContent = prop[1];
+    label.setAttribute('aria-hidden', 'true');
+    node.append(label);
+    node.setAttribute('aria-label', prop[1]);
+    node.setAttribute('aria-pressed', 'false');
+    node.style.setProperty('--x', spots[index][0] + '%');
+    node.style.setProperty('--y', spots[index][1] + '%');
+    if (spots[index][0] > 78) node.classList.add('marker-right');
+    return node;
+  }));
+  el('observation').textContent = '그림 속 점을 눌러 물건을 조사하세요.';
+}
+function speak(name, reply) {
+  el('portrait').src = 'rainy-manor-art/' + portraits[name] + '.webp';
+  el('speaker-name').textContent = name;
+  el('speech').textContent = reply;
+  el('speaking').hidden = false;
 }
 function ask(id, name, reply, detail = reply) {
   flags.add(id);
-  el('dialogue').textContent = name + ' · ' + reply;
+  speak(name, reply);
   el('response').textContent = '';
   record(id, name + '의 진술', detail);
   renderQuestions();
@@ -124,13 +158,15 @@ el('cross').addEventListener('submit', event => {
   if (!flags.has('denial') || !flags.has('witness') || flags.has('resolved')) return;
   const selected = el('evidence').value;
   if (selected !== 'witness') {
+    speak('한지민', '불이 꺼지기 전에는 밖에 나간 적 없어요.');
     el('response').textContent = selected === 'coat'
       ? '한지민 · 외투가 젖었다고 제가 몇 시에 나갔는지 아세요?'
       : '몽나 · 이 기록으로는 지민 씨가 정전 전에 밖에 나갔는지 알 수 없어.';
     return;
   }
   flags.add('resolved');
-  el('response').textContent = '한지민 · 네, 7시 반에 나갔어요. 소윤이랑 같이 있었다는 걸 숨기고 싶었어요.';
+  speak('한지민', '네, 7시 반에 나갔어요. 소윤이랑 같이 있었다는 걸 숨기고 싶었어요.');
+  el('response').textContent = '사건 노트에 19:30 목격 기록을 추가했어요.';
   record('outside','19:30 현관 바깥','한지민은 정전 전 강소윤과 현관문 바깥에 있었다고 인정했다. 외투가 젖은 때와 정전 중 다시 나갔는지는 미확인.');
   renderQuestions();
 });
