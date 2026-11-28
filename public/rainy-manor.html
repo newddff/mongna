@@ -255,11 +255,11 @@ function renderQuestions() {
       '20:20 무렵, 전기가 돌아오기 전에 최 변호사가 윤 집사가 수장고 자물쇠를 직접 만지는 모습을 봤다.', false)));
   }
   if (flags.has('matched-fragment')) options.push(button('최 변호사 · 자물쇠를 만질 때 손에 뭐가 있었어요?', () => ask('torn-sighting','최 변호사','20:20 무렵 찢어진 손수건 목격',
-    '하얀 손수건으로 자물쇠를 감싸 쥐고 있었어요. 촛불에 잘 보였는데, 한쪽 귀퉁이가 뜯겨 있더군요.',
-    '20:20 무렵 윤 집사가 한쪽 모서리가 찢어진 흰 손수건을 갖고 있었다.', false)));
+    '손수건으로 자물쇠를 감싸 쥐고 있었어요. 촛불에 테두리가 거뭇하게 보였는데, 남색 실이었던 것 같습니다. 한쪽 귀퉁이는 뜯겨 있었어요.',
+    '20:20 무렵 집사가 찢어진 손수건을 갖고 있었다. 테두리는 어둡게 보였고, 최 변호사는 남색 실로 추정했다.', false)));
   if (flags.has('torn-sighting')) options.push(button('서 여사 · 정전 전에 손수건 보셨어요?', () => ask('intact-sighting','서 여사','정전 직전 온전한 손수건 목격',
-    '불 나가기 조금 전에 집사님이 응접실에 차를 내오셨어요. 주전자를 닦고 흰 손수건을 안주머니에 넣으셨는데, 그땐 멀쩡했어요.',
-    '정전 직전 윤 집사는 찢어진 곳이 없는 흰 손수건을 안주머니에 넣었다.', false)));
+    '불 나가기 조금 전에 집사님이 응접실에 차를 내오셨어요. 찻주전자를 닦고 손수건을 안주머니에 넣으시던데, 그땐 멀쩡했어요. 집사님 손수건은 테두리를 남색 실로 감쳐 놔서 눈에 띄거든요.',
+    '서 여사는 정전 직전 집사가 남색 실로 감친 온전한 손수건을 안주머니에 넣는 것을 봤다.', false)));
   el('questions').replaceChildren(...options);
   el('cross').hidden = !flags.has('denial') || !flags.has('witness') || flags.has('resolved');
   el('alibi-cross').hidden = !flags.has('lawyer') || !flags.has('madam') || flags.has('alibi-gap');
