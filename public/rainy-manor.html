@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>비 내리는 저택, 마지막 초대</title>
+<style>
+*{box-sizing:border-box}body{margin:0;color:#f0e9da;background:#181b20;font:16px/1.6 system-ui,sans-serif}
+main{width:min(1120px,100% - 36px);margin:auto;padding:40px 0}header p{margin:4px 0;color:#d3c4ab}h1,h2,h3{line-height:1.25}h1{font-size:clamp(27px,5vw,49px);margin:.2em 0}
+nav,.grid,.actions{display:flex;gap:8px;flex-wrap:wrap}nav{margin:24px 0 12px}
+button,select{font:inherit;padding:9px 13px;background:#30343c;color:inherit;border:1px solid #746d61;border-radius:6px}
+button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;color:#231c14}button:disabled{opacity:.48;cursor:default}button:focus-visible,select:focus-visible{outline:2px solid #ffe5ae;outline-offset:3px}
+.layout{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}section,aside{padding:20px;background:#23272e;border:1px solid #53514c;border-radius:10px;min-width:0}section+section{margin-top:15px}
+.grid{margin:14px 0}.grid button{flex:1 1 42%;min-height:58px;text-align:left}
+#observation{min-height:100px;border-left:3px solid #b79459;padding:6px 14px;background:#1b1e24}
+#observation p{margin:6px 0}#response{min-height:28px;color:#edcf96}li{margin-bottom:10px}ul{padding-left:22px}select{max-width:100%}.dim{color:#d3c4ab}[hidden]{display:none!important}
+@media(max-width:740px){.layout{grid-template-columns:1fr}main{padding-top:24px}}
+</style>
+<main>
+<header><p>1장 · 조사 및 첫 교차 심문</p><h1>비 내리는 저택, 마지막 초대</h1>
+<p>20:00 정전. 20:30 전력이 돌아온 직후, 윤 집사가 서재에서 한태규를 발견했다.</p></header>
+<nav id="rooms" aria-label="조사할 장소"></nav>
+<div class="layout"><div>
+<section><h2 id="room-title"></h2><div id="objects" class="grid"></div><div id="observation" aria-live="polite">물건을 선택해 조사하세요.</div></section>
+<section><h2>증언과 심문</h2><div id="questions" class="actions"></div><p id="dialogue" aria-live="polite"></p>
+<form id="cross" hidden><label for="evidence">“불이 꺼지기 전에는 밖에 나간 적 없어요.”에 제시할 기록</label><div class="actions"><select id="evidence" required></select><button class="primary">증거 제시</button></div></form>
+<p id="response" role="status"></p></section>
+</div><aside><h2>사건 노트</h2><p id="empty" class="dim">조사 중 확인한 단서와 증언이 여기에 기록됩니다.</p><ul id="notes"></ul></aside></div>
+</main>
+<script>
+const rooms = {
+  '서재': [
+    ['lamp','책상 위 스탠드','스탠드다.'],
+    ['books','책장','오래된 책들이 빼곡히 꽂혀 있다.'],
+    ['glasses','안경','한태규의 안경이다. 렌즈는 깨지지 않았다.'],
+    ['clock','서재 벽시계','서재 벽에 걸린 시계다.', '윤 집사님은 서재를 나올 때 이 시계가 7시 50분쯤이었다고 했어. 다른 기록과 대조해 보자.', 'butler',
+      '윤 집사가 퇴실 시각을 말할 때 기준으로 삼은 시계. 정확도는 아직 확인하지 않았다.'],
+  ],
+  '현관': [
+    ['umbrella','젖은 우산','젖은 우산이다.'],
+    ['shoes','신발장','손님용 슬리퍼 몇 켤레가 놓여 있다.'],
+    ['coat','옷걸이의 젖은 외투','외투 소매가 젖어 있다.', '언제 입고 나갔는지 지민 씨한테 물어봐야겠다.'],
+    ['envelope','우편함 속 고지서','전력회사 고지서다.'],
+  ],
+  '수장고': [
+    ['case','진열장','오래된 수집품들이 유리 너머로 보인다.'],
+    ['files','서류함','서류 몇 장이 쌓여 있다.'],
+    ['lock','자물쇠가 걸린 문','문에 자물쇠가 걸려 있다.', '누가 이 자물쇠를 열 수 있는지 확인해 보자.'],
+    ['sale','매각 관련 서류','저택 매각을 검토한다는 서류다.', '저택이 팔리면 여기서 일하는 사람들한테도 영향이 있겠어.'],
+  ],
+  '응접실·복도': [
+    ['sofa','응접실 소파','손님들이 앉아 있던 자리다.'],
+    ['hall-clock','복도 벽시계','복도에도 시계가 하나 걸려 있다.'],
+    ['letter','복도 서랍 속 편지','지민과 소윤이 주고받은 편지다.', '두 사람이 따로 할 이야기가 있었나 봐.'],
+    ['cloth','세탁 바구니 속 손수건','얼룩진 손수건이다.', '자물쇠와 손수건에 얼룩이 있어. 같은 물질인지는 확인해야 해.', 'lock',
+      '자물쇠와 손수건의 얼룩을 비교할 수 있다. 성분과 손수건 주인은 미확인.'],
+  ],
+};
+const flags = new Set();
+const notes = new Map();
+const el = id => document.getElementById(id);
+let room = '서재';
+function button(label, click) {
+  const node = document.createElement('button');
+  node.type = 'button'; node.textContent = label; node.addEventListener('click', click);
+  return node;
+}
+function line(to, value) {
+  const p = document.createElement('p'); p.textContent = value; to.append(p);
+}
+function record(id, title, detail) {
+  if (notes.has(id)) return;
+  notes.set(id, title);
+  const item = document.createElement('li');
+  const name = document.createElement('strong');
+  name.textContent = title;
+  item.append(name, document.createElement('br'), document.createTextNode(detail));
+  el('notes').append(item); el('empty').hidden = true;
+  const option = document.createElement('option');
+  option.value = id; option.textContent = title;
+  el('evidence').append(option);
+}
+function inspect([id,title,description,brief,condition,note]) {
+  const box = el('observation');
+  box.replaceChildren();
+  line(box, description);
+  if (brief && (!condition || flags.has(condition))) {
+    line(box, '몽나 · ' + brief);
+    flags.add(id);
+    record(id, title, note || description);
+    renderQuestions();
+  }
+}
+function renderRoom() {
+  el('room-title').textContent = room;
+  el('rooms').replaceChildren(...Object.keys(rooms).map(name => {
+    const node = button(name, () => { room = name; renderRoom(); });
+    node.setAttribute('aria-pressed', String(name === room));
+    return node;
+  }));
+  el('objects').replaceChildren(...rooms[room].map(prop => button(prop[1], () => inspect(prop))));
+  el('observation').textContent = '물건을 선택해 조사하세요.';
+}
+function ask(id, name, reply, detail = reply) {
+  flags.add(id);
+  el('dialogue').textContent = name + ' · ' + reply;
+  el('response').textContent = '';
+  record(id, name + '의 진술', detail);
+  renderQuestions();
+}
+function renderQuestions() {
+  const options = [
+    button('윤 집사 · 언제 서재를 나왔어요?', () => ask('butler','윤 집사','차를 올리고 나올 때 서재 시계로 7시 50분쯤이었을 겁니다.')),
+    button('오현석 · 정전 때 어디 계셨어요?', () => ask('alibi','오현석','나는 정전 내내 응접실에 있었소. 다른 손님들이 증인이지.', '응접실에 계속 있었다고 주장함. 목격자와 시간대 확인 필요.')),
+  ];
+  if (flags.has('coat')) options.push(button('한지민 · 외투는 언제 젖었어요?', () => ask('denial','한지민',
+    flags.has('resolved') ? '7시 반에 소윤이랑 함께 있었어요.' : '불이 꺼지기 전에는 밖에 나간 적 없어요.')));
+  if (flags.has('denial') || flags.has('letter')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤',
+    '7시 반쯤 현관문 바깥에 있었어요. 지민 씨랑 같이 있었거든요.')));
+  el('questions').replaceChildren(...options);
+  el('cross').hidden = !flags.has('denial') || !flags.has('witness') || flags.has('resolved');
+}
+el('cross').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!flags.has('denial') || !flags.has('witness') || flags.has('resolved')) return;
+  const selected = el('evidence').value;
+  if (selected !== 'witness') {
+    el('response').textContent = selected === 'coat'
+      ? '한지민 · 외투가 젖었다고 제가 몇 시에 나갔는지 아세요?'
+      : '몽나 · 이 기록으로는 지민 씨가 정전 전에 밖에 나갔는지 알 수 없어.';
+    return;
+  }
+  flags.add('resolved');
+  el('response').textContent = '한지민 · 네, 7시 반에 나갔어요. 소윤이랑 같이 있었다는 걸 숨기고 싶었어요.';
+  record('outside','19:30 현관 바깥','한지민은 정전 전 강소윤과 현관문 바깥에 있었다고 인정했다. 외투가 젖은 때와 정전 중 다시 나갔는지는 미확인.');
+  renderQuestions();
+});
+renderRoom();
+renderQuestions();
+</script>
+</html>
