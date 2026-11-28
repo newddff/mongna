@@ -13,11 +13,12 @@ button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;colo
 .grid{margin:14px 0}.grid button{flex:1 1 42%;min-height:58px;text-align:left}
 #observation{min-height:100px;border-left:3px solid #b79459;padding:6px 14px;background:#1b1e24}
 #observation p{margin:6px 0}#response{min-height:28px;color:#edcf96}li{margin-bottom:10px}ul{padding-left:22px}select{max-width:100%}.dim{color:#d3c4ab}[hidden]{display:none!important}
+#alibi-cross{margin-top:14px}#alibi-cross fieldset{margin:0 0 8px;padding:8px 12px;border:1px solid #746d61;border-radius:6px}#alibi-cross label{display:block;width:fit-content;padding:4px 0;cursor:pointer}#alibi-cross input{accent-color:#e1c48c}.speaking.no-portrait{grid-template-columns:1fr;padding:12px}
 @media(max-width:740px){.layout{grid-template-columns:1fr}main{padding-top:24px}}
 </style>
 <link rel="stylesheet" href="rainy-manor-art/scenes.css">
 <main>
-<header><p>1장 · 조사 및 첫 교차 심문</p><h1>비 내리는 저택, 마지막 초대</h1>
+<header><p>1~2장 · 저택 조사와 교차 심문</p><h1>비 내리는 저택, 마지막 초대</h1>
 <p>20:00 정전. 20:30 전력이 돌아온 직후, 윤 집사가 서재에서 한태규를 발견했다.</p></header>
 <nav id="rooms" aria-label="조사할 장소"></nav>
 <div class="layout"><div>
@@ -28,6 +29,10 @@ button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;colo
 <section class="interview"><h2>증언과 심문</h2><div id="questions" class="actions"></div>
 <div id="speaking" class="speaking" hidden><img id="portrait" alt=""><p id="dialogue" aria-live="polite"><strong id="speaker-name"></strong><span id="speech"></span></p></div>
 <form id="cross" hidden><label for="evidence">“불이 꺼지기 전에는 밖에 나간 적 없어요.”에 제시할 기록</label><div class="actions"><select id="evidence" required></select><button class="primary">증거 제시</button></div></form>
+<form id="alibi-cross" hidden><fieldset><legend>오현석의 알리바이와 대조할 증언</legend>
+<label><input type="checkbox" name="testimony" value="lawyer"> 최 변호사 · 정전 직후 약 10분</label>
+<label><input type="checkbox" name="testimony" value="madam"> 서 여사 · 전기가 돌아오기 직전</label>
+</fieldset><button class="primary">선택한 증언 제시</button><p id="alibi-response" role="status"></p></form>
 <p id="response" role="status"></p></section>
 </div><aside><h2>사건 노트</h2><p id="empty" class="dim">조사 중 확인한 단서와 증언이 여기에 기록됩니다.</p><ul id="notes"></ul></aside></div>
 </main>
@@ -79,7 +84,7 @@ function button(label, click) {
 function line(to, value) {
   const p = document.createElement('p'); p.textContent = value; to.append(p);
 }
-function record(id, title, detail) {
+function record(id, title, detail, canPresent = true) {
   if (notes.has(id)) return;
   notes.set(id, title);
   const item = document.createElement('li');
@@ -87,6 +92,7 @@ function record(id, title, detail) {
   name.textContent = title;
   item.append(name, document.createElement('br'), document.createTextNode(detail));
   el('notes').append(item); el('empty').hidden = true;
+  if (!canPresent) return;
   const option = document.createElement('option');
   option.value = id; option.textContent = title;
   el('evidence').append(option);
@@ -129,16 +135,21 @@ function renderRoom() {
   el('observation').textContent = '그림 속 점을 눌러 물건을 조사하세요.';
 }
 function speak(name, reply) {
-  el('portrait').src = 'rainy-manor-art/' + portraits[name] + '.webp';
+  const portrait = portraits[name];
+  el('portrait').hidden = !portrait;
+  el('speaking').classList.toggle('no-portrait', !portrait);
+  if (portrait) el('portrait').src = 'rainy-manor-art/' + portrait + '.webp';
+  else el('portrait').removeAttribute('src');
   el('speaker-name').textContent = name;
   el('speech').textContent = reply;
   el('speaking').hidden = false;
 }
-function ask(id, name, reply, detail = reply) {
+function ask(id, name, reply, detail = reply, canPresent = true) {
   flags.add(id);
   speak(name, reply);
   el('response').textContent = '';
-  record(id, name + '의 진술', detail);
+  el('alibi-response').textContent = '';
+  record(id, name + '의 진술', detail, canPresent);
   renderQuestions();
 }
 function renderQuestions() {
@@ -150,8 +161,23 @@ function renderQuestions() {
     flags.has('resolved') ? '7시 반에 소윤이랑 함께 있었어요.' : '불이 꺼지기 전에는 밖에 나간 적 없어요.')));
   if (flags.has('denial') || flags.has('letter')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤',
     '7시 반쯤 현관문 바깥에 있었어요. 지민 씨랑 같이 있었거든요.')));
+  if (flags.has('butler')) options.push(button('윤 집사 · 어느 시계를 보셨어요?', () => ask('clock-source','윤 집사',
+    '서재 벽에 걸린 괘종시계입니다. 어르신 방에서는 늘 그걸 봤습니다.',
+    '윤 집사가 말한 7시 50분은 서재 괘종시계에 표시된 시각이다.', false)));
+  if (flags.has('alibi')) options.push(button('오현석 · 정전 내내요?', () => ask('alibi-claim','오현석',
+    '불이 꺼지고 다시 들어올 때까지요. 삼십 분 내내 거기 있었소.',
+    '오현석은 20:00부터 20:30까지 계속 응접실에 있었다고 주장한다.', false)));
+  if (flags.has('alibi-claim')) {
+    options.push(button('최 변호사 · 언제까지 같이 계셨어요?', () => ask('lawyer','최 변호사',
+      '불이 나가고 처음 십 분쯤은 같이 있었어요. 둘이 더듬거리면서 촛대를 찾았거든요. 그 뒤엔 제가 자리를 비웠습니다.',
+      '정전 직후부터 약 10분 동안 오현석과 응접실에 함께 있었다.', false)));
+    options.push(button('서 여사 · 언제 오현석 씨를 보셨어요?', () => ask('madam','서 여사',
+      '창가에서 한참 비를 보고 있었어요. 오 선생이랑 카드를 시작한 건 불이 다시 들어오기 조금 전이에요.',
+      '전기가 돌아오기 조금 전부터 오현석과 응접실에서 카드놀이를 했다.', false)));
+  }
   el('questions').replaceChildren(...options);
   el('cross').hidden = !flags.has('denial') || !flags.has('witness') || flags.has('resolved');
+  el('alibi-cross').hidden = !flags.has('lawyer') || !flags.has('madam') || flags.has('alibi-gap');
 }
 el('cross').addEventListener('submit', event => {
   event.preventDefault();
@@ -168,6 +194,22 @@ el('cross').addEventListener('submit', event => {
   speak('한지민', '네, 7시 반에 나갔어요. 소윤이랑 같이 있었다는 걸 숨기고 싶었어요.');
   el('response').textContent = '사건 노트에 19:30 목격 기록을 추가했어요.';
   record('outside','19:30 현관 바깥','한지민은 정전 전 강소윤과 현관문 바깥에 있었다고 인정했다. 외투가 젖은 때와 정전 중 다시 나갔는지는 미확인.');
+  renderQuestions();
+});
+el('alibi-cross').addEventListener('submit', event => {
+  event.preventDefault();
+  if (el('alibi-cross').hidden) return;
+  const selected = new FormData(event.currentTarget).getAll('testimony');
+  el('response').textContent = '';
+  if (selected.length < 2) {
+    el('alibi-response').textContent = '몽나 · 두 분이 각각 언제 오현석 씨를 봤는지 같이 놓고 보자.';
+    return;
+  }
+  flags.add('alibi-gap');
+  speak('오현석', '그 사이엔 혼자 소파에 앉아 있었소. 그때 날 봤다는 사람이 없다는 건 인정하겠소.');
+  record('alibi-gap','오현석의 알리바이 공백',
+    '최 변호사가 떠난 뒤부터 서 여사가 카드놀이를 시작하기 전까지는 오현석이 응접실에 있었는지 확인되지 않았다.', false);
+  el('response').textContent = '몽나 · 중간에 비는 시간이 있네. 그때 어디 있었는지는 아직 모르겠어.';
   renderQuestions();
 });
 renderRoom();
