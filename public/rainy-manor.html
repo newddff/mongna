@@ -14,11 +14,13 @@ button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;colo
 #observation{min-height:100px;border-left:3px solid #b79459;padding:6px 14px;background:#1b1e24}
 #observation p{margin:6px 0}#response{min-height:28px;color:#edcf96}li{margin-bottom:10px}ul{padding-left:22px}select{max-width:100%}.dim{color:#d3c4ab}[hidden]{display:none!important}
 #alibi-cross{margin-top:14px}#alibi-cross fieldset{margin:0 0 8px;padding:8px 12px;border:1px solid #746d61;border-radius:6px}#alibi-cross label{display:block;width:fit-content;padding:4px 0;cursor:pointer}#alibi-cross input{accent-color:#e1c48c}.speaking.no-portrait{grid-template-columns:1fr;padding:12px}
+fieldset{min-width:0;margin:8px 0;padding:8px 12px;border:1px solid #746d61;border-radius:6px}fieldset label{display:block;padding:5px 0;cursor:pointer}fieldset input{accent-color:#e1c48c}.comparison{margin-top:14px}.comparison p:empty,#poll-status:empty,#deduction-feedback:empty,#alibi-response:empty{display:none}
+#deduction h2,.audience h2{margin:0;font-size:18px}.audience a{margin-left:8px;color:#e1c48c}#chat-status,#poll-status{color:#e5c997}.audience h3{margin:12px 0 4px}#poll-results{padding-left:18px}#poll-results li{margin-bottom:4px}
 @media(max-width:740px){.layout{grid-template-columns:1fr}main{padding-top:24px}}
 </style>
 <link rel="stylesheet" href="rainy-manor-art/scenes.css">
 <main>
-<header><p>1~2장 · 저택 조사와 교차 심문</p><h1>비 내리는 저택, 마지막 초대</h1>
+<header><p id="chapter">1장 · 저택 조사</p><h1>비 내리는 저택, 마지막 초대</h1>
 <p>20:00 정전. 20:30 전력이 돌아온 직후, 윤 집사가 서재에서 한태규를 발견했다.</p></header>
 <nav id="rooms" aria-label="조사할 장소"></nav>
 <div class="layout"><div>
@@ -33,7 +35,22 @@ button{cursor:pointer}button[aria-pressed=true],.primary{background:#e1c48c;colo
 <label><input type="checkbox" name="testimony" value="lawyer"> 최 변호사 · 정전 직후 약 10분</label>
 <label><input type="checkbox" name="testimony" value="madam"> 서 여사 · 전기가 돌아오기 직전</label>
 </fieldset><button class="primary">선택한 증언 제시</button><p id="alibi-response" role="status"></p></form>
+<div id="clock-cross"></div><div id="archive-cross"></div>
 <p id="response" role="status"></p></section>
+<section id="deduction" hidden aria-labelledby="deduction-title">
+<h2 id="deduction-title">최종 추리</h2>
+<form id="deduction-form"><fieldset id="deduction-options"></fieldset><button class="primary">선택 확정</button></form>
+<p id="deduction-feedback" role="status"></p><div id="ending" hidden><h3>마지막 초대</h3><p id="ending-butler"></p><p id="ending-mongna"></p><button id="restart" type="button">처음부터 다시 조사</button></div>
+</section>
+<section class="audience" aria-labelledby="audience-title">
+<h2 id="audience-title">시청자 투표</h2>
+<p id="chat-status">방송에서 원할 때 SOOP 채팅을 연결할 수 있어요.</p>
+<button id="connect-chat" type="button">SOOP 채팅 연결</button>
+<a id="auth-link" href="/streamer/minigames" target="_blank" rel="noopener" hidden>SOOP 계정 연결 열기</a>
+<div id="poll-rounds" class="actions"></div>
+<div id="poll" hidden><h3 id="poll-title"></h3><form id="poll-form"><fieldset id="poll-options"></fieldset><button class="primary">내 선택 봉인 · 투표 시작</button></form>
+<p id="poll-status" role="status"></p><ul id="poll-results" hidden></ul><button id="poll-skip" type="button">바로 넘어가기</button></div>
+</section>
 </div><aside><h2>사건 노트</h2><p id="empty" class="dim">조사 중 확인한 단서와 증언이 여기에 기록됩니다.</p><ul id="notes"></ul></aside></div>
 </main>
 <script>
@@ -42,8 +59,11 @@ const rooms = {
     ['lamp','책상 위 스탠드','스탠드다.'],
     ['books','책장','오래된 책들이 빼곡히 꽂혀 있다.'],
     ['glasses','안경','한태규의 안경이다. 렌즈는 깨지지 않았다.'],
-    ['clock','서재 벽시계','서재 벽에 걸린 시계다.', '윤 집사님은 서재를 나올 때 이 시계가 7시 50분쯤이었다고 했어. 다른 기록과 대조해 보자.', 'butler',
-      '윤 집사가 퇴실 시각을 말할 때 기준으로 삼은 시계. 정확도는 아직 확인하지 않았다.'],
+    ['clock','서재 벽시계','태엽으로 움직이는 괘종시계다.', '집사님이 봤다는 게 이거네. 정전 때도 움직였는지 확인해 봐야겠다.', 'butler',
+      '윤 집사의 퇴실 진술에 쓰인 태엽시계. 표시 시각은 19:50.'],
+    ['receipt','책상 서랍의 수리 영수증','사흘 전 영수증이다. ‘서재 괘종 20분 지연. 부품 대기 중.’', '사흘 전에도 스무 분 느렸네. 오늘도 그랬는지 비교해 보자.'],
+    ['recording','책장 녹화 기록','시설 카메라의 기록이다. 배터리로 전환된 뒤에도 시각과 영상이 연속으로 남아 있다.', '정전 전후가 다 찍혔네. 서재 쪽 영상을 돌려 보자.', 'clock-source',
+      '복구 기록과 일치하는 카메라 시각은 20:30. 같은 화면의 서재 괘종시계는 20:10. 영상에서 괘종시계는 정전 중에도 계속 작동한다.'],
   ],
   '현관': [
     ['umbrella','젖은 우산','젖은 우산이다.'],
@@ -54,19 +74,20 @@ const rooms = {
   '수장고': [
     ['case','진열장','오래된 수집품들이 유리 너머로 보인다.'],
     ['files','서류함','서류 몇 장이 쌓여 있다.'],
-    ['lock','자물쇠가 걸린 문','문에 자물쇠가 걸려 있다.', '누가 이 자물쇠를 열 수 있는지 확인해 보자.'],
+    ['lock','자물쇠가 걸린 문','수장고 문 자물쇠에 푸른 광택제가 묻어 있다.', '이 자물쇠 열쇠는 누가 갖고 있지?'],
     ['sale','매각 관련 서류','저택 매각을 검토한다는 서류다.', '저택이 팔리면 여기서 일하는 사람들한테도 영향이 있겠어.'],
   ],
   '응접실·복도': [
     ['sofa','응접실 소파','손님들이 앉아 있던 자리다.'],
-    ['hall-clock','복도 벽시계','복도에도 시계가 하나 걸려 있다.'],
-    ['letter','복도 서랍 속 편지','지민과 소윤이 주고받은 편지다.', '두 사람이 따로 할 이야기가 있었나 봐.'],
-    ['cloth','세탁 바구니 속 손수건','얼룩진 손수건이다.', '자물쇠와 손수건에 얼룩이 있어. 같은 물질인지는 확인해야 해.', 'lock',
-      '자물쇠와 손수건의 얼룩을 비교할 수 있다. 성분과 손수건 주인은 미확인.'],
+    ['hall-clock','복도 벽시계','복도 전기시계가 20:00에 멈춰 있다. 정전 뒤 수동으로 맞춰야 하는 시계다.', '이 시계는 불이 나간 때를 보여줘.'],
+    ['letter','복도 서랍 속 편지','서랍에 수신인 이름이 없는 편지 봉투가 있다.', '지민 씨랑 소윤 씨가 주고받은 편지네. 그래서 같이 있었다는 걸 숨겼구나.', 'resolved',
+      '편지에서 두 사람이 관계를 비밀로 해 왔다는 사실을 확인했다.'],
+    ['cloth','세탁 바구니 속 손수건','모서리가 찢어진 손수건이다. 푸른 얼룩 옆에 ‘윤’이라는 이름이 수놓여 있다.', '한쪽 모서리가 통째로 없네. 그 조각은 어디 갔을까?', 'archive-open',
+      '윤 집사의 손수건. 찢어진 모서리와 자물쇠에서 본 것과 비슷한 푸른 얼룩이 있다.'],
   ],
 };
 const art = {
-  '서재': ['study', [[94,51],[18,37],[70,83],[54,22]]],
+  '서재': ['study', [[94,51],[18,37],[70,83],[54,22],[82,68],[27,52]]],
   '현관': ['foyer', [[33,69],[22,63],[83,44],[94,46]]],
   '수장고': ['archive', [[17,45],[53,63],[83,43],[85,77]]],
   '응접실·복도': ['lounge', [[19,66],[53,20],[62,59],[88,74]]],
@@ -74,6 +95,7 @@ const art = {
 const portraits = {'윤 집사':'butler','오현석':'investor','한지민':'guest','강소윤':'witness'};
 const flags = new Set();
 const notes = new Map();
+const noteElements = new Map();
 const el = id => document.getElementById(id);
 let room = '서재';
 function button(label, click) {
@@ -88,6 +110,7 @@ function record(id, title, detail, canPresent = true) {
   if (notes.has(id)) return;
   notes.set(id, title);
   const item = document.createElement('li');
+  noteElements.set(id, item);
   const name = document.createElement('strong');
   name.textContent = title;
   item.append(name, document.createElement('br'), document.createTextNode(detail));
@@ -97,15 +120,32 @@ function record(id, title, detail, canPresent = true) {
   option.value = id; option.textContent = title;
   el('evidence').append(option);
 }
+function reviseNote(id, title, detail) {
+  const item = noteElements.get(id);
+  item.firstChild.textContent = title;
+  item.lastChild.textContent = detail;
+}
 function inspect([id,title,description,brief,condition,note], selected) {
   for (const item of el('objects').children) item.setAttribute('aria-pressed', String(item === selected));
   const box = el('observation');
   box.replaceChildren();
-  line(box, description);
+  line(box, id === 'cloth' && !flags.has('archive-open') ? '바구니에 손수건이 하나 들어 있다.' : description);
   if (brief && (!condition || flags.has(condition))) {
     line(box, '몽나 · ' + brief);
     flags.add(id);
     record(id, title, note || description);
+    renderQuestions();
+  }
+  if (id === 'recording' && flags.has('clock-checked')) {
+    line(box, '20:08 한태규가 서재에서 전화로 대화한다. 20:09 서재 문 쪽에서 누군가 다가온다. 한태규가 상대의 손에 있던 천을 움켜쥔 채 쓰러진다. 카메라에 상대의 얼굴은 잡히지 않았다.');
+    flags.add('incident');
+    record('incident', '서재 영상 · 20:08~20:09', '20:08에는 한태규가 대화하고 있었다. 20:09 한태규가 다가온 사람 손의 천을 붙잡고 쓰러졌다.', false);
+    renderQuestions();
+  }
+  if (id === 'glasses' && flags.has('archive-open')) {
+    line(box, '몽나 · 안경 옆에 한태규 씨가 쥐고 있던 천 조각이 있어. 찢어진 가장자리에 흰색 감침질이 남아 있네.');
+    flags.add('fragment');
+    record('fragment', '한태규가 쥐고 있던 천 조각', '서재에서 발견한 천 조각. 찢어진 윤곽과 흰색 감침질이 손수건 모서리와 이어진다.', false);
     renderQuestions();
   }
 }
@@ -159,10 +199,10 @@ function renderQuestions() {
   ];
   if (flags.has('coat')) options.push(button('한지민 · 외투는 언제 젖었어요?', () => ask('denial','한지민',
     flags.has('resolved') ? '7시 반에 소윤이랑 함께 있었어요.' : '불이 꺼지기 전에는 밖에 나간 적 없어요.')));
-  if (flags.has('denial') || flags.has('letter')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤',
+  if (flags.has('denial')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤',
     '7시 반쯤 현관문 바깥에 있었어요. 지민 씨랑 같이 있었거든요.')));
   if (flags.has('butler')) options.push(button('윤 집사 · 어느 시계를 보셨어요?', () => ask('clock-source','윤 집사',
-    '서재 벽에 걸린 괘종시계입니다. 어르신 방에서는 늘 그걸 봤습니다.',
+    '서재 벽에 걸린 괘종시계입니다. 정전되기 전부터 책상에 있던 초에 불이 켜져 있어서, 촛불로 봤습니다.',
     '윤 집사가 말한 7시 50분은 서재 괘종시계에 표시된 시각이다.', false)));
   if (flags.has('alibi')) options.push(button('오현석 · 정전 내내요?', () => ask('alibi-claim','오현석',
     '불이 꺼지고 다시 들어올 때까지요. 삼십 분 내내 거기 있었소.',
@@ -175,9 +215,37 @@ function renderQuestions() {
       '창가에서 한참 비를 보고 있었어요. 오 선생이랑 카드를 시작한 건 불이 다시 들어오기 조금 전이에요.',
       '전기가 돌아오기 조금 전부터 오현석과 응접실에서 카드놀이를 했다.', false)));
   }
+  if (flags.has('incident') && flags.has('alibi-gap')) {
+    options.push(button('최 변호사 · 8시 9분엔 누가 같이 있었어요?', () => {
+      ask('lounge-confirmed','최 변호사',
+        '영상에 나온 그 시각이면 오 선생, 지민 씨, 소윤 씨가 저랑 응접실에 있었습니다. 전기가 나간 뒤부터 제가 복도로 나갈 때까지, 세 사람 모두 같은 테이블에 앉아 있었어요. 서 여사도 그 자리에 있었고요.',
+        '사건 시각 20:09에 오현석, 한지민, 강소윤은 최 변호사와 응접실에 함께 있었다고 한다.', false);
+    }));
+  }
+  if (flags.has('lounge-confirmed')) options.push(button('서 여사 · 그 시간에 같이 있었어요?', () => {
+    ask('lounge-corroborated','서 여사',
+      '네. 창가로 간 건 변호사님이 복도로 나가신 다음이었어요. 그전엔 다 같이 촛대 하나 놓고 테이블에 앉아 있었어요.',
+      '서 여사도 사건 시각에 세 사람이 응접실 테이블에 있었다고 확인했다.', false);
+  }));
+  if (flags.has('lounge-corroborated') && flags.has('resolved') && flags.has('lock')) {
+    options.push(button('윤 집사 · 여벌 열쇠는 누가 갖고 있죠?', () => {
+      ask('archive-open','윤 집사',
+        '여벌 열쇠는 제가 가지고 있습니다. 시신을 발견하고 나서 수장고 문도 확인했습니다. 자물쇠를 만진 건 그때입니다.',
+        '윤 집사가 여벌 열쇠를 갖고 있다. 집사는 시신을 발견한 뒤 수장고 자물쇠를 만졌다고 진술했다.', false);
+      if (!flags.has('archive-checked')) el('response').textContent = '몽나 · 세탁 바구니와 서재에서 놓친 게 있는지 다시 보자.';
+    }));
+  }
   el('questions').replaceChildren(...options);
   el('cross').hidden = !flags.has('denial') || !flags.has('witness') || flags.has('resolved');
   el('alibi-cross').hidden = !flags.has('lawyer') || !flags.has('madam') || flags.has('alibi-gap');
+  if (flags.has('lounge-corroborated')) {
+    reviseNote('alibi-gap','오현석의 알리바이',
+      '정전 후반의 공백은 남아 있다. 사건 시각인 20:09에 응접실에 있었다는 사실은 두 증인이 확인했다.');
+  }
+  const chapterTwo = flags.has('resolved') || flags.has('clock-checked') || flags.has('alibi-gap');
+  el('chapter').textContent = flags.has('archive-checked') ? '3장 · 최종 추리' : chapterTwo ? '2장 · 교차 심문' : '1장 · 저택 조사';
+  if (flags.has('denial') && flags.has('butler') && flags.has('alibi')) unlockPoll(1);
+  renderComparisons();
 }
 el('cross').addEventListener('submit', event => {
   event.preventDefault();
@@ -212,6 +280,265 @@ el('alibi-cross').addEventListener('submit', event => {
   el('response').textContent = '몽나 · 중간에 비는 시간이 있네. 그때 어디 있었는지는 아직 모르겠어.';
   renderQuestions();
 });
+function choices(fieldset, legend, name, entries, type) {
+  const heading = document.createElement('legend');
+  heading.textContent = legend;
+  fieldset.replaceChildren(heading);
+  for (const [value, title] of entries) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    Object.assign(input, { type, name, value, required: type === 'radio' });
+    label.append(input, document.createTextNode(' ' + title));
+    fieldset.append(label);
+  }
+}
+function showComparison(containerId, prompt, ids, check) {
+  const container = el(containerId);
+  if (container.firstChild) return;
+  const form = document.createElement('form');
+  form.className = 'comparison';
+  const fieldset = document.createElement('fieldset');
+  choices(fieldset, prompt, 'evidence', ids.filter(id => notes.has(id)).map(id => [id, notes.get(id)]), 'checkbox');
+  const submit = document.createElement('button');
+  submit.className = 'primary';
+  submit.textContent = '선택한 증거 제시';
+  const feedback = document.createElement('p');
+  feedback.setAttribute('role', 'status');
+  form.append(fieldset, submit, feedback);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    feedback.textContent = check(new FormData(form).getAll('evidence'));
+  });
+  container.append(form);
+}
+function renderComparisons() {
+  const clockEvidence = ['clock','recording'];
+  if (flags.has('receipt') && flags.has('hall-clock') && clockEvidence.every(id => flags.has(id)) && !flags.has('clock-checked')) {
+    showComparison('clock-cross', '오늘 서재 시계가 얼마나 느렸는지 보여주는 증거는?', ['hall-clock','receipt','recording'], selected => {
+      if (selected.length !== 2 || !selected.includes('receipt') || !selected.includes('recording')) {
+        return '몽나 · 예전 오차가 적힌 기록이 하나 있어. 오늘 서로 다른 두 시각이 같은 화면에 찍힌 기록도 같이 보자.';
+      }
+      flags.add('clock-checked');
+      speak('윤 집사', '삼십 분에 불이 들어왔는데 저 시계는 십 분이었군요. 제가 읽은 일곱 시 오십 분은 실제로 여덟 시 십 분쯤이었겠지요.');
+      record('clock-checked','서재 시계 보정','정전 중에도 서재 시계는 계속 움직였고 복구 시점에 20분 느렸다. 윤 집사의 퇴실 진술을 보정하면 약 20:10이다.', false);
+      el('response').textContent = '몽나 · 그럼 집사님이 나온 시간이 8시 10분쯤이네. 책장 녹화 기록에서 그 앞뒤를 다시 봐야겠다.';
+      el('clock-cross').replaceChildren();
+      renderQuestions();
+      return '';
+    });
+  }
+  if (flags.has('cloth') && flags.has('fragment') && !flags.has('archive-checked')) {
+    showComparison('archive-cross', '발견 뒤 자물쇠를 만졌다는 말로 설명되지 않는 증거는?', ['lock','cloth','fragment','sale'], selected => {
+      if (selected.length !== 2 || !selected.includes('cloth') || !selected.includes('fragment')) {
+        speak('윤 집사', '그 푸른 얼룩은 제가 시신을 발견한 뒤 수장고를 확인하면서 자물쇠를 만져 생긴 겁니다.');
+        return '몽나 · 그 말로 설명할 수 있는 건 얼룩이야. 손수건에서 찢어진 부분과 맞는 걸 찾아보자.';
+      }
+      flags.add('archive-checked');
+      speak('윤 집사', '그 조각이… 어르신 손에 있었다고요?');
+      record('archive-checked','찢어진 손수건과 천 조각','한태규가 쓰러질 때 쥔 천 조각이 윤 집사 손수건의 찢어진 윤곽과 감침질에 정확히 이어진다.', false);
+      el('archive-cross').replaceChildren();
+      el('response').textContent = '몽나 · 쓰러지는 순간에 이미 저 조각을 쥐었어. 발견한 뒤 자물쇠를 만졌다는 말로는 이게 설명이 안 돼.';
+      el('deduction').hidden = false;
+      unlockPoll(2);
+      renderDeduction();
+      renderQuestions();
+      return '';
+    });
+  }
+}
+
+const suspects = ['한지민','오현석','강소윤','윤 집사'];
+const deductions = [
+  ['한태규 씨를 쓰러뜨린 사람은 누구였나?', [
+    ['0',suspects[0],'20:09에 지민 씨는 응접실에 있었어. 두 증인이 같은 테이블에서 봤다고 했지.'],
+    ['1',suspects[1],'행적이 비는 건 정전 후반이야. 20:09엔 두 증인이 오현석 씨를 응접실에서 봤어.'],
+    ['2',suspects[2],'소윤 씨도 20:09에 응접실에 있었어. 최 변호사와 서 여사에게 들은 말을 다시 보자.'],
+    ['3',suspects[3]],
+  ]],
+  ['한태규 씨가 습격당한 시각은?', [
+    ['before','19:50 무렵','19:50은 집사님이 읽은 시계의 표시였어. 당시 서재 시계가 얼마나 느렸지?'],
+    ['blackout','20:00 무렵','불이 꺼진 뒤에도 한태규 씨는 통화했어. 서재 영상의 시각을 확인하자.'],
+    ['attack','20:09 무렵'],
+    ['after','20:30 무렵','20:30은 전기가 돌아오고 시신이 발견된 시각이야. 쓰러지는 순간은 서재 영상에 남아 있어.'],
+  ]],
+  ['발견한 뒤에만 자물쇠를 만졌다는 말로 설명되지 않는 증거는?', [
+    ['coat','젖은 외투','외투만 보고는 언제 젖었는지, 서재에서 무슨 일이 있었는지 알 수 없어.'],
+    ['sale','매각 관련 서류','매각을 막고 싶은 이유는 보여줘. 서재에서 맞춰 본 물건이 있었지?'],
+    ['clock','서재 벽시계','시계는 시각을 보정해 줘. 사람을 특정할 수 있는 건 쓰러질 때 남은 물증이야.'],
+    ['matched','윤 집사의 손수건 + 한태규가 쥔 천 조각'],
+  ]],
+];
+let deductionStep = 0;
+let finalVoted = false;
+function renderDeduction() {
+  const [prompt, entries] = deductions[deductionStep];
+  choices(el('deduction-options'), prompt, 'answer', entries, 'radio');
+}
+function judgeDeduction(value) {
+  const entry = deductions[deductionStep][1].find(([id]) => id === value);
+  if (entry[2]) {
+    el('deduction-feedback').textContent = '몽나 · ' + entry[2];
+    return;
+  }
+  el('deduction-feedback').textContent = '';
+  deductionStep += 1;
+  if (deductionStep < deductions.length) {
+    renderDeduction();
+    el('deduction-options').querySelector('input').focus();
+    return;
+  }
+  el('deduction-form').hidden = true;
+  el('chapter').textContent = '결말 · 마지막 초대';
+  el('ending-butler').textContent = '윤 집사 · 어르신은 수장고를 통째로 넘기겠다고 하셨습니다. 사십 년을 이 집에서 보냈는데, 유언장에는 제 이름 한 줄이 없더군요. 불이 꺼지고 나서 이제 아무도 보지 않는다는 생각이 들었습니다.';
+  el('ending-mongna').textContent = '몽나 · 집사님 말을 처음엔 그냥 믿었어요. 한태규 씨가 끝까지 그 조각을 놓지 않아서 여기까지 온 거예요.';
+  el('ending').hidden = false;
+  el('restart').focus();
+  renderPollResults();
+}
+el('deduction-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const value = new FormData(event.currentTarget).get('answer');
+  if (deductionStep === 0 && chatConnected && !finalVoted) {
+    finalVoted = true;
+    finishPoll();
+    el('deduction-options').disabled = true;
+    event.currentTarget.querySelector('button').disabled = true;
+    openPoll(3);
+    startPoll(Number(value), () => {
+      el('deduction-options').disabled = false;
+      el('deduction-form').querySelector('button').disabled = false;
+      judgeDeduction(value);
+    });
+    el('poll-skip').focus();
+    return;
+  }
+  judgeDeduction(value);
+});
+el('restart').addEventListener('click', () => location.reload());
+
+const pollTitles = ['','1장 · 지금 가장 의심되는 사람은?','2장 · 지금 가장 의심되는 사람은?','최종 투표 · 범인은 누구?'];
+const pollHistory = new Map();
+let pollRound = 0;
+let activePoll;
+let chatConnected = false;
+let chatFrame;
+
+function unlockPoll(round) {
+  const id = 'poll-' + round;
+  if (el(id)) return;
+  const option = button(round + '장 투표 열기', () => openPoll(round));
+  option.id = id;
+  el('poll-rounds').append(option);
+}
+function openPoll(round) {
+  finishPoll();
+  pollRound = round;
+  el('poll').hidden = false;
+  el('poll-title').textContent = pollTitles[round];
+  el('poll-status').textContent = '';
+  el('poll-form').hidden = pollHistory.has(round) || round === 3;
+  el('poll-skip').textContent = '바로 넘어가기';
+  if (pollHistory.has(round)) {
+    renderPollResults();
+    el('poll-skip').textContent = '닫기';
+  } else {
+    el('poll-results').hidden = true;
+    choices(el('poll-options'), '몽나의 선택', 'suspect', suspects.map((name, index) => [String(index), name]), 'radio');
+  }
+}
+function startPoll(pick, onFinish) {
+  el('poll-form').hidden = true;
+  const deadline = Date.now() + 20000;
+  activePoll = { pick, votes: new Map(), deadline, onFinish, timer: null };
+  if (!chatConnected) {
+    finishPoll();
+    return;
+  }
+  const tick = () => {
+    const remaining = Math.ceil((deadline - Date.now()) / 1000);
+    if (remaining <= 0) { finishPoll(); return; }
+    el('poll-status').textContent = '몽나의 선택은 봉인됐어요. 채팅에 !추리 1~4 · ' + remaining + '초 남음';
+  };
+  tick();
+  activePoll.timer = setInterval(tick, 250);
+  const menu = el('poll-results');
+  menu.replaceChildren();
+  suspects.forEach((name, index) => {
+    const li = document.createElement('li');
+    li.textContent = (index + 1) + '번 · ' + name;
+    menu.append(li);
+  });
+  menu.hidden = false;
+}
+function finishPoll() {
+  if (!activePoll) return;
+  const { pick, votes, timer, onFinish } = activePoll;
+  activePoll = null;
+  clearInterval(timer);
+  const counts = [0,0,0,0];
+  for (const vote of votes.values()) counts[vote] += 1;
+  pollHistory.set(pollRound, { pick, counts, total: votes.size });
+  renderPollResults();
+  el('poll-skip').textContent = '닫기';
+  onFinish?.();
+}
+function renderPollResults() {
+  const result = pollHistory.get(pollRound);
+  if (!result || el('poll').hidden) return;
+  const { pick, counts, total } = result;
+  el('poll-status').textContent = '몽나의 선택 · ' + suspects[pick] + (total ? '' : ' · 이번엔 조용하네.');
+  const list = el('poll-results');
+  list.replaceChildren();
+  list.hidden = !total;
+  const first = pollRound === 2 ? pollHistory.get(1) : null;
+  if (!total) return;
+  suspects.forEach((name, index) => {
+    const li = document.createElement('li');
+    const percent = Math.round(100 * counts[index] / total);
+    const previous = first?.total >= 3 && total >= 3 ? ' · 1장 ' + Math.round(100 * first.counts[index] / first.total) + '%' : '';
+    li.textContent = name + ' · ' + (total < 3 ? counts[index] + '표' : percent + '%') + previous;
+    list.append(li);
+  });
+  if (pollRound === 3 && !el('ending').hidden && total > 0) {
+    const li = document.createElement('li');
+    li.textContent = '채팅 적중 · ' + counts[3] + '/' + total + '표';
+    list.append(li);
+  }
+}
+el('poll-form').addEventListener('submit', event => {
+  event.preventDefault();
+  startPoll(Number(new FormData(event.currentTarget).get('suspect')));
+});
+el('poll-skip').addEventListener('click', () => {
+  if (activePoll) { finishPoll(); return; }
+  el('poll').hidden = true;
+  (el('poll-' + pollRound) || el('deduction-form').querySelector('button')).focus();
+});
+el('connect-chat').addEventListener('click', () => {
+  if (chatFrame) chatFrame.remove();
+  chatConnected = false;
+  el('chat-status').textContent = 'SOOP 채팅 연결을 확인하고 있습니다.';
+  el('auth-link').hidden = true;
+  chatFrame = document.createElement('iframe');
+  chatFrame.title = 'SOOP 채팅 연결';
+  chatFrame.hidden = true;
+  chatFrame.src = '/streamer/rainy-manor-chat';
+  document.body.append(chatFrame);
+});
+window.addEventListener('message', event => {
+  if (!chatFrame || event.origin !== location.origin || event.source !== chatFrame.contentWindow) return;
+  const data = event.data;
+  if (data?.type === 'rainy-manor-chat-state') {
+    chatConnected = data.connected === true;
+    el('chat-status').textContent = data.status;
+    el('auth-link').hidden = data.authenticated === true || chatConnected;
+    if (!chatConnected) finishPoll();
+  }
+  if (data?.type !== 'rainy-manor-vote' || !chatConnected || !activePoll || Date.now() >= activePoll.deadline) return;
+  if (typeof data.userId !== 'string' || !data.userId || !/^[1-4]$/.test(data.vote)) return;
+  activePoll.votes.set(data.userId, Number(data.vote) - 1);
+});
+
 renderRoom();
 renderQuestions();
 </script>
