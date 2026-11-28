@@ -11,6 +11,7 @@
         .game-card { background-color: #ffffff; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; min-height: 145px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent; text-decoration: none; }
         .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12); border-color: #c4b5fd; }
         .game-icon-box { width: 42px; height: 42px; background-color: #f5f3ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 23px; margin-bottom: 12px; }
+        .game-icon-image { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; object-position: 50% 20%; }
         .game-name { font-size: 17px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0; }
         .game-desc { font-size: 14px; color: #718096; line-height: 1.5; margin: 0; word-break: keep-all; }
         .game-link { margin-top: 14px; font-size: 13px; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 4px; }

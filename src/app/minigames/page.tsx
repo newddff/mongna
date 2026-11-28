@@ -13,6 +13,7 @@ const games = [
     { id: 'streamer-chat', icon: '💬', title: '몽나 vs 달구 채팅 게임', desc: '사목 · 오목 · 체스 · 장기. 몽나 계정 연동으로 방송 채팅과 함께 즐겨요.', ready: true, isLink: true, path: '/streamer/minigames' },
     // 💡 핀볼 게임 주소를 정확한 배포 링크로 설정했습니다.
     { id: 'pinball', icon: '🪐', title: '핀볼 추첨', desc: '다양한 맵에서 구슬이 빙글빙글 도는 마블 룰렛!', ready: true, isLink: true, path: 'https://mongna-pinball.vercel.app/' },
+    { id: 'rainy-manor', image: '/rainy-manor-art/detective-mongna.webp', title: '비 내리는 저택, 마지막 초대', desc: '탐정 몽나가 되어 저택을 조사하고, 증언과 단서를 대조해 범인을 찾아요.', ready: true, isLink: true, path: '/rainy-manor.html', newTab: true },
   ];
 
   const gameGroups = [
@@ -51,11 +52,11 @@ const games = [
               <div className="game-grid">
             {group.items.map((g) => {
               const content = <>
-                <div><div className="game-icon-box">{g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
-                <div className="game-link"><span>{g.id === 'streamer-chat' ? '몽나 전용 게임룸으로' : g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
+                <div><div className="game-icon-box">{g.image ? <img className="game-icon-image" src={g.image} width={42} height={42} alt="" loading="lazy" /> : g.icon}</div><h3 className="game-name">{g.title}</h3><p className="game-desc">{g.desc}</p></div>
+                <div className="game-link"><span>{g.id === 'streamer-chat' ? '몽나 전용 게임룸으로' : g.newTab ? '새 탭에서 열기' : g.ready ? '게임 시작하기' : '준비중'}</span><span>→</span></div>
               </>;
               return g.isLink ? (
-                <a key={g.id} className="game-card" href={g.path}>{content}</a>
+                <a key={g.id} className="game-card" href={g.path} target={g.newTab ? '_blank' : undefined} rel={g.newTab ? 'noopener' : undefined}>{content}</a>
               ) : (
                 <div key={g.id} className="game-card" onClick={() => handleCardClick(g)}>{content}</div>
               );
