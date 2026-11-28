@@ -147,6 +147,9 @@ function inspect([id,title,description,brief,condition,note], selected) {
     record(id, title, note || description);
     renderQuestions();
   }
+  if ((id === 'report' || id === 'case') && flags.has('report') && flags.has('case')) {
+    line(box, '몽나 · 문진의 둥근 모서리와 녹청이 소견서와 맞아. 문진이 흉기일 수 있지만 자물쇠에도 녹청은 있어.');
+  }
   if (id === 'glasses' && flags.has('found-scene') && flags.has('archive-refuted')) {
     line(box, '몽나 · 안경 옆에 한태규 씨가 쥐고 있던 천 조각이 있어. 찢어진 가장자리에 흰색 감침질이 남아 있네.');
     flags.add('fragment');
@@ -294,7 +297,7 @@ el('alibi-cross').addEventListener('submit', event => {
   speak('오현석', '그 사이엔 혼자 소파에 앉아 있었소. 그때 날 봤다는 사람이 없다는 건 인정하겠소.');
   record('alibi-gap','오현석의 알리바이 공백',
     '최 변호사가 떠난 뒤부터 서 여사가 카드놀이를 시작하기 전까지는 오현석이 응접실에 있었는지 확인되지 않았다.', false);
-  el('response').textContent = '몽나 · 그 사이에 뭘 했는지 아무도 못 봤네. 수장고 쪽도 살펴보자.';
+  el('response').textContent = '몽나 · 두 분의 말 사이에 비는 시간이 있네. 수장고 쪽도 살펴보자.';
   renderQuestions();
 });
 function choices(fieldset, legend, name, entries, type) {
