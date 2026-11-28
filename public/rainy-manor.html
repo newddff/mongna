@@ -192,46 +192,46 @@ function speak(name, reply) {
   el('speech').textContent = reply;
   el('speaking').hidden = false;
 }
-function ask(id, name, reply, detail = reply, canPresent = true) {
+function ask(id, name, topic, reply, detail = reply, canPresent = true) {
   flags.add(id);
   speak(name, reply);
   el('response').textContent = '';
   el('alibi-response').textContent = '';
-  record(id, name + '의 진술', detail, canPresent);
+  record(id, name + ' · ' + topic, detail, canPresent);
   renderQuestions();
 }
 function renderQuestions() {
   const options = [
-    button('윤 집사 · 언제 서재를 나왔어요?', () => ask('butler','윤 집사','차를 올리고 나올 때 서재 시계로 7시 50분쯤이었을 겁니다. 어르신이 아직 따뜻할 때 마시겠다고 직접 말씀하셨지요.')),
-    button('오현석 · 정전 때 어디 계셨어요?', () => ask('alibi','오현석','나는 정전 내내 응접실에 있었소. 다른 손님들이 증인이지.', '응접실에 계속 있었다고 주장함. 목격자와 시간대 확인 필요.')),
+    button('윤 집사 · 언제 서재를 나왔어요?', () => ask('butler','윤 집사','서재를 나온 시각','차를 올리고 나올 때 서재 시계로 7시 50분쯤이었을 겁니다. 어르신이 아직 따뜻할 때 마시겠다고 직접 말씀하셨지요.')),
+    button('오현석 · 정전 때 어디 계셨어요?', () => ask('alibi','오현석','정전 중 행적','나는 정전 내내 응접실에 있었소. 다른 손님들이 증인이지.', '응접실에 계속 있었다고 주장함. 목격자와 시간대 확인 필요.')),
   ];
-  if (flags.has('coat')) options.push(button('한지민 · 외투는 언제 젖었어요?', () => ask('denial','한지민',
+  if (flags.has('coat')) options.push(button('한지민 · 외투는 언제 젖었어요?', () => ask('denial','한지민','정전 전 외출 여부',
     flags.has('resolved') ? '7시 반에 소윤이랑 함께 있었어요.' : '불이 꺼지기 전에는 밖에 나간 적 없어요.')));
-  if (flags.has('denial')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤',
+  if (flags.has('denial')) options.push(button('강소윤 · 정전 전에는 어디 있었어요?', () => ask('witness','강소윤','19:30 현관 밖 목격',
     '7시 반쯤 현관문 바깥에 있었어요. 지민 씨랑 같이 있었거든요.')));
-  if (flags.has('butler')) options.push(button('윤 집사 · 어느 시계를 보셨어요?', () => ask('clock-source','윤 집사',
+  if (flags.has('butler')) options.push(button('윤 집사 · 어느 시계를 보셨어요?', () => ask('clock-source','윤 집사','시각을 읽은 괘종시계',
     '서재 벽에 걸린 괘종시계입니다. 정전되기 전부터 책상에 있던 초에 불이 켜져 있어서, 촛불로 봤습니다.',
     '윤 집사가 말한 7시 50분은 서재 괘종시계에 표시된 시각이다.', false)));
-  if (flags.has('alibi')) options.push(button('오현석 · 정전 내내요?', () => ask('alibi-claim','오현석',
+  if (flags.has('alibi')) options.push(button('오현석 · 정전 내내요?', () => ask('alibi-claim','오현석','응접실에 머문 시간',
     '불이 꺼지고 다시 들어올 때까지요. 삼십 분 내내 거기 있었소.',
     '오현석은 20:00부터 20:30까지 계속 응접실에 있었다고 주장한다.', false)));
   if (flags.has('alibi-claim')) {
-    options.push(button('최 변호사 · 언제까지 같이 계셨어요?', () => ask('lawyer','최 변호사',
+    options.push(button('최 변호사 · 언제까지 같이 계셨어요?', () => ask('lawyer','최 변호사','정전 직후 응접실 목격',
       '불이 나가고 처음 십 분쯤은 같이 있었어요. 둘이 더듬거리면서 촛대를 찾았거든요. 그 뒤엔 제가 자리를 비웠습니다.',
       '정전 직후부터 약 10분 동안 오현석과 응접실에 함께 있었다.', false)));
-    options.push(button('서 여사 · 언제 오현석 씨를 보셨어요?', () => ask('madam','서 여사',
+    options.push(button('서 여사 · 언제 오현석 씨를 보셨어요?', () => ask('madam','서 여사','복구 직전 응접실 목격',
       '창가에서 한참 비를 보고 있었어요. 오 선생이랑 카드를 시작한 건 불이 다시 들어오기 조금 전이에요.',
       '전기가 돌아오기 조금 전부터 오현석과 응접실에서 카드놀이를 했다.', false)));
   }
   if (flags.has('clock-checked')) {
-    options.push(button('최 변호사 · 정전 무렵 한태규 씨를 만나셨나요?', () => ask('last-alive','최 변호사',
+    options.push(button('최 변호사 · 정전 무렵 한태규 씨를 만나셨나요?', () => ask('last-alive','최 변호사','정전 무렵 한태규와의 대화',
       '정전 직전에 어르신이 서재로 저를 부르셨습니다. 유언장을 고치시겠다고요. 불이 나가는 바람에 이야기가 끊겼지요.',
       '정전 무렵 최 변호사가 한태규와 서재에서 직접 대화했다.', false)));
-    options.push(button('최 변호사 · 정전 중에 집사님을 보셨나요?', () => ask('hall-sighting','최 변호사',
+    options.push(button('최 변호사 · 정전 중에 집사님을 보셨나요?', () => ask('hall-sighting','최 변호사','20:20 무렵 복도에서 본 집사',
       '불이 꺼지고 스무 분쯤 됐을 겁니다. 복도에서 촛대를 든 집사님을 봤습니다.',
       '최 변호사는 20:20 무렵 복도에서 촛대를 든 집사를 봤다고 말했다.', false)));
   }
-  if (flags.has('alibi-gap')) options.push(button('서 여사 · 불이 돌아온 직후에 뭘 보셨어요?', () => ask('found-scene','서 여사',
+  if (flags.has('alibi-gap')) options.push(button('서 여사 · 불이 돌아온 직후에 뭘 보셨어요?', () => ask('found-scene','서 여사','복구 직후 서재 목격',
     '불이 들어오고 곧 집사 목소리가 들려서 서재로 갔어요. 어르신이 쓰러져 계셨고, 손에 흰 천 조각이 쥐어져 있었어요.',
     '20:30 복구 직후 서 여사가 서재에서 쓰러진 한태규와 그의 손에 있던 흰 천 조각을 보았다.', false)));
   if (flags.has('resolved') && flags.has('lock') && flags.has('alibi-gap') && flags.has('clock-checked')) {
@@ -240,13 +240,13 @@ function renderQuestions() {
         speak('윤 집사','여벌 열쇠는 제가 갖고 있습니다. 불이 돌아오기 전에는 문이 잠겼는지 확인만 했습니다.');
         return;
       }
-      ask('archive-open','윤 집사',
+      ask('archive-open','윤 집사','여벌 열쇠와 자물쇠',
         '여벌 열쇠는 제가 가지고 있습니다. 오늘 그 자물쇠에 처음 손댄 건 시신을 발견한 뒤였습니다.',
         '여벌 열쇠는 윤 집사가 갖고 있다. 윤 집사는 발견 후에 처음 자물쇠를 만졌다고 주장했다.', false);
     }));
   }
   if (flags.has('investor-rechecked') && flags.has('archive-open') && flags.has('hall-sighting')) {
-    options.push(button('최 변호사 · 집사님이 복도 어디에서 뭘 하고 계셨죠?', () => ask('lock-sighting','최 변호사',
+    options.push(button('최 변호사 · 집사님이 복도 어디에서 뭘 하고 계셨죠?', () => ask('lock-sighting','최 변호사','20:20 무렵 수장고 앞 자물쇠 목격',
       '수장고 문 앞이었습니다. 촛대를 한 손에 들고, 다른 손으로 자물쇠를 만지고 계셨어요. 제가 지나가니 돌아보시더군요.',
       '20:20 무렵, 전기가 돌아오기 전에 최 변호사가 윤 집사가 수장고 자물쇠를 직접 만지는 모습을 봤다.', false)));
   }
